@@ -262,7 +262,7 @@ elif [ "$ACTION" = "measurement" ]; then
  # IMPORT_TIME=$(($END - $START))
 
  function startMeasurement {
-    execMvn --projects tools -DskipTests clean package
+    execMvn --projects tools -am -DskipTests clean package
     COUNT=5000
     commit_info=$(git log -n 1 --pretty=oneline)
     echo -e "\nperform measurement via jar=> $JAR and ARGS=> $ARGS"
