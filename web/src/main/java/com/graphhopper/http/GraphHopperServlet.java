@@ -26,7 +26,6 @@ import com.graphhopper.PathWrapper;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.util.Helper;
-import com.graphhopper.util.InstructionList;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.exceptions.GHException;
@@ -209,8 +208,7 @@ public class GraphHopperServlet extends GHBaseServlet {
                 }
                 jsonPath.putPOJO("points", createPoints(ar.getPoints(), pointsEncoded, enableElevation));
                 if (enableInstructions) {
-                    InstructionList instructions = ar.getInstructions();
-                    jsonPath.putPOJO("instructions", instructions.createJson());
+                    jsonPath.putPOJO("instructions", ar.getInstructions());
                 }
                 jsonPath.putPOJO("legs", ar.getLegs());
                 jsonPath.put("ascend", ar.getAscend());
