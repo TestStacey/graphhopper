@@ -145,12 +145,6 @@ public class GraphHopperModule extends AbstractModule {
 
     @Provides
     @Singleton
-    RouteSerializer getRouteSerializer(GraphHopper graphHopper) {
-        return new SimpleRouteSerializer(graphHopper.getGraphHopperStorage().getBounds());
-    }
-
-    @Provides
-    @Singleton
     GraphHopperStorage getGraphHopperStorage(GraphHopper graphHopper) {
         return graphHopper.getGraphHopperStorage();
     }

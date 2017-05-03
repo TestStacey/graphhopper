@@ -94,10 +94,11 @@ public class GraphHopperServletIT extends BaseServletTester {
     }
 
     @Test
-    public void testJsonRounding() throws Exception {
+    public void testJsonRoundingAndBBox() throws Exception {
         JsonNode json = query("point=42.554851234,1.536198&point=42.510071,1.548128&points_encoded=false", 200);
         JsonNode cson = json.get("paths").get(0).get("points");
         assertTrue("unexpected precision!", cson.toString().contains("[1.536374,42.554839]"));
+        assertTrue(json.toString().contains("\"bbox\":[1.513361,42.51003,1.554694,42.556773]"));
     }
 
     @Test
@@ -162,24 +163,37 @@ public class GraphHopperServletIT extends BaseServletTester {
         Throwable ex = rsp.getErrors().get(0);
         assertTrue("Wrong exception found: " + ex.getClass().getName()
                 + ", IllegalArgumentException expected.", ex instanceof IllegalArgumentException);
+    }
+
+    @Test
+    public void testGraphHopperWebRealExceptions2() {
+        GraphHopperAPI hopper = new GraphHopperWeb();
+        assertTrue(hopper.load(getTestRouteAPIUrl()));
 
         // IllegalArgumentException (Wrong Points)
-        rsp = hopper.route(new GHRequest(0.0, 0.0, 0.0, 0.0));
+        GHResponse rsp = hopper.route(new GHRequest(0.0, 0.0, 0.0, 0.0));
         assertFalse("Errors expected but not found.", rsp.getErrors().isEmpty());
 
         List<Throwable> errs = rsp.getErrors();
         for (int i = 0; i < errs.size(); i++) {
-            assertEquals(((PointOutOfBoundsException) errs.get(i)).getPointIndex(), i);
+            assertEquals(i, ((PointOutOfBoundsException) errs.get(i)).getPointIndex());
         }
+    }
+
+    @Test
+    public void testGraphHopperWebRealExceptions3() {
+        GraphHopperAPI hopper = new GraphHopperWeb();
+        assertTrue(hopper.load(getTestRouteAPIUrl()));
 
         // IllegalArgumentException (Vehicle not supported)
-        rsp = hopper.route(new GHRequest(42.554851, 1.536198, 42.510071, 1.548128).setVehicle("SPACE-SHUTTLE"));
+        GHResponse rsp = hopper.route(new GHRequest(42.554851, 1.536198, 42.510071, 1.548128).setVehicle("SPACE-SHUTTLE"));
         assertFalse("Errors expected but not found.", rsp.getErrors().isEmpty());
 
-        ex = rsp.getErrors().get(0);
+        Throwable ex = rsp.getErrors().get(0);
         assertTrue("Wrong exception found: " + ex.getClass().getName()
                 + ", IllegalArgumentException expected.", ex instanceof IllegalArgumentException);
     }
+
 
     @Test
     public void testGPX() throws Exception {

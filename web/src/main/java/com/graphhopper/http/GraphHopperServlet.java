@@ -17,13 +17,21 @@
  */
 package com.graphhopper.http;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
+import com.graphhopper.storage.GraphHopperStorage;
+import com.graphhopper.util.Helper;
+import com.graphhopper.util.InstructionList;
+import com.graphhopper.util.PointList;
 import com.graphhopper.util.StopWatch;
+import com.graphhopper.util.exceptions.GHException;
+import com.graphhopper.util.shapes.BBox;
 import com.graphhopper.util.shapes.GHPoint;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -41,6 +49,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.text.NumberFormat;
 import java.util.*;
 
 import static com.graphhopper.util.Parameters.Routing.*;
@@ -61,15 +70,12 @@ public class GraphHopperServlet extends GHBaseServlet {
     @Inject
     private EncodingManager encodingManager;
     @Inject
-    private RouteSerializer routeSerializer;
-    @Inject
     @Named("hasElevation")
     private boolean hasElevation;
 
     @Override
     public void doGet(HttpServletRequest httpReq, HttpServletResponse httpRes) throws ServletException, IOException {
         List<GHPoint> requestPoints = getPoints(httpReq, "point");
-        GHResponse ghRsp = new GHResponse();
 
         double minPathPrecision = getDoubleParam(httpReq, WAY_POINT_MAX_DISTANCE, 1d);
         boolean writeGPX = "gpx".equalsIgnoreCase(getParam(httpReq, "type", "json"));
@@ -84,65 +90,61 @@ public class GraphHopperServlet extends GHBaseServlet {
         String localeStr = getParam(httpReq, "locale", "en");
 
         StopWatch sw = new StopWatch().start();
-
-        if (!ghRsp.hasErrors()) {
-            try {
-                if(requestPoints.isEmpty()){
-                    throw new IllegalArgumentException("You have to pass at least one point");
-                }
-                List<Double> favoredHeadings = Collections.EMPTY_LIST;
-                try {
-                    favoredHeadings = getDoubleParamList(httpReq, "heading");
-
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("heading list in wrong format: " + e.getMessage());
-                }
-
-                if (!encodingManager.supports(vehicleStr)) {
-                    throw new IllegalArgumentException("Vehicle not supported: " + vehicleStr);
-                } else if (enableElevation && !hasElevation) {
-                    throw new IllegalArgumentException("Elevation not supported!");
-                } else if (favoredHeadings.size() > 1 && favoredHeadings.size() != requestPoints.size()) {
-                    throw new IllegalArgumentException("The number of 'heading' parameters must be <= 1 "
-                            + "or equal to the number of points (" + requestPoints.size() + ")");
-                }
-
-                List<String> pointHints = new ArrayList<String>(Arrays.asList(getParams(httpReq, POINT_HINT)));
-                if (pointHints.size() > 0 && pointHints.size() != requestPoints.size()) {
-                    throw new IllegalArgumentException("If you pass " + POINT_HINT + ", you need to pass a hint for every point, empty hints will be ignored");
-                }
-
-                FlagEncoder algoVehicle = encodingManager.getEncoder(vehicleStr);
-                GHRequest request;
-                if (favoredHeadings.size() > 0) {
-                    // if only one favored heading is specified take as start heading
-                    if (favoredHeadings.size() == 1) {
-                        List<Double> paddedHeadings = new ArrayList<Double>(Collections.nCopies(requestPoints.size(),
-                                Double.NaN));
-                        paddedHeadings.set(0, favoredHeadings.get(0));
-                        request = new GHRequest(requestPoints, paddedHeadings);
-                    } else {
-                        request = new GHRequest(requestPoints, favoredHeadings);
-                    }
-                } else {
-                    request = new GHRequest(requestPoints);
-                }
-
-                initHints(request.getHints(), httpReq.getParameterMap());
-                request.setVehicle(algoVehicle.toString()).
-                        setWeighting(weighting).
-                        setAlgorithm(algoStr).
-                        setLocale(localeStr).
-                        setPointHints(pointHints).
-                        getHints().
-                        put(CALC_POINTS, calcPoints).
-                        put(INSTRUCTIONS, enableInstructions).
-                        put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
-
-                ghRsp = graphHopper.route(request);
-            } catch (IllegalArgumentException ex) {
-                ghRsp.addError(ex);
+        GHResponse ghRsp = new GHResponse();
+        try {
+            if(requestPoints.isEmpty()){
+                throw new IllegalArgumentException("You have to pass at least one point");
             }
+            List<Double> favoredHeadings;
+            try {
+                favoredHeadings = getDoubleParamList(httpReq, "heading");
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("heading list in wrong format: " + e.getMessage());
+            }
+
+            if (!encodingManager.supports(vehicleStr)) {
+                throw new IllegalArgumentException("Vehicle not supported: " + vehicleStr);
+            } else if (enableElevation && !hasElevation) {
+                throw new IllegalArgumentException("Elevation not supported!");
+            } else if (favoredHeadings.size() > 1 && favoredHeadings.size() != requestPoints.size()) {
+                throw new IllegalArgumentException("The number of 'heading' parameters must be <= 1 "
+                        + "or equal to the number of points (" + requestPoints.size() + ")");
+            }
+
+            List<String> pointHints = new ArrayList<>(Arrays.asList(getParams(httpReq, POINT_HINT)));
+            if (pointHints.size() > 0 && pointHints.size() != requestPoints.size()) {
+                throw new IllegalArgumentException("If you pass " + POINT_HINT + ", you need to pass a hint for every point, empty hints will be ignored");
+            }
+
+            FlagEncoder algoVehicle = encodingManager.getEncoder(vehicleStr);
+            GHRequest request;
+            if (favoredHeadings.size() > 0) {
+                // if only one favored heading is specified take as start heading
+                if (favoredHeadings.size() == 1) {
+                    List<Double> paddedHeadings = new ArrayList<>(Collections.nCopies(requestPoints.size(), Double.NaN));
+                    paddedHeadings.set(0, favoredHeadings.get(0));
+                    request = new GHRequest(requestPoints, paddedHeadings);
+                } else {
+                    request = new GHRequest(requestPoints, favoredHeadings);
+                }
+            } else {
+                request = new GHRequest(requestPoints);
+            }
+
+            initHints(request.getHints(), httpReq.getParameterMap());
+            request.setVehicle(algoVehicle.toString()).
+                    setWeighting(weighting).
+                    setAlgorithm(algoStr).
+                    setLocale(localeStr).
+                    setPointHints(pointHints).
+                    getHints().
+                    put(CALC_POINTS, calcPoints).
+                    put(INSTRUCTIONS, enableInstructions).
+                    put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
+
+            ghRsp = graphHopper.route(request);
+        } catch (IllegalArgumentException ex) {
+            ghRsp.addError(ex);
         }
 
         float took = sw.stop().getSeconds();
@@ -151,18 +153,16 @@ public class GraphHopperServlet extends GHBaseServlet {
                 + took + ", " + algoStr + ", " + weighting + ", " + vehicleStr;
         httpRes.setHeader("X-GH-Took", "" + Math.round(took * 1000));
 
-        int alternatives = ghRsp.getAll().size();
-        if (writeGPX && alternatives > 1)
+        if (writeGPX && ghRsp.getAll().size() > 1)
             ghRsp.addError(new IllegalArgumentException("Alternatives are currently not yet supported for GPX"));
 
         if (ghRsp.hasErrors()) {
             logger.error(logStr + ", errors:" + ghRsp.getErrors());
         } else {
-            PathWrapper altRsp0 = ghRsp.getBest();
-            logger.info(logStr + ", alternatives: " + alternatives
-                    + ", distance0: " + altRsp0.getDistance()
-                    + ", time0: " + Math.round(altRsp0.getTime() / 60000f) + "min"
-                    + ", points0: " + altRsp0.getPoints().getSize()
+            logger.info(logStr + ", alternatives: " + ghRsp.getAll().size()
+                    + ", distance0: " + ghRsp.getBest().getDistance()
+                    + ", time0: " + Math.round(ghRsp.getBest().getTime() / 60000f) + "min"
+                    + ", points0: " + ghRsp.getBest().getPoints().getSize()
                     + ", debugInfo: " + ghRsp.getDebugInfo());
         }
 
@@ -176,19 +176,70 @@ public class GraphHopperServlet extends GHBaseServlet {
                 writeResponse(httpRes, xml);
             }
         } else {
-            Map<String, Object> map = routeSerializer.toJSON(ghRsp, calcPoints, pointsEncoded,
-                    enableElevation, enableInstructions);
-
-            Object infoMap = map.get("info");
-            if (infoMap != null)
-                ((Map) infoMap).put("took", Math.round(took * 1000));
-
             if (ghRsp.hasErrors())
-                writeJsonError(httpRes, SC_BAD_REQUEST, jsonNodeFactory.pojoNode(map));
+                writeJsonError(httpRes, SC_BAD_REQUEST, createErrorResponse(ghRsp));
             else {
-                writeJson(httpReq, httpRes, jsonNodeFactory.pojoNode(map));
+                writeJson(httpReq, httpRes, createSuccessResponse(ghRsp, enableInstructions, calcPoints, enableElevation, pointsEncoded, took));
             }
         }
+    }
+
+    private ObjectNode createSuccessResponse(GHResponse ghRsp, boolean enableInstructions, boolean calcPoints, boolean enableElevation, boolean pointsEncoded, float took) {
+        ObjectNode json = objectMapper.createObjectNode();
+        json.putPOJO("hints", ghRsp.getHints().toMap());
+        // If you replace GraphHopper with your own brand name, this is fine.
+        // Still it would be highly appreciated if you mention us in your about page!
+        final ObjectNode info = json.putObject("info");
+        info.putArray("copyrights")
+                    .add("GraphHopper")
+                    .add("OpenStreetMap contributors");
+        info.put("took", Math.round(took * 1000));
+        ArrayNode jsonPathList = json.putArray("paths");
+        for (PathWrapper ar : ghRsp.getAll()) {
+            ObjectNode jsonPath = jsonPathList.addObject();
+            jsonPath.put("distance", Helper.round(ar.getDistance(), 3));
+            jsonPath.put("weight", Helper.round6(ar.getRouteWeight()));
+            jsonPath.put("time", ar.getTime());
+            jsonPath.put("transfers", ar.getNumChanges());
+            if (!ar.getDescription().isEmpty()) {
+                jsonPath.putPOJO("description", ar.getDescription());
+            }
+            if (calcPoints) {
+                jsonPath.put("points_encoded", pointsEncoded);
+                if (ar.getPoints().getSize() >= 2) {
+                    jsonPath.putPOJO("bbox", ar.calcRouteBBox(new BBox(Double.MAX_VALUE,Double.MIN_VALUE, Double.MAX_VALUE, Double.MIN_VALUE)));
+                }
+                jsonPath.putPOJO("points", createPoints(ar.getPoints(), pointsEncoded, enableElevation));
+                if (enableInstructions) {
+                    InstructionList instructions = ar.getInstructions();
+                    jsonPath.putPOJO("instructions", instructions.createJson());
+                }
+                jsonPath.putPOJO("legs", ar.getLegs());
+                jsonPath.put("ascend", ar.getAscend());
+                jsonPath.put("descend", ar.getDescend());
+            }
+            jsonPath.putPOJO("snapped_waypoints", createPoints(ar.getWaypoints(), pointsEncoded, enableElevation));
+            if (ar.getFare() != null) {
+                jsonPath.put("fare", NumberFormat.getCurrencyInstance().format(ar.getFare()));
+            }
+            jsonPathList.add(jsonPath);
+        }
+        return json;
+    }
+
+    private ObjectNode createErrorResponse(GHResponse ghRsp) {
+        ObjectNode json = objectMapper.createObjectNode();
+        json.put("message", getMessage(ghRsp.getErrors().get(0)));
+        ArrayNode errorHintList = json.putArray("hints");
+        for (Throwable t : ghRsp.getErrors()) {
+            ObjectNode error = errorHintList.addObject();
+            error.put("message", getMessage(t));
+            error.put("details", t.getClass().getName());
+            if (t instanceof GHException) {
+                ((GHException) t).getDetails().forEach(error::putPOJO);
+            }
+        }
+        return json;
     }
 
     protected String createGPXString(HttpServletRequest req, HttpServletResponse res, PathWrapper rsp) {
@@ -253,7 +304,7 @@ public class GraphHopperServlet extends GHBaseServlet {
 
     protected List<GHPoint> getPoints(HttpServletRequest req, String key) {
         String[] pointsAsStr = getParams(req, key);
-        final List<GHPoint> infoPoints = new ArrayList<GHPoint>(pointsAsStr.length);
+        final List<GHPoint> infoPoints = new ArrayList<>(pointsAsStr.length);
         for (String str : pointsAsStr) {
             String[] fromStrs = str.split(",");
             if (fromStrs.length == 2) {
@@ -265,4 +316,23 @@ public class GraphHopperServlet extends GHBaseServlet {
 
         return infoPoints;
     }
+
+    private static String getMessage(Throwable t) {
+        if (t.getMessage() == null)
+            return t.getClass().getSimpleName();
+        else
+            return t.getMessage();
+    }
+
+    private Object createPoints(PointList points, boolean pointsEncoded, boolean includeElevation) {
+        if (pointsEncoded) {
+            return WebHelper.encodePolyline(points, includeElevation);
+        }
+
+        ObjectNode jsonPoints = objectMapper.createObjectNode();
+        jsonPoints.put("type", "LineString");
+        jsonPoints.putPOJO("coordinates", points.toGeoJson(includeElevation));
+        return jsonPoints;
+    }
+
 }
