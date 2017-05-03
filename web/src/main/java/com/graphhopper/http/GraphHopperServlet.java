@@ -25,13 +25,11 @@ import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
-import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.util.Helper;
 import com.graphhopper.util.InstructionList;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.exceptions.GHException;
-import com.graphhopper.util.shapes.BBox;
 import com.graphhopper.util.shapes.GHPoint;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -207,7 +205,7 @@ public class GraphHopperServlet extends GHBaseServlet {
             if (calcPoints) {
                 jsonPath.put("points_encoded", pointsEncoded);
                 if (ar.getPoints().getSize() >= 2) {
-                    jsonPath.putPOJO("bbox", ar.calcRouteBBox(new BBox(Double.MAX_VALUE,Double.MIN_VALUE, Double.MAX_VALUE, Double.MIN_VALUE)));
+                    jsonPath.putPOJO("bbox", ar.calcBBox2D());
                 }
                 jsonPath.putPOJO("points", createPoints(ar.getPoints(), pointsEncoded, enableElevation));
                 if (enableInstructions) {
