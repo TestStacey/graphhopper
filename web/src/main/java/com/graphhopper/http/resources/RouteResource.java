@@ -25,6 +25,7 @@ import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.http.WebHelper;
+import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.util.Helper;
@@ -45,6 +46,8 @@ import javax.ws.rs.core.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.text.NumberFormat;
 import java.util.*;
 
@@ -145,28 +148,37 @@ public class RouteResource {
                 put(INSTRUCTIONS, instructions).
                 put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
 
-        GHResponse ghResponse = graphHopper.route(request);
-
-        // TODO: Request logging and timing should perhaps be done somewhere outside
-        float took = sw.stop().getSeconds();
-        String infoStr = httpReq.getRemoteAddr() + " " + httpReq.getLocale() + " " + httpReq.getHeader("User-Agent");
-        String logStr = httpReq.getQueryString() + " " + infoStr + " " + requestPoints + ", took:"
-                + took + ", " + algoStr + ", " + weighting + ", " + vehicleStr;
-
-        if (ghResponse.hasErrors()) {
-            logger.error(logStr + ", errors:" + ghResponse.getErrors());
-            throw new WebApplicationException(errorResponse(ghResponse.getErrors(), writeGPX));
+        if (type.equals("stream")) {
+            return Response.ok(new Iterable() {
+                @Override
+                public Iterator iterator() {
+                    return ((GraphHopperGtfs) graphHopper).routeStreaming(request).iterator();
+                }
+            }).build();
         } else {
-            logger.info(logStr + ", alternatives: " + ghResponse.getAll().size()
-                    + ", distance0: " + ghResponse.getBest().getDistance()
-                    + ", time0: " + Math.round(ghResponse.getBest().getTime() / 60000f) + "min"
-                    + ", points0: " + ghResponse.getBest().getPoints().getSize()
-                    + ", debugInfo: " + ghResponse.getDebugInfo());
-            return Response.fromResponse(writeGPX ?
-                    gpxSuccessResponse(ghResponse, timeString, trackName, enableElevation, withRoute, withTrack, withWayPoints) :
-                    jsonSuccessResponse(ghResponse, instructions, calcPoints, enableElevation, pointsEncoded, took))
-                    .header("X-GH-Took", "" + Math.round(took * 1000))
-                    .build();
+            GHResponse ghResponse = graphHopper.route(request);
+
+            // TODO: Request logging and timing should perhaps be done somewhere outside
+            float took = sw.stop().getSeconds();
+            String infoStr = httpReq.getRemoteAddr() + " " + httpReq.getLocale() + " " + httpReq.getHeader("User-Agent");
+            String logStr = httpReq.getQueryString() + " " + infoStr + " " + requestPoints + ", took:"
+                    + took + ", " + algoStr + ", " + weighting + ", " + vehicleStr;
+
+            if (ghResponse.hasErrors()) {
+                logger.error(logStr + ", errors:" + ghResponse.getErrors());
+                throw new WebApplicationException(errorResponse(ghResponse.getErrors(), writeGPX));
+            } else {
+                logger.info(logStr + ", alternatives: " + ghResponse.getAll().size()
+                        + ", distance0: " + ghResponse.getBest().getDistance()
+                        + ", time0: " + Math.round(ghResponse.getBest().getTime() / 60000f) + "min"
+                        + ", points0: " + ghResponse.getBest().getPoints().getSize()
+                        + ", debugInfo: " + ghResponse.getDebugInfo());
+                return Response.fromResponse(writeGPX ?
+                        gpxSuccessResponse(ghResponse, timeString, trackName, enableElevation, withRoute, withTrack, withWayPoints) :
+                        jsonSuccessResponse(ghResponse, instructions, calcPoints, enableElevation, pointsEncoded, took))
+                        .header("X-GH-Took", "" + Math.round(took * 1000))
+                        .build();
+            }
         }
     }
 

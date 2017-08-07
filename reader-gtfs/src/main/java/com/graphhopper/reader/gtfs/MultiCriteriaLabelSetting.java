@@ -67,17 +67,14 @@ class MultiCriteriaLabelSetting {
 
         queueComparator = Comparator.<Label>comparingLong(l2 -> currentTimeCriterion(l2))
                 .thenComparing(Comparator.comparingLong(l1 -> l1.nTransfers))
-                .thenComparing(Comparator.comparingLong(l1 -> l1.nWalkDistanceConstraintViolations))
+                .thenComparing(Comparator.comparingLong(l1 -> l1.walkTime))
                 .thenComparing(Comparator.comparingLong(l -> departureTimeCriterion(l) != null ? departureTimeCriterion(l) : 0));
         fromHeap = new PriorityQueue<>(queueComparator);
         fromMap = HashMultimap.create();
     }
 
     Stream<Label> calcPaths(int from, int to, Instant startTime) {
-        this.startTime = startTime.toEpochMilli();
-        final Stream<Label> labels = StreamSupport.stream(new MultiCriteriaLabelSettingSpliterator(from, to), false)
-                .limit(maxVisitedNodes)
-                .peek(label -> visitedNodes++);
+        final Stream<Label> labels = calcLabels(from, to, startTime);
         final Spliterator<Label> spliterator = labels.spliterator();
         return StreamSupport.stream(new Spliterators.AbstractSpliterator<Label>(0, 0) {
             Label current = null;
@@ -95,6 +92,13 @@ class MultiCriteriaLabelSetting {
             }
         }, false)
                 .filter(me -> me.nWalkDistanceConstraintViolations <= 0);
+    }
+
+    Stream<Label> calcLabels(int from, int to, Instant startTime) {
+        this.startTime = startTime.toEpochMilli();
+        return StreamSupport.stream(new MultiCriteriaLabelSettingSpliterator(from, to), false)
+                .limit(maxVisitedNodes)
+                .peek(label -> visitedNodes++);
     }
 
     private class MultiCriteriaLabelSettingSpliterator extends Spliterators.AbstractSpliterator<Label> {
@@ -165,6 +169,9 @@ class MultiCriteriaLabelSetting {
     }
 
     private boolean isNotDominatedByAnyOf(Label me, Set<Label> sptEntries) {
+        if (me.walkTime > maxWalkDistancePerLeg) {
+            return false;
+        }
         for (Label they : sptEntries) {
             if (dominates(they, me)) {
                 return false;
