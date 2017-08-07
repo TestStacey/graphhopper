@@ -26,6 +26,7 @@ import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.http.WebHelper;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
+import com.graphhopper.reader.gtfs.Label;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.util.Helper;
@@ -33,6 +34,7 @@ import com.graphhopper.util.Parameters;
 import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.exceptions.GHException;
 import com.graphhopper.util.shapes.GHPoint;
+import org.glassfish.jersey.server.ChunkedOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -149,12 +151,7 @@ public class RouteResource {
                 put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
 
         if (type.equals("stream")) {
-            return Response.ok(new Iterable() {
-                @Override
-                public Iterator iterator() {
-                    return ((GraphHopperGtfs) graphHopper).routeStreaming(request).iterator();
-                }
-            }).build();
+            return Response.ok((Iterable) () -> ((GraphHopperGtfs) graphHopper).routeStreaming(request).iterator()).build();
         } else {
             GHResponse ghResponse = graphHopper.route(request);
 
