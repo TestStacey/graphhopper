@@ -21,7 +21,7 @@
 <head>
     <meta charset="UTF-8">
     <title>GraphHopper Directions</title>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/mithril/1.1.1/mithril.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/mithril/1.1.3/mithril.js"></script>
     <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
@@ -100,7 +100,6 @@
             state.origin = L.latLng(vnode.attrs.origin.split(','))
             state.destination = L.latLng(vnode.attrs.destination.split(','))
             state.time = moment(vnode.attrs.time)
-            state.rangeQueryEndTime = moment(vnode.attrs.rangeQueryEndTime || vnode.attrs.time)
             state.checkedPath = 0
             state.departArrive = vnode.attrs.arriveBy ? "arrive" : "depart"
             state.ignoreTransfers = vnode.attrs.ignoreTransfers
@@ -111,7 +110,6 @@
                 + "&point="+state.destination.lat+","+state.destination.lng
                 + "&locale=en-US&vehicle=pt&weighting=fastest&elevation=false"
                 + "&pt.earliest_departure_time=" + encodeURIComponent(state.time.toISOString())
-                + "&pt.range_query_end_time=" + encodeURIComponent(state.rangeQueryEndTime.toISOString())
                 + (state.ignoreTransfers ? "&pt.ignore_transfers=true" : "")
                 + (state.departArrive === "arrive" ? "&pt.arrive_by=true" : "")
                 + "&use_miles=false&points_encoded=false"})
@@ -121,7 +119,6 @@
         },
         reRoute: function() {
             m.route.set(encodeURI("/webapp?time="+moment(state.time).toISOString()
-                + (state.rangeQueryEndTime ? "&rangeQueryEndTime="+moment(state.rangeQueryEndTime).toISOString() : "")
                 + "&origin="+state.origin.lat+","+state.origin.lng+"&destination="+state.destination.lat+","+state.destination.lng
                 + (state.ignoreTransfers ? "&ignoreTransfers=true" : "")
                 + (state.departArrive === "arrive" ? "&arriveBy=true" : "")));
@@ -172,13 +169,7 @@
                                     state.ignoreTransfers = ignoreTransfers;
                                 })}),
                                 m("label", {"for": "ignoreTransfers"}, "ignore transfers"),
-                            ],
-                            m("div", [
-                                m("input", {id: "rangeQueryEndTime", type: "datetime-local", onchange: m.withAttr("value", function(string) {
-                                    state.rangeQueryEndTime = moment(string).toISOString();
-                                }), value: moment(state.rangeQueryEndTime).format("YYYY-MM-DDTHH:mm")}),
-                                m("label", {"for": "rangeQueryEndTime"}, "range query end time"),
-                            ])
+                            ]
                         ]),
                         m("button", {onclick:  state.reRoute}, "Get route"),
                         state.response ? [
