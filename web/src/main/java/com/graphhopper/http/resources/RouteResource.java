@@ -50,6 +50,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.text.NumberFormat;
 import java.util.*;
 
@@ -151,7 +152,16 @@ public class RouteResource {
                 put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
 
         if (type.equals("stream")) {
-            return Response.ok((Iterable) () -> ((GraphHopperGtfs) graphHopper).routeStreaming(request).iterator()).build();
+            return Response.ok(new StreamingOutput() {
+                @Override
+                public void write(OutputStream output) throws IOException, WebApplicationException {
+                    final PrintWriter printWriter = new PrintWriter(output);
+                    ((GraphHopperGtfs) graphHopper).routeStreaming(request)
+                            .map(Label::toString)
+                            .forEach(printWriter::println);
+                    printWriter.close();
+                }
+            }).build();
         } else {
             GHResponse ghResponse = graphHopper.route(request);
 
