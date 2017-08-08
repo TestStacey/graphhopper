@@ -29,6 +29,7 @@ import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.Label;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.HintsMap;
+import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.util.Helper;
 import com.graphhopper.util.Parameters;
 import com.graphhopper.util.StopWatch;
@@ -73,12 +74,14 @@ public class RouteResource {
     private final GraphHopperAPI graphHopper;
     private final EncodingManager encodingManager;
     private final Boolean hasElevation;
+    private final GraphHopperStorage graph;
 
     @Inject
-    public RouteResource(GraphHopperAPI graphHopper, EncodingManager encodingManager, @Named("hasElevation") Boolean hasElevation) {
+    public RouteResource(GraphHopperAPI graphHopper, EncodingManager encodingManager, @Named("hasElevation") Boolean hasElevation, GraphHopperStorage graph) {
         this.graphHopper = graphHopper;
         this.encodingManager = encodingManager;
         this.hasElevation = hasElevation;
+        this.graph = graph;
     }
 
     @GET
@@ -156,9 +159,14 @@ public class RouteResource {
                 @Override
                 public void write(OutputStream output) throws IOException, WebApplicationException {
                     final PrintWriter printWriter = new PrintWriter(output);
+                    printWriter.println("lng,lat");
                     ((GraphHopperGtfs) graphHopper).routeStreaming(request)
-                            .map(Label::toString)
-                            .forEach(printWriter::println);
+                            .forEach(l -> {
+                                printWriter.printf(
+                                        "%f,%f\n",
+                                        graph.getNodeAccess().getLon(l.adjNode),
+                                        graph.getNodeAccess().getLat(l.adjNode));
+                            });
                     printWriter.close();
                 }
             }).build();
