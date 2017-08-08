@@ -155,20 +155,18 @@ public class RouteResource {
                 put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
 
         if (type.equals("stream")) {
-            return Response.ok(new StreamingOutput() {
-                @Override
-                public void write(OutputStream output) throws IOException, WebApplicationException {
-                    final PrintWriter printWriter = new PrintWriter(output);
-                    printWriter.println("lng,lat");
-                    ((GraphHopperGtfs) graphHopper).routeStreaming(request)
-                            .forEach(l -> {
-                                printWriter.printf(
-                                        "%f,%f\n",
-                                        graph.getNodeAccess().getLon(l.adjNode),
-                                        graph.getNodeAccess().getLat(l.adjNode));
-                            });
-                    printWriter.close();
-                }
+            return Response.ok((StreamingOutput) output -> {
+                final PrintWriter printWriter = new PrintWriter(output);
+                printWriter.println("lng,lat");
+                ((GraphHopperGtfs) graphHopper).routeStreaming(request, l -> {
+                    if (l.adjNode <= graph.getNodes()) {
+                        printWriter.printf(
+                                "%f,%f\n",
+                                graph.getNodeAccess().getLon(l.adjNode),
+                                graph.getNodeAccess().getLat(l.adjNode));
+                    }
+                });
+                printWriter.close();
             }).build();
         } else {
             GHResponse ghResponse = graphHopper.route(request);

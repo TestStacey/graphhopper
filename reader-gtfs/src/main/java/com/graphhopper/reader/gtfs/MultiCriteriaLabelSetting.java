@@ -37,7 +37,7 @@ import java.util.stream.StreamSupport;
  * @author Michael Zilske
  * @author Peter Karich
  */
-class MultiCriteriaLabelSetting {
+public class MultiCriteriaLabelSetting {
 
     private final Comparator<Label> queueComparator;
     private long startTime;
@@ -71,27 +71,6 @@ class MultiCriteriaLabelSetting {
                 .thenComparing(Comparator.comparingLong(l -> departureTimeCriterion(l) != null ? departureTimeCriterion(l) : 0));
         fromHeap = new PriorityQueue<>(queueComparator);
         fromMap = HashMultimap.create();
-    }
-
-    Stream<Label> calcPaths(int from, int to, Instant startTime) {
-        final Stream<Label> labels = calcLabels(from, to, startTime);
-        final Spliterator<Label> spliterator = labels.spliterator();
-        return StreamSupport.stream(new Spliterators.AbstractSpliterator<Label>(0, 0) {
-            Label current = null;
-            List<Label> solutions = new ArrayList<>();
-            @Override
-            public boolean tryAdvance(Consumer<? super Label> action) {
-                while (spliterator.tryAdvance(label -> current = label)) {
-                    if (to == current.adjNode) {
-                        action.accept(current);
-                        solutions.add(current);
-                        return true;
-                    }
-                }
-                return false;
-            }
-        }, false)
-                .filter(me -> me.nWalkDistanceConstraintViolations <= 0);
     }
 
     Stream<Label> calcLabels(int from, int to, Instant startTime) {

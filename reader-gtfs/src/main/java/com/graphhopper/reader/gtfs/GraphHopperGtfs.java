@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipFile;
@@ -123,6 +124,15 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         }
 
         GHResponse route() {
+            return route(new Consumer<Label>() {
+                @Override
+                public void accept(Label label) {
+
+                }
+            });
+        }
+
+        GHResponse route(Consumer<? super Label> action) {
             StopWatch stopWatch = new StopWatch().start();
 
             QueryResult source = findClosest(enter, 0);
@@ -141,27 +151,9 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                 startNode = source.getClosestNode();
                 destNode = dest.getClosestNode();
             }
-            List<Label> solutions = findPaths(startNode, destNode);
+            List<Label> solutions = findPaths(startNode, destNode, action);
             parseSolutionsAndAddToResponse(solutions, startAndEndpoint);
             return response;
-        }
-
-        Stream<Label> routeStreaming() {
-            QueryResult source = findClosest(enter, 0);
-            QueryResult dest = findClosest(exit, 1);
-            queryGraph.lookup(Arrays.asList(source, dest)); // modifies queryGraph, source and dest!
-            int startNode;
-            int destNode;
-            if (arriveBy) {
-                startNode = dest.getClosestNode();
-                destNode = source.getClosestNode();
-            } else {
-                startNode = source.getClosestNode();
-                destNode = dest.getClosestNode();
-            }
-            GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy);
-            MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, arriveBy, maxWalkDistancePerLeg, maxTransferDistancePerLeg, !ignoreTransfers, profileQuery, maxVisitedNodesForRequest);
-            return router.calcLabels(startNode, destNode, initialTime);
         }
 
         private QueryResult findClosest(GHPoint point, int indexForErrorMessage) {
@@ -179,11 +171,15 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             response.getAll().sort(Comparator.comparingDouble(PathWrapper::getTime));
         }
 
-        private List<Label> findPaths(int startNode, int destNode) {
+        private List<Label> findPaths(int startNode, int destNode, Consumer<? super Label> action) {
             StopWatch stopWatch = new StopWatch().start();
             GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy);
             MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, arriveBy, maxWalkDistancePerLeg, maxTransferDistancePerLeg, !ignoreTransfers, profileQuery, maxVisitedNodesForRequest);
-            List<Label> solutions = router.calcPaths(startNode, destNode, initialTime)
+            final Stream<Label> labels = router.calcLabels(startNode, destNode, initialTime);
+            List<Label> solutions = labels
+                    .peek(action)
+                    .filter(current -> destNode == current.adjNode)
+                    .filter(me -> me.nWalkDistanceConstraintViolations <= 0)
                     .limit(limitSolutions)
                     .collect(Collectors.toList());
             response.addDebugInfo("routing:" + stopWatch.stop().getSeconds() + "s");
@@ -282,8 +278,8 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         return new RequestHandler(request).route();
     }
 
-    public Stream<Label> routeStreaming(GHRequest request) {
-        return new RequestHandler(request).routeStreaming();
+    public GHResponse routeStreaming(GHRequest request, Consumer<? super Label> action) {
+        return new RequestHandler(request).route(action);
     }
 
     private static PtTravelTimeWeighting createPtTravelTimeWeighting(PtFlagEncoder encoder, boolean arriveBy, double walkSpeedKmH) {
