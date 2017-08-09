@@ -180,7 +180,7 @@ public class RouteResource {
                 AtomicInteger i = new AtomicInteger(0);
                 ((GraphHopperGtfs) graphHopper).routeStreaming(request, l -> {
                     if (l.adjNode <= graph.getNodes() && l.parent != null && l.parent.adjNode <= graph.getNodes()) {
-                        if (i.incrementAndGet() < 1000) {
+                        if (i.incrementAndGet() < 500000) {
                             try {
                                 final String edgeType = flagEncoder.getEdgeType(graph.getEdgeIteratorState(l.edge, l.adjNode).getFlags()).toString();
                                 printWriter.printf(
