@@ -26,8 +26,11 @@ import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.http.WebHelper;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
+import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.Label;
+import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.util.Helper;
@@ -171,14 +174,20 @@ public class RouteResource {
             }).build();
         } else if (type.equals("graph")) {
             return Response.ok((StreamingOutput) output -> {
+                final PtFlagEncoder flagEncoder = (PtFlagEncoder) encodingManager.getEncoder("pt");
                 final PrintWriter printWriter = new PrintWriter(output);
-                printWriter.println("source,target");
+                printWriter.println("source,target,edgetype");
                 AtomicInteger i = new AtomicInteger(0);
                 ((GraphHopperGtfs) graphHopper).routeStreaming(request, l -> {
                     if (l.adjNode <= graph.getNodes() && l.parent != null && l.parent.adjNode <= graph.getNodes()) {
                         if (i.incrementAndGet() < 1000) {
-                            printWriter.printf(
-                                    "%d,%d\n", l.parent.adjNode, l.adjNode);
+                            try {
+                                final String edgeType = flagEncoder.getEdgeType(graph.getEdgeIteratorState(l.edge, l.adjNode).getFlags()).toString();
+                                printWriter.printf(
+                                        "%d,%d,%s\n", l.parent.adjNode, l.adjNode, edgeType);
+                            } catch (IllegalStateException e) {
+
+                            }
                         }
                     }
                 });
