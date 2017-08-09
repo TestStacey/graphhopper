@@ -54,6 +54,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.text.NumberFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.graphhopper.util.Parameters.Routing.*;
 import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
@@ -164,6 +165,21 @@ public class RouteResource {
                                 "%f,%f\n",
                                 graph.getNodeAccess().getLon(l.adjNode),
                                 graph.getNodeAccess().getLat(l.adjNode));
+                    }
+                });
+                printWriter.close();
+            }).build();
+        } else if (type.equals("graph")) {
+            return Response.ok((StreamingOutput) output -> {
+                final PrintWriter printWriter = new PrintWriter(output);
+                printWriter.println("source,target");
+                AtomicInteger i = new AtomicInteger(0);
+                ((GraphHopperGtfs) graphHopper).routeStreaming(request, l -> {
+                    if (l.adjNode <= graph.getNodes() && l.parent != null && l.parent.adjNode <= graph.getNodes()) {
+                        if (i.incrementAndGet() < 1000) {
+                            printWriter.printf(
+                                    "%d,%d\n", l.parent.adjNode, l.adjNode);
+                        }
                     }
                 });
                 printWriter.close();

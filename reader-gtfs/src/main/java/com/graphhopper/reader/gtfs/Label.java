@@ -74,7 +74,7 @@ public class Label {
     public final Long departureTime;
     public final long walkTime;
 
-    final Label parent;
+    public final Label parent;
 
     Label(long currentTime, int edgeId, int adjNode, int nTransfers, int nWalkDistanceConstraintViolations, double walkDistance, Long departureTime, long walkTime, Label parent) {
         this.currentTime = currentTime;
