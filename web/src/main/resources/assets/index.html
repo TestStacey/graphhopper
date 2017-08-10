@@ -205,7 +205,7 @@
                                             return m("li", [m("div", instruction.text), m("div", instruction.time > 0 ? moment.duration(instruction.time).humanize() : [])]);
                                         })) : [],
                                         leg.type === "pt" ? m("ol", leg.stops.map(function(stop, index) {
-                                            return m("li", m("div", m("div", stop.arrivalTime), m("div", stop.name), m("div", stop.departureTime)));
+                                            return m("li", m("div", m("div", stop.arrivalTime), m("div", stop.stop_name), m("div", stop.departureTime)));
                                         })) : [],
                                         m("div", leg.arrivalTime)
                                     ])
