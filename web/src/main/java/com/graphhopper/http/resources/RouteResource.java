@@ -176,19 +176,17 @@ public class RouteResource {
             return Response.ok((StreamingOutput) output -> {
                 final PtFlagEncoder flagEncoder = (PtFlagEncoder) encodingManager.getEncoder("pt");
                 final PrintWriter printWriter = new PrintWriter(output);
-                printWriter.println("source,target,edgetype");
-                AtomicInteger i = new AtomicInteger(0);
+                printWriter.println("source,target,edgetype,walktime");
                 ((GraphHopperGtfs) graphHopper).routeStreaming(request, l -> {
-                    if (l.adjNode <= graph.getNodes() && l.parent != null && l.parent.adjNode <= graph.getNodes()) {
-                        if (i.incrementAndGet() < 500000) {
-                            try {
-                                final String edgeType = flagEncoder.getEdgeType(graph.getEdgeIteratorState(l.edge, l.adjNode).getFlags()).toString();
-                                printWriter.printf(
-                                        "%d,%d,%s\n", l.parent.adjNode, l.adjNode, edgeType);
-                            } catch (IllegalStateException e) {
-
-                            }
+                    if (l.parent != null) {
+                        String edgeType;
+                        try {
+                            edgeType = flagEncoder.getEdgeType(graph.getEdgeIteratorState(l.edge, l.adjNode).getFlags()).toString();
+                        } catch (IllegalStateException e) {
+                            edgeType = "HIGHWAY";
                         }
+                        printWriter.printf(
+                                "%d,%d,%s,%d\n", l.parent.adjNode, l.adjNode, edgeType, l.walkTime);
                     }
                 });
                 printWriter.close();
