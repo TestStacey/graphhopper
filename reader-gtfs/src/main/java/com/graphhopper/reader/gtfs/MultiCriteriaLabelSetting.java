@@ -151,6 +151,9 @@ public class MultiCriteriaLabelSetting {
         if (me.walkTime > maxWalkDistancePerLeg) {
             return false;
         }
+        if (me.nWalkDistanceConstraintViolations > 0) {
+            return false;
+        }
         for (Label they : sptEntries) {
             if (dominates(they, me)) {
                 return false;

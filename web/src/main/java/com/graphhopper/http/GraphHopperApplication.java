@@ -18,6 +18,7 @@
 package com.graphhopper.http;
 
 import com.bedatadriven.jackson.datatype.jts.JtsModule;
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.BeanDescription;
@@ -33,6 +34,7 @@ import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -52,6 +54,13 @@ public class GraphHopperApplication extends Application<GraphHopperServerConfigu
 
     @Override
     public void run(GraphHopperServerConfiguration configuration, Environment environment) throws Exception {
+        environment.jersey().register(new AbstractBinder() {
+            @Override
+            protected void configure() {
+                bind(environment.metrics()).to(MetricRegistry.class);
+            }
+        });
+
         environment.getObjectMapper().setDateFormat(new ISO8601DateFormat());
         environment.getObjectMapper().registerModule(new JtsModule());
         environment.getObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);

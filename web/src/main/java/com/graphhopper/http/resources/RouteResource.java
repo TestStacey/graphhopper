@@ -17,6 +17,7 @@
  */
 package com.graphhopper.http.resources;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -26,11 +27,8 @@ import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.http.WebHelper;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
-import com.graphhopper.reader.gtfs.GtfsStorage;
-import com.graphhopper.reader.gtfs.Label;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
-import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.util.Helper;
@@ -38,7 +36,6 @@ import com.graphhopper.util.Parameters;
 import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.exceptions.GHException;
 import com.graphhopper.util.shapes.GHPoint;
-import org.glassfish.jersey.server.ChunkedOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -52,12 +49,9 @@ import javax.ws.rs.core.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.text.NumberFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.graphhopper.util.Parameters.Routing.*;
 import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
@@ -79,13 +73,15 @@ public class RouteResource {
     private final EncodingManager encodingManager;
     private final Boolean hasElevation;
     private final GraphHopperStorage graph;
+    private final MetricRegistry metricRegistry;
 
     @Inject
-    public RouteResource(GraphHopperAPI graphHopper, EncodingManager encodingManager, @Named("hasElevation") Boolean hasElevation, GraphHopperStorage graph) {
+    public RouteResource(GraphHopperAPI graphHopper, EncodingManager encodingManager, @Named("hasElevation") Boolean hasElevation, GraphHopperStorage graph, MetricRegistry metricRegistry) {
         this.graphHopper = graphHopper;
         this.encodingManager = encodingManager;
         this.hasElevation = hasElevation;
         this.graph = graph;
+        this.metricRegistry = metricRegistry;
     }
 
     @GET
@@ -187,6 +183,7 @@ public class RouteResource {
                         }
                         printWriter.printf(
                                 "%d,%d,%s,%d\n", l.parent.adjNode, l.adjNode, edgeType, l.walkTime);
+                        metricRegistry.meter(edgeType).mark();
                     }
                 });
                 printWriter.close();
