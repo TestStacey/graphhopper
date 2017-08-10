@@ -148,9 +148,6 @@ public class MultiCriteriaLabelSetting {
     }
 
     private boolean isNotDominatedByAnyOf(Label me, Set<Label> sptEntries) {
-        if (me.walkTime > maxWalkDistancePerLeg) {
-            return false;
-        }
         if (me.nWalkDistanceConstraintViolations > 0) {
             return false;
         }
