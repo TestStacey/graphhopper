@@ -106,18 +106,20 @@
             state.max_walk_distance_per_leg = vnode.attrs.max_walk_distance_per_leg
         },
         doRequest: function() {
-            return m.request({method: "GET", url:
-                "/route?point="+state.origin.lat+","+state.origin.lng
-                + "&point="+state.destination.lat+","+state.destination.lng
-                + "&locale=en-US&vehicle=pt&weighting=fastest&elevation=false"
-                + "&pt.earliest_departure_time=" + encodeURIComponent(state.time.toISOString())
-                + (state.ignoreTransfers ? "&pt.ignore_transfers=true" : "")
-                + (state.departArrive === "arrive" ? "&pt.arrive_by=true" : "")
-                + "&use_miles=false&points_encoded=false"
-                + "&pt.max_walk_distance_per_leg="+state.max_walk_distance_per_leg
-            })
+            const request = {method: "GET", url:
+            "/route?point="+state.origin.lat+","+state.origin.lng
+            + "&point="+state.destination.lat+","+state.destination.lng
+            + "&locale=en-US&vehicle=pt&weighting=fastest&elevation=false"
+            + "&pt.earliest_departure_time=" + encodeURIComponent(state.time.toISOString())
+            + (state.ignoreTransfers ? "&pt.ignore_transfers=true" : "")
+            + (state.departArrive === "arrive" ? "&pt.arrive_by=true" : "")
+            + "&use_miles=false&points_encoded=false"
+            + "&pt.max_walk_distance_per_leg="+state.max_walk_distance_per_leg
+            };
+            console.log(request.url);
+            return m.request(request)
                     .then(function (result) {
-                        console.log(result)
+                        console.log(JSON.stringify(result));
                         state.response = result;
                     });
         },

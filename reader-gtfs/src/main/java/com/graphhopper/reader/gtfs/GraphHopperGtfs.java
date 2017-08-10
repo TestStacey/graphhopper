@@ -179,7 +179,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             List<Label> solutions = labels
                     .peek(action)
                     .filter(current -> destNode == current.adjNode)
-                    .filter(me -> me.nWalkDistanceConstraintViolations <= 0)
+//                    .filter(me -> me.nWalkDistanceConstraintViolations <= 0)
                     .limit(limitSolutions)
                     .collect(Collectors.toList());
             response.addDebugInfo("routing:" + stopWatch.stop().getSeconds() + "s");

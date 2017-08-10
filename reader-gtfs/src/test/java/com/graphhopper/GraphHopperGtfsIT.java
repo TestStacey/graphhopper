@@ -338,6 +338,7 @@ public class GraphHopperGtfsIT {
                 TO1_LAT, TO1_LON
         );
         request.getHints().put(Parameters.PT.EARLIEST_DEPARTURE_TIME, LocalDateTime.of(2007,1,6,7,30).atZone(zoneId).toInstant());
+        request.getHints().put(Parameters.PT.MAX_TRANSFER_DISTANCE_PER_LEG, Double.MAX_VALUE);
 
         GHResponse response = graphHopper.route(request);
         assertEquals("Ignoring transfer rules (free walking): Will be there at 9.", time(1, 30), response.getBest().getTime());
