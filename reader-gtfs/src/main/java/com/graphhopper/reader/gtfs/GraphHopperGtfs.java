@@ -113,7 +113,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             arriveBy = request.getHints().getBool(Parameters.PT.ARRIVE_BY, false);
             walkSpeedKmH = request.getHints().getDouble(Parameters.PT.WALK_SPEED, 5.0);
             maxWalkDistancePerLeg = request.getHints().getDouble(Parameters.PT.MAX_WALK_DISTANCE_PER_LEG, Double.MAX_VALUE);
-            maxTransferDistancePerLeg = request.getHints().getDouble(Parameters.PT.MAX_TRANSFER_DISTANCE_PER_LEG, Double.MAX_VALUE);
+            maxTransferDistancePerLeg = request.getHints().getDouble(Parameters.PT.MAX_TRANSFER_DISTANCE_PER_LEG, -1);
             weighting = createPtTravelTimeWeighting(flagEncoder, arriveBy, walkSpeedKmH);
             translation = translationMap.getWithFallBack(request.getLocale());
             if (request.getPoints().size() != 2) {
