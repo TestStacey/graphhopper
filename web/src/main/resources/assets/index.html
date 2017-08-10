@@ -202,12 +202,12 @@
                                         m("div", leg.departureLocation),
                                         m("div", leg.distance),
                                         m("div", leg.departureTime),
-                                        leg.type === "pt" ? m("div", leg.trip_headsign) : [],
+                                        leg.type === "pt" ? [m("div", leg.route_id), m("div", leg.trip_headsign)] : [],
                                         leg.type === "walk" ? m("ol", leg.instructions.map(function(instruction, index) {
                                             return m("li", [m("div", instruction.text), m("div", instruction.time > 0 ? moment.duration(instruction.time).humanize() : [])]);
                                         })) : [],
                                         leg.type === "pt" ? m("ol", leg.stops.map(function(stop, index) {
-                                            return m("li", m("div", m("div", stop.arrivalTime), m("div", stop.stop_name), m("div", stop.departureTime)));
+                                            return m("li", m("div", m("div", stop.arrivalTime), m("div", stop.stop_id), m("div", stop.stop_name), m("div", stop.departureTime)));
                                         })) : [],
                                         m("div", leg.arrivalTime)
                                     ])
