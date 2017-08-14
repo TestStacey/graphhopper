@@ -73,18 +73,17 @@ final class GraphExplorer {
                                 continue;
                             }
                             if (edgeType == GtfsStorage.EdgeType.ENTER_TIME_EXPANDED_NETWORK && !reverse) {
+                                if (foundEnteredTimeExpandedNetworkEdge) {
+                                    return false;
+                                }
                                 if (secondsOnTrafficDay(edgeIterator, label.currentTime) > flagEncoder.getTime(edgeIterator.getFlags())) {
                                     continue;
                                 } else {
-                                    if (foundEnteredTimeExpandedNetworkEdge) {
-                                        continue;
-                                    } else {
-                                        foundEnteredTimeExpandedNetworkEdge = true;
-                                    }
+                                    foundEnteredTimeExpandedNetworkEdge = true;
                                 }
                             } else if (edgeType == GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK && reverse) {
                                 if (secondsOnTrafficDay(edgeIterator, label.currentTime) < flagEncoder.getTime(edgeIterator.getFlags())) {
-                                    continue;
+                                    return false;
                                 }
                             }
                             return true;
