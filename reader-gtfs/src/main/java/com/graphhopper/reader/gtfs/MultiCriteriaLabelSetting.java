@@ -103,6 +103,9 @@ public class MultiCriteriaLabelSetting {
                 return false;
             } else {
                 Label label = fromHeap.poll();
+                if (label.adjNode == 1383453) {
+                    System.out.println("pups");
+                }
                 action.accept(label);
                 for (EdgeIteratorState edge : explorer.exploreEdgesAround(label)) {
                     GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edge.getFlags());
@@ -148,6 +151,12 @@ public class MultiCriteriaLabelSetting {
     }
 
     private boolean isNotDominatedByAnyOf(Label me, Set<Label> sptEntries) {
+        if (me.adjNode==1383455) {
+            System.out.println("pups");
+        }
+        if (me.adjNode==1383453) {
+            System.out.println("pups");
+        }
         if (me.nWalkDistanceConstraintViolations > 0) {
             return false;
         }

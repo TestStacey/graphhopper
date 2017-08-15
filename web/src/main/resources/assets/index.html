@@ -115,6 +115,7 @@
             + (state.departArrive === "arrive" ? "&pt.arrive_by=true" : "")
             + "&use_miles=false&points_encoded=false"
             + "&pt.max_walk_distance_per_leg="+state.max_walk_distance_per_leg
+            + "&pt.profile=true&pt.limit_solutions=1"
             };
             console.log(request.url);
             return m.request(request)
