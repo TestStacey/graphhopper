@@ -99,13 +99,8 @@ public class MultiCriteriaLabelSetting {
 
         @Override
         public boolean tryAdvance(Consumer<? super Label> action) {
-            if (fromHeap.isEmpty()) {
-                return false;
-            } else {
-                Label label = fromHeap.poll();
-                if (label.adjNode == 1383453) {
-                    System.out.println("pups");
-                }
+            for(Label label = fromHeap.poll(); label != null; label = fromHeap.poll()) {
+                if (label.deleted) continue;
                 action.accept(label);
                 for (EdgeIteratorState edge : explorer.exploreEdgesAround(label)) {
                     GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edge.getFlags());
@@ -147,16 +142,11 @@ public class MultiCriteriaLabelSetting {
                 }
                 return true;
             }
+            return false;
         }
     }
 
     private boolean isNotDominatedByAnyOf(Label me, Set<Label> sptEntries) {
-        if (me.adjNode==1383455) {
-            System.out.println("pups");
-        }
-        if (me.adjNode==1383453) {
-            System.out.println("pups");
-        }
         if (me.nWalkDistanceConstraintViolations > 0) {
             return false;
         }
@@ -173,8 +163,8 @@ public class MultiCriteriaLabelSetting {
         for (Iterator<Label> iterator = sptEntries.iterator(); iterator.hasNext();) {
             Label sptEntry = iterator.next();
             if (dominates(me, sptEntry)) {
-                fromHeap.remove(sptEntry);
                 iterator.remove();
+                sptEntry.deleted = true;
             }
         }
     }
