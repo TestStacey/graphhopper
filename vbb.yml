@@ -1,8 +1,8 @@
 graphhopper:
 
   # OpenStreetMap input file
-  datareader.file: /Users/michaelzilske/wurst/brandenburg-latest.osm.pbf
-  gtfs.file: /Users/michaelzilske/wurst/vbb/1190951.zip
+  datareader.file: brandenburg-latest.osm.pbf
+  gtfs.file: 1378234.zip
 
   ##### Vehicles #####
 
