@@ -17,8 +17,7 @@
  */
 package com.graphhopper.reader.gtfs;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.ArrayListMultimap;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.util.EdgeIterator;
 import com.graphhopper.util.EdgeIteratorState;
@@ -43,7 +42,7 @@ public class MultiCriteriaLabelSetting {
     private long startTime;
     private final PtFlagEncoder flagEncoder;
     private final PtTravelTimeWeighting weighting;
-    private final SetMultimap<Integer, Label> fromMap;
+    private final ArrayListMultimap<Integer, Label> fromMap;
     private final PriorityQueue<Label> fromHeap;
     private final int maxVisitedNodes;
     private final boolean reverse;
@@ -70,7 +69,7 @@ public class MultiCriteriaLabelSetting {
                 .thenComparing(Comparator.comparingLong(l1 -> l1.walkTime))
                 .thenComparing(Comparator.comparingLong(l -> departureTimeCriterion(l) != null ? departureTimeCriterion(l) : 0));
         fromHeap = new PriorityQueue<>(queueComparator);
-        fromMap = HashMultimap.create();
+        fromMap = ArrayListMultimap.create();
     }
 
     Stream<Label> calcLabels(int from, int to, Instant startTime) {
@@ -126,7 +125,7 @@ public class MultiCriteriaLabelSetting {
                     long walkTime = label.walkTime + (edgeType == GtfsStorage.EdgeType.HIGHWAY ? nextTime - label.currentTime : 0);
                     int nWalkDistanceConstraintViolations = Math.min(1, label.nWalkDistanceConstraintViolations + (
                             isTryingToReEnterPtAfterTransferWalking ? 1 : (label.walkDistanceOnCurrentLeg <= maxWalkDistancePerLeg && walkDistanceOnCurrentLeg > maxWalkDistancePerLeg ? 1 : 0)));
-                    Set<Label> sptEntries = fromMap.get(edge.getAdjNode());
+                    Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, label);
                     if (isNotDominatedByAnyOf(nEdge, sptEntries) && isNotDominatedByAnyOf(nEdge, targetLabels)) {
                         removeDominated(nEdge, sptEntries);
@@ -146,7 +145,7 @@ public class MultiCriteriaLabelSetting {
         }
     }
 
-    private boolean isNotDominatedByAnyOf(Label me, Set<Label> sptEntries) {
+    private boolean isNotDominatedByAnyOf(Label me, Collection<Label> sptEntries) {
         if (me.nWalkDistanceConstraintViolations > 0) {
             return false;
         }
@@ -159,7 +158,7 @@ public class MultiCriteriaLabelSetting {
     }
 
 
-    private void removeDominated(Label me, Set<Label> sptEntries) {
+    private void removeDominated(Label me, Collection<Label> sptEntries) {
         for (Iterator<Label> iterator = sptEntries.iterator(); iterator.hasNext();) {
             Label sptEntry = iterator.next();
             if (dominates(me, sptEntry)) {
