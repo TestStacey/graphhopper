@@ -101,6 +101,7 @@ public class RouteResource {
             @QueryParam("algorithm") @DefaultValue("") String algoStr,
             @QueryParam("locale") @DefaultValue("en") String localeStr,
             @QueryParam(Parameters.Routing.POINT_HINT) List<String> pointHints,
+            @QueryParam(Parameters.DETAILS.PATH_DETAILS) List<String> pathDetails,
             @QueryParam("heading") List<Double> favoredHeadings,
             @QueryParam("gpx.route") @DefaultValue("true") boolean withRoute /* default to false for the route part in next API version, see #437 */,
             @QueryParam("gpx.track") @DefaultValue("true") boolean withTrack,
@@ -149,6 +150,7 @@ public class RouteResource {
                 setAlgorithm(algoStr).
                 setLocale(localeStr).
                 setPointHints(pointHints).
+                setPathDetails(pathDetails).
                 getHints().
                 put(CALC_POINTS, calcPoints).
                 put(INSTRUCTIONS, instructions).
@@ -313,6 +315,7 @@ public class RouteResource {
                     jsonPath.putPOJO("instructions", ar.getInstructions());
                 }
                 jsonPath.putPOJO("legs", ar.getLegs());
+                jsonPath.putPOJO("details", ar.getPathDetails());
                 jsonPath.put("ascend", ar.getAscend());
                 jsonPath.put("descend", ar.getDescend());
             }
