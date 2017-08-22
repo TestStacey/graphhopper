@@ -102,7 +102,6 @@
             state.time = moment(vnode.attrs.time)
             state.checkedPath = 0
             state.departArrive = vnode.attrs.arriveBy ? "arrive" : "depart"
-            state.ignoreTransfers = vnode.attrs.ignoreTransfers
             state.max_walk_distance_per_leg = vnode.attrs.max_walk_distance_per_leg
         },
         doRequest: function() {
@@ -111,7 +110,6 @@
             + "&point="+state.destination.lat+","+state.destination.lng
             + "&locale=en-US&vehicle=pt&weighting=fastest&elevation=false"
             + "&pt.earliest_departure_time=" + encodeURIComponent(state.time.toISOString())
-            + (state.ignoreTransfers ? "&pt.ignore_transfers=true" : "")
             + (state.departArrive === "arrive" ? "&pt.arrive_by=true" : "")
             + "&use_miles=false&points_encoded=false"
             + "&pt.max_walk_distance_per_leg="+state.max_walk_distance_per_leg
@@ -128,7 +126,6 @@
             m.route.set(encodeURI("/route?time="+moment(state.time).toISOString()
                 + "&origin="+state.origin.lat+","+state.origin.lng+"&destination="+state.destination.lat+","+state.destination.lng
                 + "&max_walk_distance_per_leg="+state.max_walk_distance_per_leg
-                + (state.ignoreTransfers ? "&ignoreTransfers=true" : "")
                 + (state.departArrive === "arrive" ? "&arriveBy=true" : "")));
         }
     };
@@ -171,12 +168,6 @@
                                     }}),
                                     m("label", {"for": "arrive"}, "arrival time")
                                 ]),
-                            ]),
-                            m("div", [
-                                m("input", {id: "ignoreTransfers", type: "checkbox", checked: state.ignoreTransfers, onclick: m.withAttr("checked", function(ignoreTransfers) {
-                                    state.ignoreTransfers = ignoreTransfers;
-                                })}),
-                                m("label", {"for": "ignoreTransfers"}, "ignore transfers"),
                             ]),
                             m("div", [
                                 m("input", {id: "maxWalkDistance", onchange: m.withAttr("value", function(maxWalkDistance) {
