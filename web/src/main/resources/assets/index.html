@@ -125,7 +125,7 @@
                     });
         },
         reRoute: function() {
-            m.route.set(encodeURI("/webapp?time="+moment(state.time).toISOString()
+            m.route.set(encodeURI("/route?time="+moment(state.time).toISOString()
                 + "&origin="+state.origin.lat+","+state.origin.lng+"&destination="+state.destination.lat+","+state.destination.lng
                 + "&max_walk_distance_per_leg="+state.max_walk_distance_per_leg
                 + (state.ignoreTransfers ? "&ignoreTransfers=true" : "")
@@ -220,8 +220,8 @@
         }
     };
 
-    m.route(document.body, "/webapp?time="+moment(new Date()).toISOString()+"&origin=52.5141,13.4963&destination=52.5137,13.4355&max_walk_distance_per_leg=1000", {
-        "/webapp": {onmatch: function() {return RoutePlanner}, render: function(vnode) {
+    m.route(document.body, "/route?time="+moment(new Date()).toISOString()+"&origin=52.5141,13.4963&destination=52.5137,13.4355&max_walk_distance_per_leg=1000", {
+        "/route": {onmatch: function() {return RoutePlanner}, render: function(vnode) {
             vnode.key = vnode.attrs;
             return vnode
         }}
