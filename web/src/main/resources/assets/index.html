@@ -103,6 +103,7 @@
             state.checkedPath = 0
             state.departArrive = vnode.attrs.arriveBy ? "arrive" : "depart"
             state.max_walk_distance_per_leg = vnode.attrs.max_walk_distance_per_leg
+            state.max_transfer_distance_per_leg = vnode.attrs.max_transfer_distance_per_leg
         },
         doRequest: function() {
             const request = {method: "GET", url:
@@ -113,6 +114,7 @@
             + (state.departArrive === "arrive" ? "&pt.arrive_by=true" : "")
             + "&use_miles=false&points_encoded=false"
             + "&pt.max_walk_distance_per_leg="+state.max_walk_distance_per_leg
+            + "&pt.max_transfer_distance_per_leg="+state.max_transfer_distance_per_leg
             + "&pt.profile=true&pt.limit_solutions=5"
             };
             console.log(request.url);
@@ -126,6 +128,7 @@
             m.route.set(encodeURI("/route?time="+moment(state.time).toISOString()
                 + "&origin="+state.origin.lat+","+state.origin.lng+"&destination="+state.destination.lat+","+state.destination.lng
                 + "&max_walk_distance_per_leg="+state.max_walk_distance_per_leg
+                + "&max_transfer_distance_per_leg="+state.max_transfer_distance_per_leg
                 + (state.departArrive === "arrive" ? "&arriveBy=true" : "")));
         }
     };
@@ -175,6 +178,12 @@
                                 }), value: state.max_walk_distance_per_leg}),
                                 m("label", {"for": "maxWalkDistance"}, "maximum walking distance per leg"),
                             ]),
+                            m("div", [
+                                m("input", {id: "maxTransferDistance", onchange: m.withAttr("value", function(maxTransferDistance) {
+                                    state.max_transfer_distance_per_leg = maxTransferDistance;
+                                }), value: state.max_transfer_distance_per_leg}),
+                                m("label", {"for": "maxTransferDistance"}, "maximum free transfer distance per leg"),
+                            ]),
                         ]),
                         m("button", {onclick:  state.reRoute}, "Get route"),
                         state.response ? [
@@ -211,7 +220,7 @@
         }
     };
 
-    m.route(document.body, "/route?time="+moment(new Date()).toISOString()+"&origin=52.5141,13.4963&destination=52.5137,13.4355&max_walk_distance_per_leg=1000", {
+    m.route(document.body, "/route?time="+moment(new Date()).toISOString()+"&origin=52.5141,13.4963&destination=52.5137,13.4355&max_walk_distance_per_leg=1000&max_transfer_distance_per_leg=0", {
         "/route": {onmatch: function() {return RoutePlanner}, render: function(vnode) {
             vnode.key = vnode.attrs;
             return vnode
