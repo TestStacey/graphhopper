@@ -127,7 +127,7 @@ public class MultiCriteriaLabelSetting {
                             isTryingToReEnterPtAfterTransferWalking ? 1 : (label.walkDistanceOnCurrentLeg <= maxWalkDistancePerLeg && walkDistanceOnCurrentLeg > maxWalkDistancePerLeg ? 1 : 0)));
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, label);
-                    if (isNotDominatedByAnyOf(nEdge, sptEntries) && isNotDominatedByAnyOf(nEdge, targetLabels)) {
+                    if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
                         removeDominated(nEdge, sptEntries);
                         if (to == edge.getAdjNode()) {
                             removeDominated(nEdge, targetLabels);
@@ -161,10 +161,8 @@ public class MultiCriteriaLabelSetting {
     private void removeDominated(Label me, Collection<Label> sptEntries) {
         for (Iterator<Label> iterator = sptEntries.iterator(); iterator.hasNext();) {
             Label sptEntry = iterator.next();
-            if (dominates(me, sptEntry)) {
-                iterator.remove();
-                sptEntry.deleted = true;
-            }
+            iterator.remove();
+            sptEntry.deleted = true;
         }
     }
 
