@@ -279,11 +279,11 @@ public class GtfsStorage implements GraphExtension {
 		return fares;
 	}
 
-	Map<String, GTFSFeed> getGtfsFeeds() {
+	public Map<String, GTFSFeed> getGtfsFeeds() {
 		return Collections.unmodifiableMap(gtfsFeeds);
 	}
 
-	Map<String, Integer> getStationNodes() {
+	public Map<String, Integer> getStationNodes() {
 		return stationNodes;
 	}
 
