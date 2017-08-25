@@ -24,14 +24,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopperAPI;
-import com.graphhopper.PathWrapper;
-import com.graphhopper.http.WebHelper;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.storage.GraphHopperStorage;
-import com.graphhopper.util.Helper;
 import com.graphhopper.util.Parameters;
 import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.exceptions.GHException;
@@ -50,7 +47,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.PrintWriter;
-import java.text.NumberFormat;
 import java.util.*;
 
 import static com.graphhopper.util.Parameters.Routing.*;
@@ -95,7 +91,6 @@ public class RouteResource {
             @QueryParam(INSTRUCTIONS) @DefaultValue("true") boolean instructions,
             @QueryParam(CALC_POINTS) @DefaultValue("true") boolean calcPoints,
             @QueryParam("elevation") @DefaultValue("false") boolean enableElevation,
-            @QueryParam("points_encoded") @DefaultValue("true") boolean pointsEncoded,
             @QueryParam("vehicle") @DefaultValue("car") String vehicleStr,
             @QueryParam("weighting") @DefaultValue("fastest") String weighting,
             @QueryParam("algorithm") @DefaultValue("") String algoStr,
@@ -210,7 +205,7 @@ public class RouteResource {
                         + ", debugInfo: " + ghResponse.getDebugInfo());
                 return Response.fromResponse(writeGPX ?
                         gpxSuccessResponse(ghResponse, timeString, trackName, enableElevation, withRoute, withTrack, withWayPoints) :
-                        jsonSuccessResponse(ghResponse, instructions, calcPoints, enableElevation, pointsEncoded, took))
+                        Response.ok(ghResponse).build())
                         .header("X-GH-Took", "" + Math.round(took * 1000))
                         .build();
             }
@@ -283,48 +278,6 @@ public class RouteResource {
                 // throw new WebApplicationException(String.format("This query parameter (hint) is not allowed to occur multiple times: %s", e.getKey()));
             }
         }
-    }
-
-    private Response jsonSuccessResponse(GHResponse ghRsp, boolean enableInstructions, boolean calcPoints, boolean enableElevation, boolean pointsEncoded, float took) {
-        ObjectNode json = JsonNodeFactory.instance.objectNode();
-        json.putPOJO("hints", ghRsp.getHints().toMap());
-        // If you replace GraphHopper with your own brand name, this is fine.
-        // Still it would be highly appreciated if you mention us in your about page!
-        final ObjectNode info = json.putObject("info");
-        info.putArray("copyrights")
-                .add("GraphHopper")
-                .add("OpenStreetMap contributors");
-        info.put("took", Math.round(took * 1000));
-        ArrayNode jsonPathList = json.putArray("paths");
-        for (PathWrapper ar : ghRsp.getAll()) {
-            ObjectNode jsonPath = jsonPathList.addObject();
-            jsonPath.put("distance", Helper.round(ar.getDistance(), 3));
-            jsonPath.put("weight", Helper.round6(ar.getRouteWeight()));
-            jsonPath.put("time", ar.getTime());
-            jsonPath.put("transfers", ar.getNumChanges());
-            if (!ar.getDescription().isEmpty()) {
-                jsonPath.putPOJO("description", ar.getDescription());
-            }
-            if (calcPoints) {
-                jsonPath.put("points_encoded", pointsEncoded);
-                if (ar.getPoints().getSize() >= 2) {
-                    jsonPath.putPOJO("bbox", ar.calcBBox2D());
-                }
-                jsonPath.putPOJO("points", pointsEncoded ? WebHelper.encodePolyline(ar.getPoints(), enableElevation) : ar.getPoints().toLineString(enableElevation));
-                if (enableInstructions) {
-                    jsonPath.putPOJO("instructions", ar.getInstructions());
-                }
-                jsonPath.putPOJO("legs", ar.getLegs());
-                jsonPath.putPOJO("details", ar.getPathDetails());
-                jsonPath.put("ascend", ar.getAscend());
-                jsonPath.put("descend", ar.getDescend());
-            }
-            jsonPath.putPOJO("snapped_waypoints", pointsEncoded ? WebHelper.encodePolyline(ar.getWaypoints(), enableElevation) : ar.getWaypoints().toLineString(enableElevation));
-            if (ar.getFare() != null) {
-                jsonPath.put("fare", NumberFormat.getCurrencyInstance().format(ar.getFare()));
-            }
-        }
-        return Response.ok(json).build();
     }
 
     private Response errorResponse(List<Throwable> t, boolean writeGPX) {

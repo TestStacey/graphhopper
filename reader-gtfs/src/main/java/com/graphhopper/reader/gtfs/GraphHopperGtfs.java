@@ -18,6 +18,7 @@
 
 package com.graphhopper.reader.gtfs;
 
+import com.conveyal.gtfs.model.Stop;
 import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.*;
 import com.graphhopper.reader.osm.OSMReader;
@@ -92,8 +93,8 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         private final double maxWalkDistancePerLeg;
         private final double maxTransferDistancePerLeg;
         private final PtTravelTimeWeighting weighting;
-        private final GHPoint enter;
-        private final GHPoint exit;
+        private final GHLocation enter;
+        private final GHLocation exit;
         private final Translation translation;
 
         private final GHResponse response = new GHResponse();
@@ -119,8 +120,29 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             if (request.getPoints().size() != 2) {
                 throw new IllegalArgumentException("Exactly 2 points have to be specified, but was:" + request.getPoints().size());
             }
-            enter = request.getPoints().get(0);
-            exit = request.getPoints().get(1);
+            enter = new GHPointLocation(request.getPoints().get(0));
+            exit = new GHPointLocation(request.getPoints().get(1));
+        }
+
+        public RequestHandler(String origin, String destination, GHRequest request) {
+            maxVisitedNodesForRequest = request.getHints().getInt(Parameters.Routing.MAX_VISITED_NODES, Integer.MAX_VALUE);
+            profileQuery = request.getHints().getBool(PROFILE_QUERY, false);
+            ignoreTransfers = request.getHints().getBool(Parameters.PT.IGNORE_TRANSFERS, false);
+            limitSolutions = request.getHints().getInt(Parameters.PT.LIMIT_SOLUTIONS, profileQuery ? 5 : ignoreTransfers ? 1 : Integer.MAX_VALUE);
+            final String departureTimeString = request.getHints().get(Parameters.PT.EARLIEST_DEPARTURE_TIME, "");
+            try {
+                initialTime = Instant.parse(departureTimeString);
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException(String.format("Illegal value for required parameter %s: [%s]", Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString));
+            }
+            arriveBy = request.getHints().getBool(Parameters.PT.ARRIVE_BY, false);
+            walkSpeedKmH = request.getHints().getDouble(Parameters.PT.WALK_SPEED, 5.0);
+            maxWalkDistancePerLeg = request.getHints().getDouble(Parameters.PT.MAX_WALK_DISTANCE_PER_LEG, Double.MAX_VALUE);
+            maxTransferDistancePerLeg = request.getHints().getDouble(Parameters.PT.MAX_TRANSFER_DISTANCE_PER_LEG, Double.MAX_VALUE);
+            weighting = createPtTravelTimeWeighting(flagEncoder, arriveBy, walkSpeedKmH);
+            translation = translationMap.getWithFallBack(request.getLocale());
+            enter = new GHStationLocation(origin);
+            exit = new GHStationLocation(destination);
         }
 
         GHResponse route() {
@@ -135,24 +157,53 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         GHResponse route(Consumer<? super Label> action) {
             StopWatch stopWatch = new StopWatch().start();
 
-            QueryResult source = findClosest(enter, 0);
-            QueryResult dest = findClosest(exit, 1);
-            queryGraph.lookup(Arrays.asList(source, dest)); // modifies queryGraph, source and dest!
+            ArrayList<QueryResult> pointQueryResults = new ArrayList<>();
+            ArrayList<QueryResult> allQueryResults = new ArrayList<>();
+            PointList points = new PointList(2, false);
+            if (enter instanceof GHPointLocation) {
+                final QueryResult closest = findClosest(((GHPointLocation) enter).ghPoint, 0);
+                pointQueryResults.add(closest);
+                allQueryResults.add(closest);
+                points.add(closest.getSnappedPoint());
+            } else if (enter instanceof GHStationLocation) {
+                final String stop_id = ((GHStationLocation) enter).stop_id;
+                final int node = gtfsStorage.getStationNodes().get(stop_id);
+                final QueryResult station = new QueryResult(graphHopperStorage.getNodeAccess().getLat(node), graphHopperStorage.getNodeAccess().getLon(node));
+                station.setClosestNode(node);
+                allQueryResults.add(station);
+                points.add(graphHopperStorage.getNodeAccess().getLat(node), graphHopperStorage.getNodeAccess().getLon(node));
+            }
+            if (exit instanceof GHPointLocation) {
+                final QueryResult closest = findClosest(((GHPointLocation) exit).ghPoint, 1);
+                pointQueryResults.add(closest);
+                allQueryResults.add(closest);
+                points.add(closest.getSnappedPoint());
+            } else if (exit instanceof GHStationLocation) {
+                final String stop_id = ((GHStationLocation) exit).stop_id;
+                final int node = gtfsStorage.getStationNodes().get(stop_id);
+                final QueryResult station = new QueryResult(graphHopperStorage.getNodeAccess().getLat(node), graphHopperStorage.getNodeAccess().getLon(node));
+                station.setClosestNode(node);
+                allQueryResults.add(station);
+                points.add(graphHopperStorage.getNodeAccess().getLat(node), graphHopperStorage.getNodeAccess().getLon(node));
+            }
 
-            PointList startAndEndpoint = pointListFrom(Arrays.asList(source, dest));
+            queryGraph.lookup(pointQueryResults); // modifies queryGraph and queryResults!
+
             response.addDebugInfo("idLookup:" + stopWatch.stop().getSeconds() + "s");
+
+
 
             int startNode;
             int destNode;
             if (arriveBy) {
-                startNode = dest.getClosestNode();
-                destNode = source.getClosestNode();
+                startNode = allQueryResults.get(1).getClosestNode();
+                destNode = allQueryResults.get(0).getClosestNode();
             } else {
-                startNode = source.getClosestNode();
-                destNode = dest.getClosestNode();
+                startNode = allQueryResults.get(0).getClosestNode();
+                destNode = allQueryResults.get(1).getClosestNode();
             }
             List<Label> solutions = findPaths(startNode, destNode, action);
-            parseSolutionsAndAddToResponse(solutions, startAndEndpoint);
+            parseSolutionsAndAddToResponse(solutions, points);
             return response;
         }
 
@@ -278,6 +329,10 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         return new RequestHandler(request).route();
     }
 
+    public GHResponse route(String origin, String destination, GHRequest restOfRequest) {
+        return new RequestHandler(origin, destination, restOfRequest).route();
+    }
+
     public GHResponse routeStreaming(GHRequest request, Consumer<? super Label> action) {
         return new RequestHandler(request).route(action);
     }
@@ -288,14 +343,6 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             weighting = weighting.reverse();
         }
         return weighting;
-    }
-
-    private PointList pointListFrom(List<QueryResult> queryResults) {
-        PointList waypoints = new PointList(queryResults.size(), true);
-        for (QueryResult qr : queryResults) {
-            waypoints.add(qr.getSnappedPoint());
-        }
-        return waypoints;
     }
 
 }

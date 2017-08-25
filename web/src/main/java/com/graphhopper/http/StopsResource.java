@@ -19,8 +19,12 @@
 package com.graphhopper.http;
 
 import com.conveyal.gtfs.model.Stop;
+import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
+import com.graphhopper.GraphHopperAPI;
+import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
+import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.storage.GraphHopperStorage;
 
 import javax.inject.Inject;
@@ -28,18 +32,27 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.Collection;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.UriInfo;
+import java.util.*;
+
+import static com.graphhopper.util.Parameters.Routing.CALC_POINTS;
+import static com.graphhopper.util.Parameters.Routing.INSTRUCTIONS;
+import static com.graphhopper.util.Parameters.Routing.WAY_POINT_MAX_DISTANCE;
 
 @Path("stops")
 @Produces(MediaType.APPLICATION_JSON)
 public class StopsResource {
 
     private final GtfsStorage gtfsStorage;
+    private final GraphHopperGtfs graphHopperGtfs;
 
     @Inject
-    StopsResource(GraphHopperStorage graphHopperStorage) {
+    StopsResource(GraphHopperStorage graphHopperStorage, GraphHopperAPI graphHopperAPI) {
         gtfsStorage = (GtfsStorage) graphHopperStorage.getExtension();
+        graphHopperGtfs = (GraphHopperGtfs) graphHopperAPI;
     }
 
     @GET
@@ -48,11 +61,33 @@ public class StopsResource {
     }
 
     @Path("{origin-stop-id}/route-to/{destination-stop-id}")
-    public GHResponse route(@PathParam("origin-stop-id") String origin, @PathParam("destination-stop-id") String destination) {
-        gtfsStorage.getStationNodes().get(origin);
-        gtfsStorage.getStationNodes().get(destination);
-        //TODO: Route
-        return new GHResponse();
+    @GET
+    public GHResponse route(@Context UriInfo uriInfo, @PathParam("origin-stop-id") String origin, @PathParam("destination-stop-id") String destination) {
+        GHRequest request = new GHRequest();
+        initHints(request.getHints(), uriInfo.getQueryParameters());
+        return graphHopperGtfs.route(origin, destination, request);
     }
+
+    private void initHints(HintsMap m, MultivaluedMap<String, String> parameterMap) {
+        for (Map.Entry<String, List<String>> e : parameterMap.entrySet()) {
+            if (e.getValue().size() == 1) {
+                m.put(e.getKey(), e.getValue().get(0));
+            } else {
+                // Do nothing.
+                // TODO: this is dangerous: I can only silently swallow
+                // the forbidden multiparameter. If I comment-in the line below,
+                // I get an exception, because "point" regularly occurs
+                // multiple times.
+                // I think either unknown parameters (hints) should be allowed
+                // to be multiparameters, too, or we shouldn't use them for
+                // known parameters either, _or_ known parameters
+                // must be filtered before they come to this code point,
+                // _or_ we stop passing unknown parameters alltogether..
+                //
+                // throw new WebApplicationException(String.format("This query parameter (hint) is not allowed to occur multiple times: %s", e.getKey()));
+            }
+        }
+    }
+
 
 }
