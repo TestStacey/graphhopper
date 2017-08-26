@@ -18,19 +18,16 @@
 package com.graphhopper.http.resources;
 
 import com.codahale.metrics.MetricRegistry;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.ValidGHRequest;
+import com.graphhopper.http.api.JsonErrorEntity;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.util.StopWatch;
-import com.graphhopper.util.exceptions.GHException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -53,7 +50,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static com.graphhopper.util.Parameters.Routing.INSTRUCTIONS;
-import static com.graphhopper.util.Parameters.Routing.POINT_HINT;
 import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 
 /**
@@ -104,18 +100,10 @@ public class RouteResource {
 
         StopWatch sw = new StopWatch().start();
 
-        if(request.getPoints().isEmpty()) {
-            throw new WebApplicationException(errorResponse(new IllegalArgumentException("You have to pass at least one point"), writeGPX));
-        }
-
         if (!encodingManager.supports(request.getVehicle())) {
             throw new WebApplicationException(errorResponse(new IllegalArgumentException("Vehicle not supported: " + request.getVehicle()), writeGPX));
         } else if (enableElevation && !hasElevation) {
             throw new WebApplicationException(errorResponse(new IllegalArgumentException("Elevation not supported!"), writeGPX));
-        }
-
-        if (request.getPointHints().size() > 0 && request.getPointHints().size() != request.getPoints().size()) {
-            throw new WebApplicationException(errorResponse(new IllegalArgumentException("If you pass " + POINT_HINT + ", you need to pass a hint for every point, empty hints will be ignored"), writeGPX));
         }
 
         switch (type) {
@@ -231,35 +219,12 @@ public class RouteResource {
         if (writeGPX) {
             return xmlErrorResponse(t);
         } else {
-            return jsonErrorResponse(t);
+            return Response.status(SC_BAD_REQUEST).entity(new JsonErrorEntity(t)).build();
         }
     }
 
     private Response errorResponse(Throwable t, boolean writeGPX) {
         return errorResponse(Collections.singletonList(t), writeGPX);
     }
-
-    private Response jsonErrorResponse(List<Throwable> errors) {
-        ObjectNode json = JsonNodeFactory.instance.objectNode();
-        json.put("message", getMessage(errors.get(0)));
-        ArrayNode errorHintList = json.putArray("hints");
-        for (Throwable t : errors) {
-            ObjectNode error = errorHintList.addObject();
-            error.put("message", getMessage(t));
-            error.put("details", t.getClass().getName());
-            if (t instanceof GHException) {
-                ((GHException) t).getDetails().forEach(error::putPOJO);
-            }
-        }
-        return Response.status(SC_BAD_REQUEST).entity(json).build();
-    }
-
-    private String getMessage(Throwable t) {
-        if (t.getMessage() == null)
-            return t.getClass().getSimpleName();
-        else
-            return t.getMessage();
-    }
-
 
 }
