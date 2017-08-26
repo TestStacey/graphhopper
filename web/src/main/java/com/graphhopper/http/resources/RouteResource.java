@@ -18,10 +18,7 @@
 package com.graphhopper.http.resources;
 
 import com.codahale.metrics.MetricRegistry;
-import com.graphhopper.GHRequest;
-import com.graphhopper.GHResponse;
-import com.graphhopper.GraphHopperAPI;
-import com.graphhopper.ValidGHRequest;
+import com.graphhopper.*;
 import com.graphhopper.http.api.JsonErrorEntity;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;

@@ -34,25 +34,14 @@ import java.util.Collection;
 public class StopsResource {
 
     private final GtfsStorage gtfsStorage;
-    private final GraphHopperGtfs graphHopperGtfs;
 
     @Inject
-    StopsResource(GraphHopperStorage graphHopperStorage, GraphHopperAPI graphHopperAPI) {
+    StopsResource(GraphHopperStorage graphHopperStorage) {
         gtfsStorage = (GtfsStorage) graphHopperStorage.getExtension();
-        graphHopperGtfs = (GraphHopperGtfs) graphHopperAPI;
     }
 
     @GET
     public Collection<Stop> getStations() {
         return gtfsStorage.getGtfsFeeds().get("gtfs_0").stops.values();
     }
-
-    @Path("{origin-stop-id}/route-to/{destination-stop-id}")
-    @GET
-    public GHResponse route(@BeanParam GHRequest request, @PathParam("origin-stop-id") String origin, @PathParam("destination-stop-id") String destination) {
-        request.addPoint(new GHStationLocation(origin));
-        request.addPoint(new GHStationLocation(destination));
-        return graphHopperGtfs.route(request);
-    }
-
 }

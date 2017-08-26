@@ -20,10 +20,18 @@ package com.graphhopper;
 
 import com.graphhopper.util.shapes.GHPoint;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class GHLocation {
 
     public static GHLocation fromString(String s) {
-        return new GHPointLocation(GHPoint.fromString(s));
+        final Pattern pattern = Pattern.compile("^Stop\\((.*)\\)$");
+        final Matcher matcher = pattern.matcher(s);
+        if (matcher.find()) {
+            return new GHStationLocation(matcher.group(1));
+        } else {
+            return new GHPointLocation(GHPoint.fromString(s));
+        }
     }
-
 }
