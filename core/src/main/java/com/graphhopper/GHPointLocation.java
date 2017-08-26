@@ -16,7 +16,19 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.reader.gtfs;
+package com.graphhopper;
 
-public class GHLocation {
+import com.graphhopper.util.shapes.GHPoint;
+
+public class GHPointLocation extends GHLocation {
+    public final GHPoint ghPoint;
+
+    public GHPointLocation(GHPoint ghPoint) {
+        this.ghPoint = ghPoint;
+    }
+
+    @Override
+    public String toString() {
+        return ghPoint.toString();
+    }
 }

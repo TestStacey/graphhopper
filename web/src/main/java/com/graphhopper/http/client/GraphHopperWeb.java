@@ -21,10 +21,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.graphhopper.GHRequest;
-import com.graphhopper.GHResponse;
-import com.graphhopper.GraphHopperAPI;
-import com.graphhopper.PathWrapper;
+import com.graphhopper.*;
 import com.graphhopper.http.WebHelper;
 import com.graphhopper.util.*;
 import com.graphhopper.util.details.PathDetail;
@@ -300,8 +297,8 @@ public class GraphHopperWeb implements GraphHopperAPI {
     public GHResponse route(GHRequest request) {
         try {
             String places = "";
-            for (GHPoint p : request.getPoints()) {
-                places += "point=" + p.lat + "," + p.lon + "&";
+            for (GHLocation p : request.getPoints()) {
+                places += "point=" + ((GHPointLocation) p).ghPoint.lat + "," + ((GHPointLocation) p).ghPoint.lon + "&";
             }
 
             boolean tmpInstructions = request.getHints().getBool("instructions", instructions);

@@ -980,7 +980,13 @@ public class GraphHopper implements GraphHopperAPI {
                 algoStr = chFactoryDecorator.isEnabled() && !disableCH &&
                         !(lmFactoryDecorator.isEnabled() && !disableLM) ? DIJKSTRA_BI : ASTAR_BI;
 
-            List<GHPoint> points = request.getPoints();
+            List<GHPoint> points = new ArrayList<>(request.getPoints().size());
+            for (GHLocation location : request.getPoints()) {
+                if (!(location instanceof GHPointLocation)) {
+                    throw new IllegalArgumentException("Only coordinate points are allowed in this configuration.");
+                }
+                points.add(((GHPointLocation) location).ghPoint);
+            }
             // TODO Maybe we should think about a isRequestValid method that checks all that stuff that we could do to fail fast
             // For example see #734
             checkIfPointsAreInBounds(points);

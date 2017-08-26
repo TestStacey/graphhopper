@@ -18,7 +18,6 @@
 
 package com.graphhopper.reader.gtfs;
 
-import com.conveyal.gtfs.model.Stop;
 import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.*;
 import com.graphhopper.reader.osm.OSMReader;
@@ -36,7 +35,10 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -120,29 +122,8 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             if (request.getPoints().size() != 2) {
                 throw new IllegalArgumentException("Exactly 2 points have to be specified, but was:" + request.getPoints().size());
             }
-            enter = new GHPointLocation(request.getPoints().get(0));
-            exit = new GHPointLocation(request.getPoints().get(1));
-        }
-
-        public RequestHandler(String origin, String destination, GHRequest request) {
-            maxVisitedNodesForRequest = request.getHints().getInt(Parameters.Routing.MAX_VISITED_NODES, Integer.MAX_VALUE);
-            profileQuery = request.getHints().getBool(PROFILE_QUERY, false);
-            ignoreTransfers = request.getHints().getBool(Parameters.PT.IGNORE_TRANSFERS, false);
-            limitSolutions = request.getHints().getInt(Parameters.PT.LIMIT_SOLUTIONS, profileQuery ? 5 : ignoreTransfers ? 1 : Integer.MAX_VALUE);
-            final String departureTimeString = request.getHints().get(Parameters.PT.EARLIEST_DEPARTURE_TIME, "");
-            try {
-                initialTime = Instant.parse(departureTimeString);
-            } catch (DateTimeParseException e) {
-                throw new IllegalArgumentException(String.format("Illegal value for required parameter %s: [%s]", Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString));
-            }
-            arriveBy = request.getHints().getBool(Parameters.PT.ARRIVE_BY, false);
-            walkSpeedKmH = request.getHints().getDouble(Parameters.PT.WALK_SPEED, 5.0);
-            maxWalkDistancePerLeg = request.getHints().getDouble(Parameters.PT.MAX_WALK_DISTANCE_PER_LEG, Double.MAX_VALUE);
-            maxTransferDistancePerLeg = request.getHints().getDouble(Parameters.PT.MAX_TRANSFER_DISTANCE_PER_LEG, Double.MAX_VALUE);
-            weighting = createPtTravelTimeWeighting(flagEncoder, arriveBy, walkSpeedKmH);
-            translation = translationMap.getWithFallBack(request.getLocale());
-            enter = new GHStationLocation(origin);
-            exit = new GHStationLocation(destination);
+            enter = request.getPoints().get(0);
+            exit = request.getPoints().get(1);
         }
 
         GHResponse route() {
@@ -327,10 +308,6 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
     @Override
     public GHResponse route(GHRequest request) {
         return new RequestHandler(request).route();
-    }
-
-    public GHResponse route(String origin, String destination, GHRequest restOfRequest) {
-        return new RequestHandler(origin, destination, restOfRequest).route();
     }
 
     public GHResponse routeStreaming(GHRequest request, Consumer<? super Label> action) {

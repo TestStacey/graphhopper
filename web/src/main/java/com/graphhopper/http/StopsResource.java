@@ -19,10 +19,7 @@
 package com.graphhopper.http;
 
 import com.conveyal.gtfs.model.Stop;
-import com.graphhopper.GHRequest;
-import com.graphhopper.GHResponse;
-import com.graphhopper.GraphHopperAPI;
-import com.graphhopper.ValidGHRequest;
+import com.graphhopper.*;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.storage.GraphHopperStorage;
@@ -52,8 +49,10 @@ public class StopsResource {
 
     @Path("{origin-stop-id}/route-to/{destination-stop-id}")
     @GET
-    public GHResponse route(@ValidGHRequest @BeanParam GHRequest request, @PathParam("origin-stop-id") String origin, @PathParam("destination-stop-id") String destination) {
-        return graphHopperGtfs.route(origin, destination, request);
+    public GHResponse route(@BeanParam GHRequest request, @PathParam("origin-stop-id") String origin, @PathParam("destination-stop-id") String destination) {
+        request.addPoint(new GHStationLocation(origin));
+        request.addPoint(new GHStationLocation(destination));
+        return graphHopperGtfs.route(request);
     }
 
 }

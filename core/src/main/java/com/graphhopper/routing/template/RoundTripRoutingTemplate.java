@@ -17,6 +17,7 @@
  */
 package com.graphhopper.routing.template;
 
+import com.graphhopper.GHPointLocation;
 import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.PathWrapper;
@@ -73,7 +74,7 @@ public class RoundTripRoutingTemplate extends AbstractRoutingTemplate implements
         final long seed = ghRequest.getHints().getLong(RoundTrip.SEED, 0L);
         final double initialHeading = ghRequest.getHints().getDouble(RoundTrip.HEADING, Double.NaN);
         final int roundTripPointCount = Math.min(20, ghRequest.getHints().getInt(Algorithms.ROUND_TRIP + ".points", 2 + (int) (distanceInMeter / 50000)));
-        final GHPoint start = ghRequest.getPoints().get(0);
+        final GHPoint start = ((GHPointLocation) ghRequest.getPoints().get(0)).ghPoint;
 
         TourStrategy strategy = new MultiPointTour(new Random(seed), distanceInMeter, roundTripPointCount, initialHeading);
         queryResults = new ArrayList<>(2 + strategy.getNumberOfGeneratedPoints());
