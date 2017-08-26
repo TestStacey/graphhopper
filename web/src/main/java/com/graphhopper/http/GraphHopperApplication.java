@@ -28,8 +28,13 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
+import com.graphhopper.GHResponse;
+import com.graphhopper.http.api.GHResponseSerializer;
+import com.graphhopper.http.api.PathDetailDeserializer;
+import com.graphhopper.http.api.PathDetailSerializer;
 import com.graphhopper.http.cli.ImportCommand;
 import com.graphhopper.http.resources.RootResource;
+import com.graphhopper.util.details.PathDetail;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
@@ -82,6 +87,12 @@ public class GraphHopperApplication extends Application<GraphHopperServerConfigu
                 }).collect(Collectors.toList());
             }
         }));
+
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(PathDetail.class, new PathDetailSerializer());
+        module.addDeserializer(PathDetail.class, new PathDetailDeserializer());
+        module.addSerializer(GHResponse.class, new GHResponseSerializer());
+        environment.getObjectMapper().registerModule(module);
 
         environment.jersey().register(new RootResource());
     }

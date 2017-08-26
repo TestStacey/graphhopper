@@ -18,5 +18,12 @@
 
 package com.graphhopper;
 
+import com.graphhopper.util.shapes.GHPoint;
+
 public class GHLocation {
+
+    public static GHLocation fromString(String s) {
+        return new GHPointLocation(GHPoint.fromString(s));
+    }
+
 }
