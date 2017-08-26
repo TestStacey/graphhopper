@@ -61,6 +61,7 @@ public class GraphHopperApplication extends Application<GraphHopperServerConfigu
             }
         });
 
+        environment.jersey().register(new GHJerseyViolationExceptionMapper());
         environment.getObjectMapper().setDateFormat(new ISO8601DateFormat());
         environment.getObjectMapper().registerModule(new JtsModule());
         environment.getObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
