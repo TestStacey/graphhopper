@@ -108,7 +108,8 @@
         doRequest: function() {
             const request = {method: "GET", url:
             "/route?point="+state.origin.lat+","+state.origin.lng
-            + "&point="+state.destination.lat+","+state.destination.lng
+             + "&point="+state.destination.lat+","+state.destination.lng
+//            + "&point=Stop(070201053801)"
             + "&locale=en-US&vehicle=pt&weighting=fastest&elevation=false"
             + "&pt.earliest_departure_time=" + encodeURIComponent(state.time.toISOString())
             + (state.departArrive === "arrive" ? "&pt.arrive_by=true" : "")

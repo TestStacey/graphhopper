@@ -115,10 +115,18 @@ public class MultiCriteriaLabelSetting {
                 if (label.adjNode == 449891) {
                     System.out.println(label);
                 }
+                if (label.adjNode == 518302) {
+                    System.out.println(label);
+                    explorer.exploreEdgesAround(label).forEach(System.out::println);
+                }
 
                 action.accept(label);
                 Label finalLabel = label;
                 explorer.exploreEdgesAround(label).forEach(edge -> {
+                    if (finalLabel.adjNode == 518302 && edge.getAdjNode() == 13493729) {
+                        System.out.println(edge);
+                    }
+
                     GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edge.getFlags());
                     long nextTime;
                     if (reverse) {

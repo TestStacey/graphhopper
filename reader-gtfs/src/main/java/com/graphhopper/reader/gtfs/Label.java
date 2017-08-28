@@ -112,7 +112,8 @@ public class Label {
                             ++i;
                             return new Transition(label, null);
                         } else {
-                            EdgeIteratorState edgeIteratorState = label.parent == null ? null : graph.getEdgeIteratorState(label.edge, label.parent.adjNode).detach(reverseEdgeFlags);
+                            EdgeIteratorState edgeIteratorState = label.parent == null ? null :
+                                    graph.getEdgeIteratorState(label.edge, label.parent.adjNode).detach(reverseEdgeFlags);
                             Transition transition;
                             if (reverseEdgeFlags) {
                                 transition = new Transition(label, edgeIteratorState != null ? getEdgeLabel(edgeIteratorState, flagEncoder) : null);

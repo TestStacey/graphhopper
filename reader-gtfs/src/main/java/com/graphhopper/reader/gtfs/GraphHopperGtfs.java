@@ -168,6 +168,8 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                     int newNode = graphHopperStorage.getNodes() + 1000;
                     final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
                             -1, gtfsStorage.getStationNodes().get("070201053801"), newNode, 0, 0, "ulrich", null);
+                    ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), GtfsStorage.EdgeType.EXIT_PT));
+                    System.out.println(ulrich);
                     extraNodes.add(ghPoint);
                     extraEdges.add(ulrich);
 

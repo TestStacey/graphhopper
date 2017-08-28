@@ -68,12 +68,10 @@ final class GraphExplorer {
     }
 
     Stream<EdgeIteratorState> exploreEdgesAround(Label label) {
-        final List<VirtualEdgeIteratorState> other = extraEdgesBySource.get(label.adjNode);
-        if (label.adjNode <= graph.getNodes()) {
-            return mainEdgesAround(label);
-        } else {
-            return Stream.concat(mainEdgesAround(label), other.stream());
-        }
+        final List<VirtualEdgeIteratorState> extraEdges = extraEdgesBySource.get(label.adjNode);
+        return Stream.concat(
+                label.adjNode < graph.getNodes() ? mainEdgesAround(label) : Stream.empty(),
+                extraEdges.stream());
     }
 
     Stream<EdgeIteratorState> mainEdgesAround(Label label) {
