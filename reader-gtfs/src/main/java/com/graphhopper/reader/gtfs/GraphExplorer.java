@@ -18,16 +18,23 @@
 
 package com.graphhopper.reader.gtfs;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.graphhopper.routing.VirtualEdgeIteratorState;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.storage.Graph;
 import com.graphhopper.util.EdgeExplorer;
 import com.graphhopper.util.EdgeIterator;
 import com.graphhopper.util.EdgeIteratorState;
+import com.graphhopper.util.PointList;
 
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 final class GraphExplorer {
 
@@ -37,27 +44,53 @@ final class GraphExplorer {
     private final RealtimeFeed realtimeFeed;
     private final boolean reverse;
     private final PtTravelTimeWeighting weighting;
+    private final PointList extraNodes;
+    private final List<VirtualEdgeIteratorState> extraEdges;
+    private final ArrayListMultimap<Integer, VirtualEdgeIteratorState> extraEdgesBySource = ArrayListMultimap.create();
+    private final Graph graph;
 
-    GraphExplorer(Graph graph, PtTravelTimeWeighting weighting, PtFlagEncoder flagEncoder, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed, boolean reverse) {
+    GraphExplorer(Graph graph, PtTravelTimeWeighting weighting, PtFlagEncoder flagEncoder, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed, boolean reverse, PointList extraNodes, List<VirtualEdgeIteratorState> extraEdges) {
+        this.graph = graph;
         this.edgeExplorer = graph.createEdgeExplorer(new DefaultEdgeFilter(flagEncoder, reverse, !reverse));
         this.flagEncoder = flagEncoder;
         this.weighting = weighting;
         this.gtfsStorage = gtfsStorage;
         this.realtimeFeed = realtimeFeed;
         this.reverse = reverse;
+        this.extraNodes = extraNodes;
+        this.extraEdges = extraEdges;
+        for (VirtualEdgeIteratorState extraEdge : extraEdges) {
+            extraEdgesBySource.put(extraEdge.getBaseNode(), extraEdge);
+        }
     }
 
     Iterable<EdgeIteratorState> exploreEdgesAround(Label label) {
+        final List<VirtualEdgeIteratorState> other = extraEdgesBySource.get(label.adjNode);
+        final FluentIterable<EdgeIteratorState> append = FluentIterable
+                .from(label.adjNode <= graph.getNodes() ? mainEdgesAround(label) : FluentIterable.of(new EdgeIteratorState[]{}))
+                .append(other);
+        final Iterator<EdgeIteratorState> iterator = append.iterator();
+        System.out.println(iterator.hasNext());
+        System.out.println(iterator.hasNext());
+
+        return append;
+    }
+
+    private Iterable<EdgeIteratorState> mainEdgesAround(Label label) {
         return new Iterable<EdgeIteratorState>() {
             EdgeIterator edgeIterator = edgeExplorer.setBaseNode(label.adjNode);
 
             @Override
             public Iterator<EdgeIteratorState> iterator() {
                 return new Iterator<EdgeIteratorState>() {
+                    boolean ask = true;
+                    boolean hasNext = false;
                     boolean foundEnteredTimeExpandedNetworkEdge = false;
 
                     @Override
                     public boolean hasNext() {
+                        if (!ask) return hasNext;
+                        ask = false;
                         while(edgeIterator.next()) {
                             final GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edgeIterator.getFlags());
                             if (!isValidOn(edgeIterator, label.currentTime)) {
@@ -93,6 +126,7 @@ final class GraphExplorer {
 
                     @Override
                     public EdgeIteratorState next() {
+                        ask = true;
                         return edgeIterator;
                     }
                 };

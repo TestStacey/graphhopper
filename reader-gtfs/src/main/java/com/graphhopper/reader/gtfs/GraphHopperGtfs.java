@@ -22,6 +22,7 @@ import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.*;
 import com.graphhopper.reader.osm.OSMReader;
 import com.graphhopper.routing.QueryGraph;
+import com.graphhopper.routing.VirtualEdgeIteratorState;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.storage.*;
 import com.graphhopper.storage.index.LocationIndex;
@@ -98,6 +99,8 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         private final GHLocation enter;
         private final GHLocation exit;
         private final Translation translation;
+        private final List<VirtualEdgeIteratorState> extraEdges = new ArrayList<>();
+        private final PointList extraNodes = new PointList();
 
         private final GHResponse response = new GHResponse();
         private final QueryGraph queryGraph = new QueryGraph(graphHopperStorage);
@@ -155,10 +158,24 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                 points.add(graphHopperStorage.getNodeAccess().getLat(node), graphHopperStorage.getNodeAccess().getLon(node));
             }
             if (exit instanceof GHPointLocation) {
-                final QueryResult closest = findClosest(((GHPointLocation) exit).ghPoint, 1);
-                pointQueryResults.add(closest);
-                allQueryResults.add(closest);
-                points.add(closest.getSnappedPoint());
+                if (arriveBy) {
+                    final QueryResult closest = findClosest(((GHPointLocation) exit).ghPoint, 1);
+                    pointQueryResults.add(closest);
+                    allQueryResults.add(closest);
+                    points.add(closest.getSnappedPoint());
+                } else {
+                    final GHPoint ghPoint = ((GHPointLocation) exit).ghPoint;
+                    int newNode = graphHopperStorage.getNodes() + 1000;
+                    final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
+                            -1, gtfsStorage.getStationNodes().get("070201053801"), newNode, 0, 0, "ulrich", null);
+                    extraNodes.add(ghPoint);
+                    extraEdges.add(ulrich);
+
+                    final QueryResult virtualNode = new QueryResult(ghPoint.getLat(), ghPoint.getLon());
+                    virtualNode.setClosestNode(newNode);
+                    allQueryResults.add(virtualNode);
+                    points.add(ghPoint);
+                }
             } else if (exit instanceof GHStationLocation) {
                 final String stop_id = ((GHStationLocation) exit).stop_id;
                 final int node = gtfsStorage.getStationNodes().get(stop_id);
@@ -205,7 +222,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
         private List<Label> findPaths(int startNode, int destNode, Consumer<? super Label> action) {
             StopWatch stopWatch = new StopWatch().start();
-            GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy);
+            GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, extraNodes, extraEdges);
             MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, arriveBy, maxWalkDistancePerLeg, maxTransferDistancePerLeg, !ignoreTransfers, profileQuery, maxVisitedNodesForRequest);
             final Stream<Label> labels = router.calcLabels(startNode, destNode, initialTime);
             List<Label> solutions = labels
