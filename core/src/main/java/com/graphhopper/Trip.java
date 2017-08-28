@@ -1,5 +1,6 @@
 package com.graphhopper;
 
+import com.fasterxml.jackson.annotation.*;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.InstructionList;
 import com.vividsolutions.jts.geom.Geometry;
@@ -9,6 +10,15 @@ import java.util.Date;
 import java.util.List;
 
 public class Trip {
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+            property = "type"
+    )
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = WalkLeg.class, name = "walk"),
+            @JsonSubTypes.Type(value = PtLeg.class, name = "pt") }
+    )
     public static abstract class Leg {
         public final String type;
         public final String departureLocation;
@@ -52,7 +62,8 @@ public class Trip {
     public static class WalkLeg extends Leg {
         public final InstructionList instructions;
 
-        public WalkLeg(String departureLocation, Date departureTime, List<EdgeIteratorState> edges, Geometry geometry, double distance, InstructionList instructions, Date arrivalTime) {
+        @JsonCreator
+        public WalkLeg(@JsonProperty("departureLocation") String departureLocation, @JsonProperty("departureTime") Date departureTime, @JsonProperty("edges") List<EdgeIteratorState> edges, @JsonProperty("geometry") Geometry geometry, @JsonProperty("distance") double distance, @JsonProperty("instructions") InstructionList instructions, @JsonProperty("arrivalTime") Date arrivalTime) {
             super("walk", departureLocation, departureTime, edges, geometry, distance, arrivalTime);
             this.instructions = instructions;
         }
@@ -65,6 +76,18 @@ public class Trip {
         public final List<Stop> stops;
         public final String trip_id;
         public final String route_id;
+
+        @JsonCreator
+        public PtLeg(@JsonProperty("stops") List<Stop> stops, @JsonProperty("departureTime") Date departureTime, @JsonProperty("edges") List<EdgeIteratorState> edges, @JsonProperty("geometry") Geometry geometry, @JsonProperty("distance") double distance, @JsonProperty("arrivalTime") Date arrivalTime, @JsonProperty("feed_id") String feedId, @JsonProperty("trip_id") String tripId, @JsonProperty("route_id") String routeId, @JsonProperty("isInSameVehicleAsPrevious") boolean isInSameVehicleAsPrevious, @JsonProperty("travelTime") long travelTime) {
+            super("pt", stops.get(0).stop_name, departureTime, edges, geometry, distance, arrivalTime);
+            this.feed_id = feedId;
+            this.isInSameVehicleAsPrevious = isInSameVehicleAsPrevious;
+            this.trip_id = tripId;
+            this.route_id = routeId;
+            this.trip_headsign = edges.get(0).getName();
+            this.travelTime = travelTime;
+            this.stops = stops;
+        }
 
         public PtLeg(String feedId, boolean isInSameVehicleAsPrevious, String tripId, String routeId, List<EdgeIteratorState> edges, Date departureTime, List<Stop> stops, double distance, long travelTime, Date arrivalTime, Geometry geometry) {
             super("pt", stops.get(0).stop_name, departureTime, edges, geometry, distance, arrivalTime);
