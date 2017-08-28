@@ -138,9 +138,13 @@ public class MultiCriteriaLabelSetting {
                     }
                     double walkDistanceOnCurrentLeg = (!reverse && edgeType == GtfsStorage.EdgeType.BOARD || reverse && edgeType == GtfsStorage.EdgeType.ALIGHT) ? 0 : (label.walkDistanceOnCurrentLeg + weighting.getWalkDistance(edge));
                     boolean isTryingToReEnterPtAfterTransferWalking = (!reverse && edgeType == GtfsStorage.EdgeType.ENTER_PT || reverse && edgeType == GtfsStorage.EdgeType.EXIT_PT) && label.nTransfers > 0 && label.walkDistanceOnCurrentLeg > maxTransferDistancePerLeg;
+                    boolean isTryingToWalkAfterRiding = (!reverse && edgeType == GtfsStorage.EdgeType.HIGHWAY || reverse && edgeType == GtfsStorage.EdgeType.HIGHWAY) && label.nTransfers > 0;
                     long walkTime = label.walkTime + (edgeType == GtfsStorage.EdgeType.HIGHWAY ? nextTime - label.currentTime : 0);
                     int nWalkDistanceConstraintViolations = Math.min(1, label.nWalkDistanceConstraintViolations + (
                             isTryingToReEnterPtAfterTransferWalking ? 1 : (label.walkDistanceOnCurrentLeg <= maxWalkDistancePerLeg && walkDistanceOnCurrentLeg > maxWalkDistancePerLeg ? 1 : 0)));
+                    if (isTryingToWalkAfterRiding) {
+                        nWalkDistanceConstraintViolations++;
+                    }
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, label);
                     if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
