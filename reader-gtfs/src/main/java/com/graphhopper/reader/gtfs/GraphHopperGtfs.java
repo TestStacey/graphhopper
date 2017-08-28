@@ -36,10 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -159,27 +156,10 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                 points.add(graphHopperStorage.getNodeAccess().getLat(node), graphHopperStorage.getNodeAccess().getLon(node));
             }
             if (exit instanceof GHPointLocation) {
-                if (arriveBy) {
-                    final QueryResult closest = findClosest(((GHPointLocation) exit).ghPoint, 1);
-                    pointQueryResults.add(closest);
-                    allQueryResults.add(closest);
-                    points.add(closest.getSnappedPoint());
-                } else {
-                    final GHPoint ghPoint = ((GHPointLocation) exit).ghPoint;
-                    int newNode = graphHopperStorage.getNodes() + 1000;
-                    final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
-                            -1, gtfsStorage.getStationNodes().get("070201053801"), newNode, 0, 0, "ulrich", null);
-                    ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), GtfsStorage.EdgeType.EXIT_PT));
-                    ulrich.setReverseEdge(ulrich);
-                    System.out.println(ulrich);
-                    extraNodes.add(ghPoint);
-                    extraEdges.add(ulrich);
-
-                    final QueryResult virtualNode = new QueryResult(ghPoint.getLat(), ghPoint.getLon());
-                    virtualNode.setClosestNode(newNode);
-                    allQueryResults.add(virtualNode);
-                    points.add(ghPoint);
-                }
+                final QueryResult closest = findClosest(((GHPointLocation) exit).ghPoint, 1);
+                pointQueryResults.add(closest);
+                allQueryResults.add(closest);
+                points.add(closest.getSnappedPoint());
             } else if (exit instanceof GHStationLocation) {
                 final String stop_id = ((GHStationLocation) exit).stop_id;
                 final int node = gtfsStorage.getStationNodes().get(stop_id);
@@ -193,6 +173,24 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
             response.addDebugInfo("idLookup:" + stopWatch.stop().getSeconds() + "s");
 
+            final GHPoint ghPoint = ((GHPointLocation) exit).ghPoint;
+            extraNodes.add(ghPoint);
+
+            int newNode = graphHopperStorage.getNodes() + 1000;
+            final List<Integer> stationNodes = findStationNodes(ghPoint);
+
+            for (Integer stationNode : stationNodes) {
+                final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
+                        -1, stationNode, newNode, 0, 0, "ulrich", null);
+                ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), GtfsStorage.EdgeType.EXIT_PT));
+                ulrich.setReverseEdge(ulrich);
+                System.out.println(ulrich);
+                extraEdges.add(ulrich);
+            }
+
+            final QueryResult virtualNode = new QueryResult(ghPoint.getLat(), ghPoint.getLon());
+            virtualNode.setClosestNode(newNode);
+            allQueryResults.set(1, virtualNode);
 
 
             int startNode;
@@ -207,6 +205,10 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             List<Label> solutions = findPaths(startNode, destNode, action);
             parseSolutionsAndAddToResponse(solutions, points);
             return response;
+        }
+
+        private List<Integer> findStationNodes(GHPoint ghPoint) {
+            return Arrays.asList(gtfsStorage.getStationNodes().get("070201053801"));
         }
 
         private QueryResult findClosest(GHPoint point, int indexForErrorMessage) {
