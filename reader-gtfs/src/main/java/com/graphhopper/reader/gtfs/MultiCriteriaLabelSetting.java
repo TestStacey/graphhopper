@@ -100,6 +100,22 @@ public class MultiCriteriaLabelSetting {
         public boolean tryAdvance(Consumer<? super Label> action) {
             for(Label label = fromHeap.poll(); label != null; label = fromHeap.poll()) {
                 if (label.deleted) continue;
+                if (label.adjNode == 457243) {
+                    System.out.println(label);
+                }
+//                if (label.adjNode == 449111) {
+//                    System.out.println(label);
+//                }
+//                if (label.adjNode == 448958) {
+//                    System.out.println(label);
+//                }
+                if (label.adjNode == 449953) {
+                    System.out.println(label);
+                }
+                if (label.adjNode == 449891) {
+                    System.out.println(label);
+                }
+
                 action.accept(label);
                 for (EdgeIteratorState edge : explorer.exploreEdgesAround(label)) {
                     GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edge.getFlags());
@@ -128,6 +144,9 @@ public class MultiCriteriaLabelSetting {
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, label);
                     if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
+                        if (label.adjNode == 457243) {
+                            System.out.println(" --> " + nEdge);
+                        }
                         removeDominated(nEdge, sptEntries);
                         if (to == edge.getAdjNode()) {
                             removeDominated(nEdge, targetLabels);
@@ -139,6 +158,7 @@ public class MultiCriteriaLabelSetting {
                         fromHeap.add(nEdge);
                     }
                 }
+                label.deleted = true;
                 return true;
             }
             return false;
