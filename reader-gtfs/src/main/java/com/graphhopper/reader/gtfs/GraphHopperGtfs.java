@@ -81,6 +81,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
     private final GtfsStorage gtfsStorage;
     private final RealtimeFeed realtimeFeed;
     private final TripFromLabel tripFromLabel;
+    private final Set<Integer> stopNodes;
 
     private class RequestHandler {
         private final int maxVisitedNodesForRequest;
@@ -177,7 +178,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             extraNodes.add(ghPoint);
 
             int newNode = graphHopperStorage.getNodes() + 1000;
-            final List<Integer> stationNodes = findStationNodes(ghPoint);
+            final List<Integer> stationNodes = findStationNodes(allQueryResults.get(1).getClosestNode());
 
             for (Integer stationNode : stationNodes) {
                 final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
@@ -207,8 +208,15 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             return response;
         }
 
-        private List<Integer> findStationNodes(GHPoint ghPoint) {
-            return Arrays.asList(gtfsStorage.getStationNodes().get("070201053801"));
+        private List<Integer> findStationNodes(int node) {
+            final GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, new PointList(), Collections.emptyList());
+            MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, false, maxWalkDistancePerLeg, maxTransferDistancePerLeg, !ignoreTransfers, profileQuery, maxVisitedNodesForRequest);
+            final Stream<Label> labels = router.calcLabels(node, -1, initialTime);
+            return labels
+                    .filter(current -> stopNodes.contains(current.adjNode))
+                    .limit(limitSolutions)
+                    .map(label -> label.adjNode)
+                    .collect(Collectors.toList());
         }
 
         private QueryResult findClosest(GHPoint point, int indexForErrorMessage) {
@@ -258,6 +266,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         this.gtfsStorage = gtfsStorage;
         this.realtimeFeed = realtimeFeed;
         this.tripFromLabel = new TripFromLabel(this.gtfsStorage);
+        this.stopNodes = new HashSet<>(gtfsStorage.getStationNodes().values());
     }
 
     public static GtfsStorage createGtfsStorage() {
