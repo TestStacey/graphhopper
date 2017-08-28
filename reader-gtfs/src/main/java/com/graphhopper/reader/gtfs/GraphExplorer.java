@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Spliterators;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 final class GraphExplorer {
@@ -66,19 +67,16 @@ final class GraphExplorer {
         }
     }
 
-    Iterable<EdgeIteratorState> exploreEdgesAround(Label label) {
+    Stream<EdgeIteratorState> exploreEdgesAround(Label label) {
         final List<VirtualEdgeIteratorState> other = extraEdgesBySource.get(label.adjNode);
-        final FluentIterable<EdgeIteratorState> append = FluentIterable
-                .from(label.adjNode <= graph.getNodes() ? mainEdgesAround(label) : FluentIterable.of(new EdgeIteratorState[]{}))
-                .append(other);
-        final Iterator<EdgeIteratorState> iterator = append.iterator();
-        System.out.println(iterator.hasNext());
-        System.out.println(iterator.hasNext());
-
-        return append;
+        if (label.adjNode <= graph.getNodes()) {
+            return mainEdgesAround(label);
+        } else {
+            return Stream.concat(mainEdgesAround(label), other.stream());
+        }
     }
 
-    Iterable<EdgeIteratorState> mainEdgesAround(Label label) {
+    Stream<EdgeIteratorState> mainEdgesAround(Label label) {
         return StreamSupport.stream(new Spliterators.AbstractSpliterator<EdgeIteratorState>(0, 0) {
             boolean foundEnteredTimeExpandedNetworkEdge = false;
             EdgeIterator edgeIterator = edgeExplorer.setBaseNode(label.adjNode);
@@ -121,7 +119,7 @@ final class GraphExplorer {
             }
 
 
-        }, false)::iterator;
+        }, false);
     }
 
     long calcTravelTimeMillis(EdgeIteratorState edge, long earliestStartTime) {

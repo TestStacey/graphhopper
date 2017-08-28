@@ -117,38 +117,39 @@ public class MultiCriteriaLabelSetting {
                 }
 
                 action.accept(label);
-                for (EdgeIteratorState edge : explorer.exploreEdgesAround(label)) {
+                Label finalLabel = label;
+                explorer.exploreEdgesAround(label).forEach(edge -> {
                     GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edge.getFlags());
                     long nextTime;
                     if (reverse) {
-                        nextTime = label.currentTime - explorer.calcTravelTimeMillis(edge, label.currentTime);
+                        nextTime = finalLabel.currentTime - explorer.calcTravelTimeMillis(edge, finalLabel.currentTime);
                     } else {
-                        nextTime = label.currentTime + explorer.calcTravelTimeMillis(edge, label.currentTime);
+                        nextTime = finalLabel.currentTime + explorer.calcTravelTimeMillis(edge, finalLabel.currentTime);
                     }
-                    int nTransfers = label.nTransfers + weighting.calcNTransfers(edge);
-                    Long firstPtDepartureTime = label.departureTime;
+                    int nTransfers = finalLabel.nTransfers + weighting.calcNTransfers(edge);
+                    Long firstPtDepartureTime = finalLabel.departureTime;
                     if (!reverse && (edgeType == GtfsStorage.EdgeType.ENTER_TIME_EXPANDED_NETWORK || edgeType == GtfsStorage.EdgeType.WAIT)) {
-                        if (label.nTransfers == 0) {
-                            firstPtDepartureTime = nextTime - label.walkTime;
+                        if (finalLabel.nTransfers == 0) {
+                            firstPtDepartureTime = nextTime - finalLabel.walkTime;
                         }
                     } else if (reverse && (edgeType == GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK || edgeType == GtfsStorage.EdgeType.WAIT_ARRIVAL)) {
-                        if (label.nTransfers == 0) {
-                            firstPtDepartureTime = nextTime - label.walkTime;
+                        if (finalLabel.nTransfers == 0) {
+                            firstPtDepartureTime = nextTime - finalLabel.walkTime;
                         }
                     }
-                    double walkDistanceOnCurrentLeg = (!reverse && edgeType == GtfsStorage.EdgeType.BOARD || reverse && edgeType == GtfsStorage.EdgeType.ALIGHT) ? 0 : (label.walkDistanceOnCurrentLeg + weighting.getWalkDistance(edge));
-                    boolean isTryingToReEnterPtAfterTransferWalking = (!reverse && edgeType == GtfsStorage.EdgeType.ENTER_PT || reverse && edgeType == GtfsStorage.EdgeType.EXIT_PT) && label.nTransfers > 0 && label.walkDistanceOnCurrentLeg > maxTransferDistancePerLeg;
-                    boolean isTryingToWalkAfterRiding = (!reverse && edgeType == GtfsStorage.EdgeType.HIGHWAY || reverse && edgeType == GtfsStorage.EdgeType.HIGHWAY) && label.nTransfers > 0;
-                    long walkTime = label.walkTime + (edgeType == GtfsStorage.EdgeType.HIGHWAY ? nextTime - label.currentTime : 0);
-                    int nWalkDistanceConstraintViolations = Math.min(1, label.nWalkDistanceConstraintViolations + (
-                            isTryingToReEnterPtAfterTransferWalking ? 1 : (label.walkDistanceOnCurrentLeg <= maxWalkDistancePerLeg && walkDistanceOnCurrentLeg > maxWalkDistancePerLeg ? 1 : 0)));
+                    double walkDistanceOnCurrentLeg = (!reverse && edgeType == GtfsStorage.EdgeType.BOARD || reverse && edgeType == GtfsStorage.EdgeType.ALIGHT) ? 0 : (finalLabel.walkDistanceOnCurrentLeg + weighting.getWalkDistance(edge));
+                    boolean isTryingToReEnterPtAfterTransferWalking = (!reverse && edgeType == GtfsStorage.EdgeType.ENTER_PT || reverse && edgeType == GtfsStorage.EdgeType.EXIT_PT) && finalLabel.nTransfers > 0 && finalLabel.walkDistanceOnCurrentLeg > maxTransferDistancePerLeg;
+                    boolean isTryingToWalkAfterRiding = (!reverse && edgeType == GtfsStorage.EdgeType.HIGHWAY || reverse && edgeType == GtfsStorage.EdgeType.HIGHWAY) && finalLabel.nTransfers > 0;
+                    long walkTime = finalLabel.walkTime + (edgeType == GtfsStorage.EdgeType.HIGHWAY ? nextTime - finalLabel.currentTime : 0);
+                    int nWalkDistanceConstraintViolations = Math.min(1, finalLabel.nWalkDistanceConstraintViolations + (
+                            isTryingToReEnterPtAfterTransferWalking ? 1 : (finalLabel.walkDistanceOnCurrentLeg <= maxWalkDistancePerLeg && walkDistanceOnCurrentLeg > maxWalkDistancePerLeg ? 1 : 0)));
                     if (isTryingToWalkAfterRiding) {
                         nWalkDistanceConstraintViolations++;
                     }
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
-                    Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, label);
+                    Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, finalLabel);
                     if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
-                        if (label.adjNode == 457243) {
+                        if (finalLabel.adjNode == 457243) {
                             System.out.println(" --> " + nEdge);
                         }
                         removeDominated(nEdge, sptEntries);
@@ -161,7 +162,7 @@ public class MultiCriteriaLabelSetting {
                         }
                         fromHeap.add(nEdge);
                     }
-                }
+                });
                 label.deleted = true;
                 return true;
             }
