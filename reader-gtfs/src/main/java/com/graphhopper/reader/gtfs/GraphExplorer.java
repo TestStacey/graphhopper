@@ -23,6 +23,7 @@ import com.google.common.collect.FluentIterable;
 import com.graphhopper.routing.VirtualEdgeIteratorState;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.storage.Graph;
+import com.graphhopper.storage.NodeAccess;
 import com.graphhopper.util.EdgeExplorer;
 import com.graphhopper.util.EdgeIterator;
 import com.graphhopper.util.EdgeIteratorState;
@@ -168,4 +169,19 @@ final class GraphExplorer {
         }
     }
 
+    public EdgeIteratorState getEdgeIteratorState(int edge, int adjNode) {
+        if (edge == -1) {
+            return extraEdges.iterator().next();
+        } else {
+            return graph.getEdgeIteratorState(edge, adjNode);
+        }
+    }
+
+    public NodeAccess getNodeAccess() {
+        return graph.getNodeAccess();
+    }
+
+    public Graph getGraph() {
+        return graph;
+    }
 }

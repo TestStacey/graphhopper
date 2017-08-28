@@ -104,6 +104,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
         private final GHResponse response = new GHResponse();
         private final QueryGraph queryGraph = new QueryGraph(graphHopperStorage);
+        private GraphExplorer graphExplorer;
 
         RequestHandler(GHRequest request) {
             maxVisitedNodesForRequest = request.getHints().getInt(Parameters.Routing.MAX_VISITED_NODES, Integer.MAX_VALUE);
@@ -169,6 +170,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                     final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
                             -1, gtfsStorage.getStationNodes().get("070201053801"), newNode, 0, 0, "ulrich", null);
                     ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), GtfsStorage.EdgeType.EXIT_PT));
+                    ulrich.setReverseEdge(ulrich);
                     System.out.println(ulrich);
                     extraNodes.add(ghPoint);
                     extraEdges.add(ulrich);
@@ -217,14 +219,14 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
         private void parseSolutionsAndAddToResponse(List<Label> solutions, PointList waypoints) {
             for (Label solution : solutions) {
-                response.add(tripFromLabel.parseSolutionIntoPath(initialTime, arriveBy, flagEncoder, translation, queryGraph, weighting, solution, waypoints));
+                response.add(tripFromLabel.parseSolutionIntoPath(initialTime, arriveBy, flagEncoder, translation, graphExplorer, weighting, solution, waypoints));
             }
             response.getAll().sort(Comparator.comparingDouble(PathWrapper::getTime));
         }
 
         private List<Label> findPaths(int startNode, int destNode, Consumer<? super Label> action) {
             StopWatch stopWatch = new StopWatch().start();
-            GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, extraNodes, extraEdges);
+            graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, extraNodes, extraEdges);
             MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, arriveBy, maxWalkDistancePerLeg, maxTransferDistancePerLeg, !ignoreTransfers, profileQuery, maxVisitedNodesForRequest);
             final Stream<Label> labels = router.calcLabels(startNode, destNode, initialTime);
             List<Label> solutions = labels

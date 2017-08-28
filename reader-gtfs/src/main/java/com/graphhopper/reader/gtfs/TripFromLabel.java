@@ -26,7 +26,6 @@ import com.graphhopper.Trip;
 import com.graphhopper.gtfs.fare.Fares;
 import com.graphhopper.routing.InstructionsFromEdges;
 import com.graphhopper.routing.weighting.Weighting;
-import com.graphhopper.storage.Graph;
 import com.graphhopper.util.*;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -44,7 +43,7 @@ import static com.graphhopper.reader.gtfs.Label.reverseEdges;
 
 class TripFromLabel {
 
-    PathWrapper parseSolutionIntoPath(Instant initialTime, boolean arriveBy, PtFlagEncoder encoder, Translation tr, Graph queryGraph, PtTravelTimeWeighting weighting, Label solution, PointList waypoints) {
+    PathWrapper parseSolutionIntoPath(Instant initialTime, boolean arriveBy, PtFlagEncoder encoder, Translation tr, GraphExplorer queryGraph, PtTravelTimeWeighting weighting, Label solution, PointList waypoints) {
         PathWrapper path = new PathWrapper();
         path.setWaypoints(waypoints);
 
@@ -86,7 +85,7 @@ class TripFromLabel {
         return path;
     }
 
-    private List<Trip.Leg> getTrip(boolean arriveBy, PtFlagEncoder encoder, Translation tr, Graph queryGraph, PtTravelTimeWeighting weighting, Label solution) {
+    private List<Trip.Leg> getTrip(boolean arriveBy, PtFlagEncoder encoder, Translation tr, GraphExplorer queryGraph, PtTravelTimeWeighting weighting, Label solution) {
         List<Label.Transition> transitions = new ArrayList<>();
         if (arriveBy) {
             reverseEdges(solution, queryGraph, encoder, false)
@@ -97,6 +96,7 @@ class TripFromLabel {
             Collections.reverse(transitions);
         }
 
+        transitions.removeIf(t -> t.edge != null && t.edge.edgeIteratorState.getEdge() == -1);
 
         final List<List<Label.Transition>> partitions = getPartitions(transitions);
         final List<Trip.Leg> legs = getLegs(tr, queryGraph, weighting, partitions);
@@ -125,7 +125,7 @@ class TripFromLabel {
         return partitions;
     }
 
-    private List<Trip.Leg> getLegs(Translation tr, Graph queryGraph, PtTravelTimeWeighting weighting, List<List<Label.Transition>> partitions) {
+    private List<Trip.Leg> getLegs(Translation tr, GraphExplorer queryGraph, PtTravelTimeWeighting weighting, List<List<Label.Transition>> partitions) {
         return partitions.stream().flatMap(partition -> parsePathIntoLegs(partition, queryGraph, weighting, tr).stream()).collect(Collectors.toList());
     }
 
@@ -225,7 +225,7 @@ class TripFromLabel {
     // One could argue that one should never write a parser
     // by hand, because it is always ugly, but use a parser library.
     // The code would then read like a specification of what paths through the graph mean.
-    private List<Trip.Leg> parsePathIntoLegs(List<Label.Transition> path, Graph graph, Weighting weighting, Translation tr) {
+    private List<Trip.Leg> parsePathIntoLegs(List<Label.Transition> path, GraphExplorer graph, Weighting weighting, Translation tr) {
         if (path.size() <= 1) {
             return Collections.emptyList();
         }
@@ -273,7 +273,7 @@ class TripFromLabel {
             return result;
         } else {
             InstructionList instructions = new InstructionList(tr);
-            InstructionsFromEdges instructionsFromEdges = new InstructionsFromEdges(path.get(1).edge.edgeIteratorState.getBaseNode(), graph, weighting, weighting.getFlagEncoder(), graph.getNodeAccess(), tr, instructions);
+            InstructionsFromEdges instructionsFromEdges = new InstructionsFromEdges(path.get(1).edge.edgeIteratorState.getBaseNode(), graph.getGraph(), weighting, weighting.getFlagEncoder(), graph.getNodeAccess(), tr, instructions);
             int prevEdgeId = -1;
             for (int i=1; i<path.size(); i++) {
                 EdgeIteratorState edge = path.get(i).edge.edgeIteratorState;
