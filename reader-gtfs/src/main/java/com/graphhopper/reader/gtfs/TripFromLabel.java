@@ -96,7 +96,7 @@ class TripFromLabel {
             Collections.reverse(transitions);
         }
 
-        transitions.removeIf(t -> t.edge != null && t.edge.edgeIteratorState.getEdge() == -1);
+//        transitions.removeIf(t -> t.edge != null && t.edge.edgeIteratorState.getEdge() == -1);
 
         final List<List<Label.Transition>> partitions = getPartitions(transitions);
         final List<Trip.Leg> legs = getLegs(tr, queryGraph, weighting, partitions);

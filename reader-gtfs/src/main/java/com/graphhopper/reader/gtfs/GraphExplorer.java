@@ -86,7 +86,7 @@ final class GraphExplorer {
             public boolean tryAdvance(Consumer<? super EdgeIteratorState> action) {
                 while (edgeIterator.next()) {
                     final GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edgeIterator.getFlags());
-                    if (walkOnly && edgeType != GtfsStorage.EdgeType.HIGHWAY) {
+                    if (walkOnly && edgeType != GtfsStorage.EdgeType.HIGHWAY && edgeType != (reverse ? GtfsStorage.EdgeType.EXIT_PT : GtfsStorage.EdgeType.ENTER_PT)) {
                         continue;
                     }
                     if (!isValidOn(edgeIterator, label.currentTime)) {
