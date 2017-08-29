@@ -100,33 +100,9 @@ public class MultiCriteriaLabelSetting {
         public boolean tryAdvance(Consumer<? super Label> action) {
             for(Label label = fromHeap.poll(); label != null; label = fromHeap.poll()) {
                 if (label.deleted) continue;
-                if (label.adjNode == 457243) {
-                    System.out.println(label);
-                }
-//                if (label.adjNode == 449111) {
-//                    System.out.println(label);
-//                }
-//                if (label.adjNode == 448958) {
-//                    System.out.println(label);
-//                }
-                if (label.adjNode == 449953) {
-                    System.out.println(label);
-                }
-                if (label.adjNode == 449891) {
-                    System.out.println(label);
-                }
-                if (label.adjNode == 518302) {
-                    System.out.println(label);
-                    explorer.exploreEdgesAround(label).forEach(System.out::println);
-                }
-
                 action.accept(label);
                 Label finalLabel = label;
                 explorer.exploreEdgesAround(label).forEach(edge -> {
-                    if (finalLabel.adjNode == 518302 && edge.getAdjNode() == 13493729) {
-                        System.out.println(edge);
-                    }
-
                     GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edge.getFlags());
                     long nextTime;
                     if (reverse) {
@@ -157,9 +133,6 @@ public class MultiCriteriaLabelSetting {
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, finalLabel);
                     if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
-                        if (finalLabel.adjNode == 457243) {
-                            System.out.println(" --> " + nEdge);
-                        }
                         removeDominated(nEdge, sptEntries);
                         if (to == edge.getAdjNode()) {
                             removeDominated(nEdge, targetLabels);

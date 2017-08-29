@@ -193,15 +193,21 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         }
 
         private void substitutePointWithVirtualNode(int index, boolean reverse, GHPoint ghPoint, ArrayList<QueryResult> allQueryResults) {
+            final GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, new PointList(), Collections.emptyList(), true);
+
             extraNodes.add(ghPoint);
 
             int newNode = graphHopperStorage.getNodes() + 1000 + index;
-            final List<Integer> stationNodes = findStationNodes(allQueryResults.get(index).getClosestNode());
-
-            for (Integer stationNode : stationNodes) {
+            final List<Label> stationNodes = findStationNodes(graphExplorer, allQueryResults.get(index).getClosestNode());
+            System.out.println("---");
+            for (Label stationNode : stationNodes) {
+                final PathWrapper pathWrapper = tripFromLabel.parseSolutionIntoPath(initialTime, arriveBy, flagEncoder, translation, graphExplorer, weighting, stationNode, new PointList());
                 final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
-                        -1, reverse ? stationNode : newNode, reverse ? newNode : stationNode, 0, 0, "ulrich", null);
+                        -1, reverse ? stationNode.adjNode : newNode, reverse ? newNode : stationNode.adjNode, pathWrapper.getDistance(), 0, "ulrich", pathWrapper.getPoints());
                 ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), reverse ? GtfsStorage.EdgeType.EXIT_PT : GtfsStorage.EdgeType.ENTER_PT));
+                final long time = pathWrapper.getTime() / 1000;
+                System.out.println(time);
+                ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setTime(ulrich.getFlags(), time));
                 ulrich.setReverseEdge(ulrich);
                 System.out.println(ulrich);
                 extraEdges.add(ulrich);
@@ -212,14 +218,12 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             allQueryResults.set(index, virtualNode);
         }
 
-        private List<Integer> findStationNodes(int node) {
-            final GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, new PointList(), Collections.emptyList(), true);
+        private List<Label> findStationNodes(GraphExplorer graphExplorer, int node) {
             MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, false, maxWalkDistancePerLeg, maxTransferDistancePerLeg, false, false, maxVisitedNodesForRequest);
             final Stream<Label> labels = router.calcLabels(node, -1, initialTime);
             return labels
                     .filter(current -> stopNodes.contains(current.adjNode))
                     .limit(limitSolutions)
-                    .map(label -> label.adjNode)
                     .collect(Collectors.toList());
         }
 
