@@ -81,7 +81,6 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
     private final GtfsStorage gtfsStorage;
     private final RealtimeFeed realtimeFeed;
     private final TripFromLabel tripFromLabel;
-    private final Set<Integer> stopNodes;
 
     private class RequestHandler {
         private final int maxVisitedNodesForRequest;
@@ -275,7 +274,6 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         this.gtfsStorage = gtfsStorage;
         this.realtimeFeed = realtimeFeed;
         this.tripFromLabel = new TripFromLabel(this.gtfsStorage);
-        this.stopNodes = new HashSet<>(gtfsStorage.getStationNodes().values());
     }
 
     public static GtfsStorage createGtfsStorage() {
