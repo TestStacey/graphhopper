@@ -175,7 +175,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             response.addDebugInfo("idLookup:" + stopWatch.stop().getSeconds() + "s");
 
 //            substitutePointWithVirtualNode(0, ((GHPointLocation) enter).ghPoint, allQueryResults);
-            substitutePointWithVirtualNode(1, ((GHPointLocation) exit).ghPoint, allQueryResults);
+            substitutePointWithVirtualNode(1, true, ((GHPointLocation) exit).ghPoint, allQueryResults);
 
 
             int startNode;
@@ -192,7 +192,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             return response;
         }
 
-        private void substitutePointWithVirtualNode(int index, GHPoint ghPoint, ArrayList<QueryResult> allQueryResults) {
+        private void substitutePointWithVirtualNode(int index, boolean reverse, GHPoint ghPoint, ArrayList<QueryResult> allQueryResults) {
             extraNodes.add(ghPoint);
 
             int newNode = graphHopperStorage.getNodes() + 1000 + index;
@@ -200,7 +200,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
             for (Integer stationNode : stationNodes) {
                 final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
-                        -1, stationNode, newNode, 0, 0, "ulrich", null);
+                        -1, reverse ? stationNode : newNode, reverse ? newNode : stationNode, 0, 0, "ulrich", null);
                 ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), GtfsStorage.EdgeType.EXIT_PT));
                 ulrich.setReverseEdge(ulrich);
                 System.out.println(ulrich);
