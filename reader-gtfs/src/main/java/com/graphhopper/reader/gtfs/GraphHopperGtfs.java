@@ -174,24 +174,8 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
             response.addDebugInfo("idLookup:" + stopWatch.stop().getSeconds() + "s");
 
-            final GHPoint ghPoint = ((GHPointLocation) exit).ghPoint;
-            extraNodes.add(ghPoint);
-
-            int newNode = graphHopperStorage.getNodes() + 1000;
-            final List<Integer> stationNodes = findStationNodes(allQueryResults.get(1).getClosestNode());
-
-            for (Integer stationNode : stationNodes) {
-                final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
-                        -1, stationNode, newNode, 0, 0, "ulrich", null);
-                ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), GtfsStorage.EdgeType.EXIT_PT));
-                ulrich.setReverseEdge(ulrich);
-                System.out.println(ulrich);
-                extraEdges.add(ulrich);
-            }
-
-            final QueryResult virtualNode = new QueryResult(ghPoint.getLat(), ghPoint.getLon());
-            virtualNode.setClosestNode(newNode);
-            allQueryResults.set(1, virtualNode);
+//            substitutePointWithVirtualNode(0, ((GHPointLocation) enter).ghPoint, allQueryResults);
+            substitutePointWithVirtualNode(1, ((GHPointLocation) exit).ghPoint, allQueryResults);
 
 
             int startNode;
@@ -206,6 +190,26 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             List<Label> solutions = findPaths(startNode, destNode, action);
             parseSolutionsAndAddToResponse(solutions, points);
             return response;
+        }
+
+        private void substitutePointWithVirtualNode(int index, GHPoint ghPoint, ArrayList<QueryResult> allQueryResults) {
+            extraNodes.add(ghPoint);
+
+            int newNode = graphHopperStorage.getNodes() + 1000 + index;
+            final List<Integer> stationNodes = findStationNodes(allQueryResults.get(index).getClosestNode());
+
+            for (Integer stationNode : stationNodes) {
+                final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
+                        -1, stationNode, newNode, 0, 0, "ulrich", null);
+                ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), GtfsStorage.EdgeType.EXIT_PT));
+                ulrich.setReverseEdge(ulrich);
+                System.out.println(ulrich);
+                extraEdges.add(ulrich);
+            }
+
+            final QueryResult virtualNode = new QueryResult(ghPoint.getLat(), ghPoint.getLon());
+            virtualNode.setClosestNode(newNode);
+            allQueryResults.set(index, virtualNode);
         }
 
         private List<Integer> findStationNodes(int node) {
