@@ -133,9 +133,11 @@ public class MultiCriteriaLabelSetting {
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, finalLabel);
                     if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
-                        removeDominated(nEdge, sptEntries);
-                        if (to == edge.getAdjNode()) {
-                            removeDominated(nEdge, targetLabels);
+                        if (!profileQuery || to != edge.getAdjNode()) {
+                            removeDominated(nEdge, sptEntries);
+                            if (to == edge.getAdjNode()) {
+                                removeDominated(nEdge, targetLabels);
+                            }
                         }
                         fromMap.put(edge.getAdjNode(), nEdge);
                         if (to == edge.getAdjNode()) {

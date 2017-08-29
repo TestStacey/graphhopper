@@ -224,7 +224,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             final Stream<Label> labels = router.calcLabels(node, -1, initialTime);
             return labels
                     .filter(current -> current.edge != -1 && flagEncoder.getEdgeType(graphExplorer.getEdgeIteratorState(current.edge, current.adjNode).getFlags()) == edgeType)
-                    .limit(limitSolutions)
+//                    .limit(limitSolutions)
                     .collect(Collectors.toList());
         }
 
