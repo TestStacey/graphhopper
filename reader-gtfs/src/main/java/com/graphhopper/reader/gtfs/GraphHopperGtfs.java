@@ -174,7 +174,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
             response.addDebugInfo("idLookup:" + stopWatch.stop().getSeconds() + "s");
 
-//            substitutePointWithVirtualNode(0, ((GHPointLocation) enter).ghPoint, allQueryResults);
+            substitutePointWithVirtualNode(0, false, ((GHPointLocation) enter).ghPoint, allQueryResults);
             substitutePointWithVirtualNode(1, true, ((GHPointLocation) exit).ghPoint, allQueryResults);
 
 
