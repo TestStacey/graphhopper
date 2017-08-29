@@ -213,8 +213,8 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         }
 
         private List<Integer> findStationNodes(int node) {
-            final GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, new PointList(), Collections.emptyList());
-            MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, false, maxWalkDistancePerLeg, maxTransferDistancePerLeg, !ignoreTransfers, profileQuery, maxVisitedNodesForRequest);
+            final GraphExplorer graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, new PointList(), Collections.emptyList(), true);
+            MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, false, maxWalkDistancePerLeg, maxTransferDistancePerLeg, false, false, maxVisitedNodesForRequest);
             final Stream<Label> labels = router.calcLabels(node, -1, initialTime);
             return labels
                     .filter(current -> stopNodes.contains(current.adjNode))
@@ -240,7 +240,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
         private List<Label> findPaths(int startNode, int destNode, Consumer<? super Label> action) {
             StopWatch stopWatch = new StopWatch().start();
-            graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, extraNodes, extraEdges);
+            graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, extraNodes, extraEdges, false);
             MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, arriveBy, maxWalkDistancePerLeg, maxTransferDistancePerLeg, !ignoreTransfers, profileQuery, maxVisitedNodesForRequest);
             final Stream<Label> labels = router.calcLabels(startNode, destNode, initialTime);
             List<Label> solutions = labels

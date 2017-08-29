@@ -51,9 +51,10 @@ final class GraphExplorer {
     private final List<VirtualEdgeIteratorState> extraEdges;
     private final ArrayListMultimap<Integer, VirtualEdgeIteratorState> extraEdgesBySource = ArrayListMultimap.create();
     private final Graph graph;
+    private final boolean walkOnly;
 
 
-    GraphExplorer(Graph graph, PtTravelTimeWeighting weighting, PtFlagEncoder flagEncoder, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed, boolean reverse, PointList extraNodes, List<VirtualEdgeIteratorState> extraEdges) {
+    GraphExplorer(Graph graph, PtTravelTimeWeighting weighting, PtFlagEncoder flagEncoder, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed, boolean reverse, PointList extraNodes, List<VirtualEdgeIteratorState> extraEdges, boolean walkOnly) {
         this.graph = graph;
         this.edgeExplorer = graph.createEdgeExplorer(new DefaultEdgeFilter(flagEncoder, reverse, !reverse));
         this.flagEncoder = flagEncoder;
@@ -66,6 +67,7 @@ final class GraphExplorer {
         for (VirtualEdgeIteratorState extraEdge : extraEdges) {
             extraEdgesBySource.put(extraEdge.getBaseNode(), extraEdge);
         }
+        this.walkOnly = walkOnly;
     }
 
     Stream<EdgeIteratorState> exploreEdgesAround(Label label) {
@@ -84,6 +86,9 @@ final class GraphExplorer {
             public boolean tryAdvance(Consumer<? super EdgeIteratorState> action) {
                 while (edgeIterator.next()) {
                     final GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edgeIterator.getFlags());
+                    if (walkOnly && edgeType != GtfsStorage.EdgeType.HIGHWAY) {
+                        continue;
+                    }
                     if (!isValidOn(edgeIterator, label.currentTime)) {
                         continue;
                     }
