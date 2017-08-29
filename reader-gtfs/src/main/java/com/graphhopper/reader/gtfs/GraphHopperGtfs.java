@@ -201,7 +201,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             for (Integer stationNode : stationNodes) {
                 final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(-1,
                         -1, reverse ? stationNode : newNode, reverse ? newNode : stationNode, 0, 0, "ulrich", null);
-                ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), GtfsStorage.EdgeType.EXIT_PT));
+                ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), reverse ? GtfsStorage.EdgeType.EXIT_PT : GtfsStorage.EdgeType.ENTER_PT));
                 ulrich.setReverseEdge(ulrich);
                 System.out.println(ulrich);
                 extraEdges.add(ulrich);
