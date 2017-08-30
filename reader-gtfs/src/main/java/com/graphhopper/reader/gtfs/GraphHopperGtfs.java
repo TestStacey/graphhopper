@@ -243,7 +243,6 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                 final PathWrapper pathWrapper = tripFromLabel.createPathWrapper(translation, waypoints, legs);
                 response.add(pathWrapper);
             }
-            response.getAll().sort(Comparator.comparingDouble(PathWrapper::getTime));
         }
 
         private int accessNode(Label solution) {
@@ -265,6 +264,8 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             List<Label> solutions = labels
                     .peek(action)
                     .filter(current -> destNode == current.adjNode)
+                    .peek(l -> System.out.println(l))
+
 //                    .filter(me -> me.nWalkDistanceConstraintViolations <= 0)
                     .limit(limitSolutions)
                     .collect(Collectors.toList());
