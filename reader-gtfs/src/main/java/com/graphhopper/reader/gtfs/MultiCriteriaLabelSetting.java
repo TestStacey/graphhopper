@@ -131,54 +131,16 @@ public class MultiCriteriaLabelSetting {
                     }
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), edgeType, nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, finalLabel);
-                    if (profileQuery) {
-                        if (edgeType != GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK && edge.getAdjNode() != to) {
-                            if (sptEntries.size() > 1) throw new RuntimeException();
-                            if (sptEntries.isEmpty()) {
-                                fromMap.put(edge.getAdjNode(), nEdge);
-                                if (to == edge.getAdjNode()) {
-                                    targetLabels.add(nEdge);
-                                }
-                                fromHeap.add(nEdge);
-                            } else {
-                                Label sptEntry = sptEntries.iterator().next();
-                                if (queueComparator.compare(nEdge, sptEntry) < 0) {
-                                    sptEntry.deleted = true;
-                                    sptEntries.clear();
-                                    fromMap.put(edge.getAdjNode(), nEdge);
-                                    if (to == edge.getAdjNode()) {
-                                        targetLabels.add(nEdge);
-                                    }
-                                    fromHeap.add(nEdge);
-                                }
-                            }
-                            if (sptEntries.size() > 1) throw new RuntimeException();
-                        } else {
-                            System.out.println(nEdge.adjNode);
-                            if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
-                                removeDominated(nEdge, sptEntries);
-                                if (to == edge.getAdjNode()) {
-                                    removeDominated(nEdge, targetLabels);
-                                }
-                                fromMap.put(edge.getAdjNode(), nEdge);
-                                if (to == edge.getAdjNode()) {
-                                    targetLabels.add(nEdge);
-                                }
-                                fromHeap.add(nEdge);
-                            }
+                    if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
+                        removeDominated(nEdge, sptEntries);
+                        if (to == edge.getAdjNode()) {
+                            removeDominated(nEdge, targetLabels);
                         }
-                    } else {
-                        if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
-                            removeDominated(nEdge, sptEntries);
-                            if (to == edge.getAdjNode()) {
-                                removeDominated(nEdge, targetLabels);
-                            }
-                            fromMap.put(edge.getAdjNode(), nEdge);
-                            if (to == edge.getAdjNode()) {
-                                targetLabels.add(nEdge);
-                            }
-                            fromHeap.add(nEdge);
+                        fromMap.put(edge.getAdjNode(), nEdge);
+                        if (to == edge.getAdjNode()) {
+                            targetLabels.add(nEdge);
                         }
+                        fromHeap.add(nEdge);
                     }
                 });
                 return true;
