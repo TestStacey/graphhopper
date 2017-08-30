@@ -209,7 +209,6 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                 ulrich.setReverseEdge(ulrich);
                 ulrich.setDistance(pathWrapper.getDistance());
                 extraEdges.add(ulrich);
-                System.out.println(ulrich);
                 walkPaths.put(stationNode.adjNode, pathWrapper);
             }
 
