@@ -200,7 +200,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             int newNode = graphHopperStorage.getNodes() + 1000 + index;
             final List<Label> stationNodes = findStationNodes(graphExplorer, allQueryResults.get(index).getClosestNode(), reverse);
             for (Label stationNode : stationNodes) {
-                final PathWrapper pathWrapper = tripFromLabel.parseSolutionIntoPath(reverse, flagEncoder, translation, graphExplorer, weighting, stationNode, new PointList());
+                final PathWrapper pathWrapper = tripFromLabel.parseSolutionIntoPath(reverse, flagEncoder, translation, graphExplorer, weighting, stationNode.parent, new PointList());
                 final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(stationNode.edge,
                         -1, reverse ? stationNode.adjNode : newNode, reverse ? newNode : stationNode.adjNode, pathWrapper.getDistance(), 0, "ulrich", pathWrapper.getPoints());
                 ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), reverse ? GtfsStorage.EdgeType.EXIT_PT : GtfsStorage.EdgeType.ENTER_PT));
@@ -209,6 +209,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                 ulrich.setReverseEdge(ulrich);
                 ulrich.setDistance(pathWrapper.getDistance());
                 extraEdges.add(ulrich);
+                System.out.println(ulrich);
                 walkPaths.put(stationNode.adjNode, pathWrapper);
             }
 
@@ -223,7 +224,6 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             final Stream<Label> labels = router.calcLabels(node, -1, initialTime);
             return labels
                     .filter(current -> current.edge != -1 && flagEncoder.getEdgeType(graphExplorer.getEdgeIteratorState(current.edge, current.adjNode).getFlags()) == edgeType)
-                    .map(current -> current.parent) // leave out the pt edge, so solution can be parsed into a walk-only leg
 //                    .limit(limitSolutions)
                     .collect(Collectors.toList());
         }
