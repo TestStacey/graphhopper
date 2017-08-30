@@ -193,17 +193,9 @@ public class MultiCriteriaLabelSetting {
                     if (travelTimeCriterion(me) > travelTimeCriterion(they))
                         return false;
                 }
-            } else {
-                if (currentTimeCriterion(me) > currentTimeCriterion(they))
+                if (mindTransfers && me.nTransfers > they.nTransfers)
                     return false;
-            }
 
-            if (mindTransfers && me.nTransfers > they.nTransfers)
-                return false;
-            if (me.nWalkDistanceConstraintViolations  > they.nWalkDistanceConstraintViolations)
-                return false;
-
-            if (profileQuery) {
                 if (me.departureTime != null && they.departureTime != null) {
                     if (currentTimeCriterion(me) < currentTimeCriterion(they))
                         return true;
@@ -213,16 +205,16 @@ public class MultiCriteriaLabelSetting {
                     if (travelTimeCriterion(me) < travelTimeCriterion(they))
                         return true;
                 }
+                if (mindTransfers && me.nTransfers  < they.nTransfers)
+                    return true;
+                return queueComparator.compare(me,they) <= 0;
             } else {
+                if (currentTimeCriterion(me) > currentTimeCriterion(they))
+                    return false;
                 if (currentTimeCriterion(me) < currentTimeCriterion(they))
                     return true;
+                return queueComparator.compare(me,they) <= 0;
             }
-            if (mindTransfers && me.nTransfers  < they.nTransfers)
-                return true;
-            if (me.nWalkDistanceConstraintViolations < they.nWalkDistanceConstraintViolations)
-                return true;
-
-            return queueComparator.compare(me,they) <= 0;
         }
 
     }
