@@ -77,10 +77,9 @@ class PtTravelTimeWeighting extends AbstractWeighting {
         GtfsStorage.EdgeType edgeType = ((PtFlagEncoder) getFlagEncoder()).getEdgeType(edge.getFlags());
         switch (edgeType) {
             case HIGHWAY:
-                return edge.getDistance();
             case ENTER_PT:
             case EXIT_PT:
-                return 10.0;
+                return edge.getDistance();
             default:
                 return 0.0;
         }

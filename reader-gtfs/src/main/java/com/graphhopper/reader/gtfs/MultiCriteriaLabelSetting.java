@@ -27,6 +27,10 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static com.graphhopper.reader.gtfs.GtfsStorage.EdgeType.ENTER_PT;
+import static com.graphhopper.reader.gtfs.GtfsStorage.EdgeType.EXIT_PT;
+import static com.graphhopper.reader.gtfs.GtfsStorage.EdgeType.HIGHWAY;
+
 /**
  * Implements a Multi-Criteria Label Setting (MLS) path finding algorithm
  * with the criteria earliest arrival time and number of transfers.
@@ -59,7 +63,7 @@ public class MultiCriteriaLabelSetting {
         this.explorer = explorer;
         this.reverse = reverse;
         this.maxWalkDistancePerLeg = maxWalkDistancePerLeg;
-        this.maxTransferDistancePerLeg = maxTransferDistancePerLeg;
+        this.maxTransferDistancePerLeg = -1;
         this.mindTransfers = mindTransfers;
         this.profileQuery = profileQuery;
 
@@ -122,8 +126,8 @@ public class MultiCriteriaLabelSetting {
                     }
                     double walkDistanceOnCurrentLeg = (!reverse && edgeType == GtfsStorage.EdgeType.BOARD || reverse && edgeType == GtfsStorage.EdgeType.ALIGHT) ? 0 : (finalLabel.walkDistanceOnCurrentLeg + weighting.getWalkDistance(edge));
                     boolean isTryingToReEnterPtAfterTransferWalking = (!reverse && edgeType == GtfsStorage.EdgeType.ENTER_PT || reverse && edgeType == GtfsStorage.EdgeType.EXIT_PT) && finalLabel.nTransfers > 0 && finalLabel.walkDistanceOnCurrentLeg > maxTransferDistancePerLeg;
-                    boolean isTryingToWalkAfterRiding = (!reverse && edgeType == GtfsStorage.EdgeType.HIGHWAY || reverse && edgeType == GtfsStorage.EdgeType.HIGHWAY) && finalLabel.nTransfers > 0;
-                    long walkTime = finalLabel.walkTime + (edgeType == GtfsStorage.EdgeType.HIGHWAY ? nextTime - finalLabel.currentTime : 0);
+                    boolean isTryingToWalkAfterRiding = (!reverse && edgeType == HIGHWAY || reverse && edgeType == HIGHWAY) && finalLabel.nTransfers > 0;
+                    long walkTime = finalLabel.walkTime + (EnumSet.of(HIGHWAY, ENTER_PT, EXIT_PT).contains(edgeType) ? nextTime - finalLabel.currentTime : 0);
                     int nWalkDistanceConstraintViolations = Math.min(1, finalLabel.nWalkDistanceConstraintViolations + (
                             isTryingToReEnterPtAfterTransferWalking ? 1 : (finalLabel.walkDistanceOnCurrentLeg <= maxWalkDistancePerLeg && walkDistanceOnCurrentLeg > maxWalkDistancePerLeg ? 1 : 0)));
                     if (isTryingToWalkAfterRiding) {
