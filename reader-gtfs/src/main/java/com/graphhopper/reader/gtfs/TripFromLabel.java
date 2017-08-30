@@ -49,6 +49,15 @@ class TripFromLabel {
     }
 
     PathWrapper createPathWrapper(Translation tr, PointList waypoints, List<Trip.Leg> legs) {
+        if (legs.size() > 1 && legs.get(0) instanceof Trip.WalkLeg) {
+            final Trip.WalkLeg accessLeg = (Trip.WalkLeg) legs.get(0);
+            legs.set(0, new Trip.WalkLeg(accessLeg.departureLocation, new Date(legs.get(1).departureTime.getTime() - (accessLeg.arrivalTime.getTime() - accessLeg.departureTime.getTime())), accessLeg.edges, accessLeg.geometry, accessLeg.distance, accessLeg.instructions, legs.get(1).departureTime));
+        }
+        if (legs.size() > 1 && legs.get(legs.size()-1) instanceof Trip.WalkLeg) {
+            final Trip.WalkLeg egressLeg = (Trip.WalkLeg) legs.get(legs.size()-1);
+            legs.set(legs.size()-1, new Trip.WalkLeg(egressLeg.departureLocation, legs.get(legs.size()-2).arrivalTime, egressLeg.edges, egressLeg.geometry, egressLeg.distance, egressLeg.instructions, new Date(legs.get(legs.size()-2).arrivalTime.getTime() + (egressLeg.arrivalTime.getTime() - egressLeg.departureTime.getTime()))));
+        }
+
         PathWrapper path = new PathWrapper();
         path.setWaypoints(waypoints);
 
@@ -103,10 +112,6 @@ class TripFromLabel {
 
         final List<List<Label.Transition>> partitions = getPartitions(transitions);
         final List<Trip.Leg> legs = getLegs(tr, queryGraph, weighting, partitions);
-        if (legs.size() > 1 && legs.get(0) instanceof Trip.WalkLeg) {
-            final Trip.WalkLeg accessLeg = (Trip.WalkLeg) legs.get(0);
-            legs.set(0, new Trip.WalkLeg(accessLeg.departureLocation, new Date(legs.get(1).departureTime.getTime() - (accessLeg.arrivalTime.getTime() - accessLeg.departureTime.getTime())) , accessLeg.edges, accessLeg.geometry, accessLeg.distance, accessLeg.instructions, legs.get(1).departureTime));
-        }
         return legs;
     }
 

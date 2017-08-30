@@ -209,7 +209,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                 ulrich.setReverseEdge(ulrich);
                 ulrich.setDistance(pathWrapper.getDistance());
                 extraEdges.add(ulrich);
-                walkPaths.put(newNode, pathWrapper);
+                walkPaths.put(stationNode.adjNode, pathWrapper);
             }
 
             final QueryResult virtualNode = new QueryResult(ghPoint.getLat(), ghPoint.getLon());
@@ -223,6 +223,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             final Stream<Label> labels = router.calcLabels(node, -1, initialTime);
             return labels
                     .filter(current -> current.edge != -1 && flagEncoder.getEdgeType(graphExplorer.getEdgeIteratorState(current.edge, current.adjNode).getFlags()) == edgeType)
+                    .map(current -> current.parent) // leave out the pt edge, so solution can be parsed into a walk-only leg
 //                    .limit(limitSolutions)
                     .collect(Collectors.toList());
         }
@@ -238,10 +239,23 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         private void parseSolutionsAndAddToResponse(List<Label> solutions, PointList waypoints) {
             for (Label solution : solutions) {
                 final List<Trip.Leg> legs = tripFromLabel.getTrip(arriveBy, flagEncoder, translation, graphExplorer, weighting, solution);
+                legs.add(0, walkPaths.get(accessNode(solution)).getLegs().get(0));
+                legs.add(walkPaths.get(egressNode(solution)).getLegs().get(0));
                 final PathWrapper pathWrapper = tripFromLabel.createPathWrapper(translation, waypoints, legs);
                 response.add(pathWrapper);
             }
             response.getAll().sort(Comparator.comparingDouble(PathWrapper::getTime));
+        }
+
+        private int accessNode(Label solution) {
+            while(solution.parent.parent != null) {
+                solution = solution.parent;
+            }
+            return solution.adjNode;
+        }
+
+        private int egressNode(Label solution) {
+            return solution.parent.adjNode;
         }
 
         private List<Label> findPaths(int startNode, int destNode, Consumer<? super Label> action) {
