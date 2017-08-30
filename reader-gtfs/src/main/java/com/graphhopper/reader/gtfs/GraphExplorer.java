@@ -89,6 +89,9 @@ final class GraphExplorer {
                     if (walkOnly && edgeType != GtfsStorage.EdgeType.HIGHWAY && edgeType != (reverse ? GtfsStorage.EdgeType.EXIT_PT : GtfsStorage.EdgeType.ENTER_PT)) {
                         continue;
                     }
+                    if (!walkOnly && (edgeType == GtfsStorage.EdgeType.ENTER_PT || edgeType == GtfsStorage.EdgeType.EXIT_PT)) {
+                        continue;
+                    }
                     if (!isValidOn(edgeIterator, label.currentTime)) {
                         continue;
                     }
