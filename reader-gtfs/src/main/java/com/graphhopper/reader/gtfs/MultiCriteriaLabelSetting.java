@@ -64,7 +64,7 @@ public class MultiCriteriaLabelSetting {
         this.reverse = reverse;
         this.maxWalkDistancePerLeg = maxWalkDistancePerLeg;
         this.maxTransferDistancePerLeg = -1;
-        this.mindTransfers = mindTransfers;
+        this.mindTransfers = false;
         this.profileQuery = profileQuery;
 
         queueComparator = Comparator.<Label>comparingLong(l2 -> currentTimeCriterion(l2))
@@ -135,52 +135,23 @@ public class MultiCriteriaLabelSetting {
                     }
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), edgeType, nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, finalLabel);
+                    if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
+                        removeDominated(nEdge, sptEntries);
+                        if (to == edge.getAdjNode()) {
+                            removeDominated(nEdge, targetLabels);
+                        }
+                        fromMap.put(edge.getAdjNode(), nEdge);
+                        if (to == edge.getAdjNode()) {
+                            targetLabels.add(nEdge);
+                        }
+                        fromHeap.add(nEdge);
+                    }
+
                     if (profileQuery) {
                         if (edgeType != GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK && edge.getAdjNode() != to) {
-                            if (sptEntries.size() > 1) throw new RuntimeException();
-                            if (sptEntries.isEmpty()) {
-                                fromMap.put(edge.getAdjNode(), nEdge);
-                                if (to == edge.getAdjNode()) {
-                                    targetLabels.add(nEdge);
-                                }
-                                fromHeap.add(nEdge);
-                            } else {
-                                Label sptEntry = sptEntries.iterator().next();
-                                if (queueComparator.compare(nEdge, sptEntry) < 0) {
-                                    sptEntry.deleted = true;
-                                    sptEntries.clear();
-                                    fromMap.put(edge.getAdjNode(), nEdge);
-                                    if (to == edge.getAdjNode()) {
-                                        targetLabels.add(nEdge);
-                                    }
-                                    fromHeap.add(nEdge);
-                                }
+                            if (sptEntries.size() > 1) {
+                                throw new RuntimeException();
                             }
-                            if (sptEntries.size() > 1) throw new RuntimeException();
-                        } else {
-                            if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
-                                removeDominated(nEdge, sptEntries);
-                                if (to == edge.getAdjNode()) {
-                                    removeDominated(nEdge, targetLabels);
-                                }
-                                fromMap.put(edge.getAdjNode(), nEdge);
-                                if (to == edge.getAdjNode()) {
-                                    targetLabels.add(nEdge);
-                                }
-                                fromHeap.add(nEdge);
-                            }
-                        }
-                    } else {
-                        if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
-                            removeDominated(nEdge, sptEntries);
-                            if (to == edge.getAdjNode()) {
-                                removeDominated(nEdge, targetLabels);
-                            }
-                            fromMap.put(edge.getAdjNode(), nEdge);
-                            if (to == edge.getAdjNode()) {
-                                targetLabels.add(nEdge);
-                            }
-                            fromHeap.add(nEdge);
                         }
                     }
                 });
