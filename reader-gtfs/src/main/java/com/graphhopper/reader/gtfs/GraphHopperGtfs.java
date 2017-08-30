@@ -98,6 +98,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         private final Translation translation;
         private final List<VirtualEdgeIteratorState> extraEdges = new ArrayList<>();
         private final PointList extraNodes = new PointList();
+        private final Map<Integer, PathWrapper> walkPaths = new HashMap<>();
 
         private final GHResponse response = new GHResponse();
         private final QueryGraph queryGraph = new QueryGraph(graphHopperStorage);
@@ -199,14 +200,16 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             int newNode = graphHopperStorage.getNodes() + 1000 + index;
             final List<Label> stationNodes = findStationNodes(graphExplorer, allQueryResults.get(index).getClosestNode(), reverse);
             for (Label stationNode : stationNodes) {
-                final PathWrapper pathWrapper = tripFromLabel.parseSolutionIntoPath(initialTime, reverse, flagEncoder, translation, graphExplorer, weighting, stationNode, new PointList());
+                final PathWrapper pathWrapper = tripFromLabel.parseSolutionIntoPath(reverse, flagEncoder, translation, graphExplorer, weighting, stationNode, new PointList());
                 final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(stationNode.edge,
                         -1, reverse ? stationNode.adjNode : newNode, reverse ? newNode : stationNode.adjNode, pathWrapper.getDistance(), 0, "ulrich", pathWrapper.getPoints());
                 ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), reverse ? GtfsStorage.EdgeType.EXIT_PT : GtfsStorage.EdgeType.ENTER_PT));
                 final long time = pathWrapper.getTime() / 1000;
                 ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setTime(ulrich.getFlags(), time));
                 ulrich.setReverseEdge(ulrich);
+                ulrich.setDistance(pathWrapper.getDistance());
                 extraEdges.add(ulrich);
+                walkPaths.put(newNode, pathWrapper);
             }
 
             final QueryResult virtualNode = new QueryResult(ghPoint.getLat(), ghPoint.getLon());
@@ -234,7 +237,9 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
         private void parseSolutionsAndAddToResponse(List<Label> solutions, PointList waypoints) {
             for (Label solution : solutions) {
-                response.add(tripFromLabel.parseSolutionIntoPath(initialTime, arriveBy, flagEncoder, translation, graphExplorer, weighting, solution, waypoints));
+                final List<Trip.Leg> legs = tripFromLabel.getTrip(arriveBy, flagEncoder, translation, graphExplorer, weighting, solution);
+                final PathWrapper pathWrapper = tripFromLabel.createPathWrapper(translation, waypoints, legs);
+                response.add(pathWrapper);
             }
             response.getAll().sort(Comparator.comparingDouble(PathWrapper::getTime));
         }

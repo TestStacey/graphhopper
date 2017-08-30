@@ -43,11 +43,15 @@ import static com.graphhopper.reader.gtfs.Label.reverseEdges;
 
 class TripFromLabel {
 
-    PathWrapper parseSolutionIntoPath(Instant initialTime, boolean arriveBy, PtFlagEncoder encoder, Translation tr, GraphExplorer queryGraph, PtTravelTimeWeighting weighting, Label solution, PointList waypoints) {
+    PathWrapper parseSolutionIntoPath(boolean arriveBy, PtFlagEncoder encoder, Translation tr, GraphExplorer queryGraph, PtTravelTimeWeighting weighting, Label solution, PointList waypoints) {
+        final List<Trip.Leg> legs = getTrip(arriveBy, encoder, tr, queryGraph, weighting, solution);
+        return createPathWrapper(tr, waypoints, legs);
+    }
+
+    PathWrapper createPathWrapper(Translation tr, PointList waypoints, List<Trip.Leg> legs) {
         PathWrapper path = new PathWrapper();
         path.setWaypoints(waypoints);
 
-        final List<Trip.Leg> legs = getTrip(arriveBy, encoder, tr, queryGraph, weighting, solution);
         path.getLegs().addAll(legs);
 
         final InstructionList instructions = getInstructions(tr, path.getLegs());
@@ -56,10 +60,9 @@ class TripFromLabel {
         for (Instruction instruction : instructions) {
             pointsList.add(instruction.getPoints());
         }
-        path.addDebugInfo(String.format("Violations: %d, Last leg dist: %f", solution.nWalkDistanceConstraintViolations, solution.walkDistanceOnCurrentLeg));
         path.setPoints(pointsList);
         path.setDistance(path.getLegs().stream().mapToDouble(Trip.Leg::getDistance).sum());
-        path.setTime((solution.currentTime - initialTime.toEpochMilli()) * (arriveBy ? -1 : 1));
+        path.setTime((legs.get(legs.size()-1).arrivalTime.toInstant().toEpochMilli() - legs.get(0).departureTime.toInstant().toEpochMilli()));
         path.setNumChanges((int) path.getLegs().stream()
                 .filter(l -> l instanceof Trip.PtLeg)
                 .filter(l -> !((Trip.PtLeg) l).isInSameVehicleAsPrevious)
@@ -85,7 +88,7 @@ class TripFromLabel {
         return path;
     }
 
-    private List<Trip.Leg> getTrip(boolean arriveBy, PtFlagEncoder encoder, Translation tr, GraphExplorer queryGraph, PtTravelTimeWeighting weighting, Label solution) {
+    List<Trip.Leg> getTrip(boolean arriveBy, PtFlagEncoder encoder, Translation tr, GraphExplorer queryGraph, PtTravelTimeWeighting weighting, Label solution) {
         List<Label.Transition> transitions = new ArrayList<>();
         if (arriveBy) {
             reverseEdges(solution, queryGraph, encoder, false)
