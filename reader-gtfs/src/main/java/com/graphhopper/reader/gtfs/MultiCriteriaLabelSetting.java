@@ -20,7 +20,6 @@ package com.graphhopper.reader.gtfs;
 import com.google.common.collect.ArrayListMultimap;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.util.EdgeIterator;
-import com.graphhopper.util.EdgeIteratorState;
 
 import java.time.Instant;
 import java.util.*;
@@ -88,7 +87,7 @@ public class MultiCriteriaLabelSetting {
             super(0, 0);
             this.to = to;
             targetLabels = new HashSet<>();
-            Label label = new Label(startTime, EdgeIterator.NO_EDGE, from, 0, 0, 0.0, null, 0, null);
+            Label label = new Label(startTime, EdgeIterator.NO_EDGE, from, null, 0, 0, 0.0, null, 0, null);
             fromMap.put(from, label);
             fromHeap.add(label);
             if (to == from) {
@@ -131,7 +130,7 @@ public class MultiCriteriaLabelSetting {
                         nWalkDistanceConstraintViolations++;
                     }
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
-                    Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, finalLabel);
+                    Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), edgeType, nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, finalLabel);
                     if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
                         removeDominated(nEdge, sptEntries);
                         if (to == edge.getAdjNode()) {
