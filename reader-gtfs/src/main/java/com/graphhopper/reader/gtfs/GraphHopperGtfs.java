@@ -104,7 +104,7 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         private GraphExplorer graphExplorer;
 
         RequestHandler(GHRequest request) {
-            maxVisitedNodesForRequest = request.getHints().getInt(Parameters.Routing.MAX_VISITED_NODES, Integer.MAX_VALUE);
+            maxVisitedNodesForRequest = 1_000_000;
             profileQuery = request.getHints().getBool(PROFILE_QUERY, false);
             ignoreTransfers = request.getHints().getBool(Parameters.PT.IGNORE_TRANSFERS, false);
             limitSolutions = request.getHints().getInt(Parameters.PT.LIMIT_SOLUTIONS, profileQuery ? 5 : ignoreTransfers ? 1 : Integer.MAX_VALUE);
@@ -198,17 +198,14 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
 
             int newNode = graphHopperStorage.getNodes() + 1000 + index;
             final List<Label> stationNodes = findStationNodes(graphExplorer, allQueryResults.get(index).getClosestNode(), reverse);
-            System.out.println("---");
             for (Label stationNode : stationNodes) {
                 final PathWrapper pathWrapper = tripFromLabel.parseSolutionIntoPath(initialTime, reverse, flagEncoder, translation, graphExplorer, weighting, stationNode, new PointList());
                 final VirtualEdgeIteratorState ulrich = new VirtualEdgeIteratorState(stationNode.edge,
                         -1, reverse ? stationNode.adjNode : newNode, reverse ? newNode : stationNode.adjNode, pathWrapper.getDistance(), 0, "ulrich", pathWrapper.getPoints());
                 ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setEdgeType(ulrich.getFlags(), reverse ? GtfsStorage.EdgeType.EXIT_PT : GtfsStorage.EdgeType.ENTER_PT));
                 final long time = pathWrapper.getTime() / 1000;
-                System.out.println(time);
                 ulrich.setFlags(((PtFlagEncoder) weighting.getFlagEncoder()).setTime(ulrich.getFlags(), time));
                 ulrich.setReverseEdge(ulrich);
-                System.out.println(ulrich);
                 extraEdges.add(ulrich);
             }
 
@@ -254,14 +251,8 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
                     .limit(limitSolutions)
                     .collect(Collectors.toList());
             response.addDebugInfo("routing:" + stopWatch.stop().getSeconds() + "s");
-            if (router.getVisitedNodes() >= maxVisitedNodesForRequest) {
-                throw new IllegalArgumentException("No path found - maximum number of nodes exceeded: " + maxVisitedNodesForRequest);
-            }
             response.getHints().put("visited_nodes.sum", router.getVisitedNodes());
             response.getHints().put("visited_nodes.average", router.getVisitedNodes());
-            if (solutions.isEmpty()) {
-                response.addError(new RuntimeException("No route found"));
-            }
             return solutions;
         }
     }
