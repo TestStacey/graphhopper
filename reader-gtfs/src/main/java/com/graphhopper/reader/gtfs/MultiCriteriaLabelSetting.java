@@ -133,11 +133,9 @@ public class MultiCriteriaLabelSetting {
                     Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, finalLabel);
                     if (isNotDominatedByAnyOf(nEdge, sptEntries)) {
-                        if (!profileQuery || to != edge.getAdjNode()) {
-                            removeDominated(nEdge, sptEntries);
-                            if (to == edge.getAdjNode()) {
-                                removeDominated(nEdge, targetLabels);
-                            }
+                        removeDominated(nEdge, sptEntries);
+                        if (to == edge.getAdjNode()) {
+                            removeDominated(nEdge, targetLabels);
                         }
                         fromMap.put(edge.getAdjNode(), nEdge);
                         if (to == edge.getAdjNode()) {
@@ -146,75 +144,76 @@ public class MultiCriteriaLabelSetting {
                         fromHeap.add(nEdge);
                     }
                 });
-                label.deleted = true;
                 return true;
             }
             return false;
         }
-    }
 
-    private boolean isNotDominatedByAnyOf(Label me, Collection<Label> sptEntries) {
-        if (me.nWalkDistanceConstraintViolations > 0) {
-            return false;
-        }
-        for (Label they : sptEntries) {
-            if (dominates(they, me)) {
+        private boolean isNotDominatedByAnyOf(Label me, Collection<Label> sptEntries) {
+            if (me.nWalkDistanceConstraintViolations > 0) {
                 return false;
             }
+            for (Label they : sptEntries) {
+                if (dominates(they, me)) {
+                    return false;
+                }
+            }
+            return true;
         }
-        return true;
-    }
 
-
-    private void removeDominated(Label me, Collection<Label> sptEntries) {
-        for (Iterator<Label> iterator = sptEntries.iterator(); iterator.hasNext();) {
-            Label sptEntry = iterator.next();
-            iterator.remove();
-            sptEntry.deleted = true;
+        private void removeDominated(Label me, Collection<Label> sptEntries) {
+            for (Iterator<Label> iterator = sptEntries.iterator(); iterator.hasNext();) {
+                Label sptEntry = iterator.next();
+                if (dominates(me, sptEntry)) {
+                    sptEntry.deleted = true;
+                    iterator.remove();
+                }
+            }
         }
-    }
 
-    private boolean dominates(Label me, Label they) {
-        if (profileQuery) {
-            if (me.departureTime != null && they.departureTime != null) {
+        private boolean dominates(Label me, Label they) {
+            if (profileQuery) {
+                if (me.departureTime != null && they.departureTime != null) {
+                    if (currentTimeCriterion(me) > currentTimeCriterion(they))
+                        return false;
+                    if (departureTimeCriterion(me) > departureTimeCriterion(they))
+                        return false;
+                } else {
+                    if (travelTimeCriterion(me) > travelTimeCriterion(they))
+                        return false;
+                }
+            } else {
                 if (currentTimeCriterion(me) > currentTimeCriterion(they))
                     return false;
-                if (departureTimeCriterion(me) > departureTimeCriterion(they))
-                    return false;
-            } else {
-                if (travelTimeCriterion(me) > travelTimeCriterion(they))
-                    return false;
             }
-        } else {
-            if (currentTimeCriterion(me) > currentTimeCriterion(they))
+
+            if (mindTransfers && me.nTransfers > they.nTransfers)
                 return false;
-        }
+            if (me.nWalkDistanceConstraintViolations  > they.nWalkDistanceConstraintViolations)
+                return false;
 
-        if (mindTransfers && me.nTransfers > they.nTransfers)
-            return false;
-        if (me.nWalkDistanceConstraintViolations  > they.nWalkDistanceConstraintViolations)
-            return false;
-
-        if (profileQuery) {
-            if (me.departureTime != null && they.departureTime != null) {
+            if (profileQuery) {
+                if (me.departureTime != null && they.departureTime != null) {
+                    if (currentTimeCriterion(me) < currentTimeCriterion(they))
+                        return true;
+                    if (departureTimeCriterion(me) < departureTimeCriterion(they))
+                        return true;
+                } else {
+                    if (travelTimeCriterion(me) < travelTimeCriterion(they))
+                        return true;
+                }
+            } else {
                 if (currentTimeCriterion(me) < currentTimeCriterion(they))
                     return true;
-                if (departureTimeCriterion(me) < departureTimeCriterion(they))
-                    return true;
-            } else {
-                if (travelTimeCriterion(me) < travelTimeCriterion(they))
-                    return true;
             }
-        } else {
-            if (currentTimeCriterion(me) < currentTimeCriterion(they))
+            if (mindTransfers && me.nTransfers  < they.nTransfers)
                 return true;
-        }
-        if (mindTransfers && me.nTransfers  < they.nTransfers)
-            return true;
-        if (me.nWalkDistanceConstraintViolations < they.nWalkDistanceConstraintViolations)
-            return true;
+            if (me.nWalkDistanceConstraintViolations < they.nWalkDistanceConstraintViolations)
+                return true;
 
-        return queueComparator.compare(me,they) <= 0;
+            return queueComparator.compare(me,they) <= 0;
+        }
+
     }
 
     private Long departureTimeCriterion(Label label) {
