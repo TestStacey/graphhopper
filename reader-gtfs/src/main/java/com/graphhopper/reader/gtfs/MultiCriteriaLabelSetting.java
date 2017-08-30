@@ -147,13 +147,13 @@ public class MultiCriteriaLabelSetting {
                         fromHeap.add(nEdge);
                     }
 
-                    if (profileQuery) {
-                        if (edgeType != GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK && edge.getAdjNode() != to) {
-                            if (sptEntries.size() > 1) {
-                                throw new RuntimeException();
-                            }
-                        }
-                    }
+//                    if (profileQuery) {
+//                        if (edgeType != GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK && edge.getAdjNode() != to) {
+//                            if (sptEntries.size() > 1) {
+//                                throw new RuntimeException();
+//                            }
+//                        }
+//                    }
                 });
                 return true;
             }
