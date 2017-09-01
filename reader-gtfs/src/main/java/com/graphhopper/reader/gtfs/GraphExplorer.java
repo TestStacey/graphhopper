@@ -50,11 +50,13 @@ final class GraphExplorer {
     private final PointList extraNodes;
     private final List<VirtualEdgeIteratorState> extraEdges;
     private final ArrayListMultimap<Integer, VirtualEdgeIteratorState> extraEdgesBySource = ArrayListMultimap.create();
+    private final ArrayListMultimap<Integer, VirtualEdgeIteratorState> extraEdgesByDestination = ArrayListMultimap.create();
     private final Graph graph;
     private final boolean walkOnly;
+    private final boolean profileQuery;
 
 
-    GraphExplorer(Graph graph, PtTravelTimeWeighting weighting, PtFlagEncoder flagEncoder, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed, boolean reverse, PointList extraNodes, List<VirtualEdgeIteratorState> extraEdges, boolean walkOnly) {
+    GraphExplorer(Graph graph, PtTravelTimeWeighting weighting, PtFlagEncoder flagEncoder, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed, boolean reverse, PointList extraNodes, List<VirtualEdgeIteratorState> extraEdges, boolean walkOnly, boolean profileQuery) {
         this.graph = graph;
         this.edgeExplorer = graph.createEdgeExplorer(new DefaultEdgeFilter(flagEncoder, reverse, !reverse));
         this.flagEncoder = flagEncoder;
@@ -66,12 +68,14 @@ final class GraphExplorer {
         this.extraEdges = extraEdges;
         for (VirtualEdgeIteratorState extraEdge : extraEdges) {
             extraEdgesBySource.put(extraEdge.getBaseNode(), extraEdge);
+            extraEdgesByDestination.put(extraEdge.getAdjNode(), (VirtualEdgeIteratorState) extraEdge.detach(true));
         }
         this.walkOnly = walkOnly;
+        this.profileQuery = profileQuery;
     }
 
     Stream<EdgeIteratorState> exploreEdgesAround(Label label) {
-        final List<VirtualEdgeIteratorState> extraEdges = extraEdgesBySource.get(label.adjNode);
+        final List<VirtualEdgeIteratorState> extraEdges = reverse ? extraEdgesByDestination.get(label.adjNode) : extraEdgesBySource.get(label.adjNode);
         return Stream.concat(
                 label.adjNode < graph.getNodes() ? mainEdgesAround(label) : Stream.empty(),
                 extraEdges.stream());
@@ -89,7 +93,7 @@ final class GraphExplorer {
                     if (walkOnly && edgeType != GtfsStorage.EdgeType.HIGHWAY && edgeType != (reverse ? GtfsStorage.EdgeType.EXIT_PT : GtfsStorage.EdgeType.ENTER_PT)) {
                         continue;
                     }
-                    if (!walkOnly && (edgeType == GtfsStorage.EdgeType.ENTER_PT || edgeType == GtfsStorage.EdgeType.EXIT_PT)) {
+                    if (profileQuery && (edgeType == GtfsStorage.EdgeType.ENTER_PT || edgeType == GtfsStorage.EdgeType.EXIT_PT)) {
                         continue;
                     }
                     if (!isValidOn(edgeIterator, label.currentTime)) {

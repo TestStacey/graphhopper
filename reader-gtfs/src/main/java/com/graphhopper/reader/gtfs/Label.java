@@ -66,7 +66,6 @@ public class Label {
 
     public final int edge;
     public final int adjNode;
-    public final GtfsStorage.EdgeType edgeType;
 
     public final int nTransfers;
     public final int nWalkDistanceConstraintViolations;
@@ -78,11 +77,10 @@ public class Label {
     public final Label parent;
     public boolean deleted = false;
 
-    Label(long currentTime, int edgeId, int adjNode, GtfsStorage.EdgeType edgeType, int nTransfers, int nWalkDistanceConstraintViolations, double walkDistance, Long departureTime, long walkTime, Label parent) {
+    Label(long currentTime, int edgeId, int adjNode, int nTransfers, int nWalkDistanceConstraintViolations, double walkDistance, Long departureTime, long walkTime, Label parent) {
         this.currentTime = currentTime;
         this.edge = edgeId;
         this.adjNode = adjNode;
-        this.edgeType = edgeType;
         this.nTransfers = nTransfers;
         this.nWalkDistanceConstraintViolations = nWalkDistanceConstraintViolations;
         this.walkDistanceOnCurrentLeg = walkDistance;

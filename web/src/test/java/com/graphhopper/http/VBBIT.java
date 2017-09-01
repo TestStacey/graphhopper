@@ -63,7 +63,9 @@ public class VBBIT {
 
     @Test
     public void testRouteNotFoundCase() {
-        final Response response = app.client().target("http://localhost:5001/route?point=52.553423,13.435518&point=52.591982,13.305924&pt.profile=true").request().buildGet().invoke();
+        final Response response = app.client().target("http://localhost:5001/route?vehicle=pt&point=52.553423,13.435518&point=52.591982,13.305924&pt.earliest_departure_time=2017-09-01T09%3A47%3A00.000Z&pt.profile=true").request().buildGet().invoke();
+        System.out.println(response.readEntity(String.class));
+
         assertEquals(200, response.getStatus());
     }
 
