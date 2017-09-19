@@ -1,6 +1,6 @@
 graphhopper:
   datareader.file: brandenburg-latest.osm.pbf
-  gtfs.file: 1378234.zip
+  gtfs.file: 1434582.zip
   graph.location: vbb
 
 server:
