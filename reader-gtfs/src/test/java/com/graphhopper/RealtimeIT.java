@@ -68,6 +68,7 @@ public class RealtimeIT {
         locationIndex.close();
     }
 
+
     @Test
     public void testSkipDepartureStop() {
         final double FROM_LAT = 36.914893, FROM_LON = -116.76821; // NADAV stop
