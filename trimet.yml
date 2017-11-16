@@ -1,7 +1,7 @@
 graphhopper:
-  datareader.file: brandenburg-latest.osm.pbf
-  gtfs.file: 1434582.zip
-  graph.location: vbb
+  datareader.file: oregon-latest.osm.pbf
+  gtfs.file: gtfs.zip
+  graph.location: trimet
 
 server:
   minThreads: 1

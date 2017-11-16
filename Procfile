@@ -1,1 +1,1 @@
-web: java -Xmx6000m -jar web/target/graphhopper-web-0.10-SNAPSHOT.jar server vbb.yml
+web: java -Xmx6000m -jar web/target/graphhopper-web-0.10-SNAPSHOT.jar server trimet.yml
