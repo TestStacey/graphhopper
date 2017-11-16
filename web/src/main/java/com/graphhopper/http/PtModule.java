@@ -2,6 +2,7 @@ package com.graphhopper.http;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.json.GHJson;
 import com.graphhopper.json.GHJsonFactory;
@@ -11,6 +12,7 @@ import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.storage.GHDirectory;
+import com.graphhopper.storage.Graph;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.util.CmdArgs;
@@ -18,6 +20,8 @@ import com.graphhopper.util.TranslationMap;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -38,7 +42,11 @@ public final class PtModule extends AbstractModule {
     @Provides
     @Singleton
     GraphHopperAPI createGraphHopper(PtFlagEncoder flagEncoder, TranslationMap translationMap, GraphHopperStorage graphHopperStorage, LocationIndex locationIndex, GtfsStorage gtfsStorage) {
-        return new GraphHopperGtfs(flagEncoder, translationMap, graphHopperStorage, locationIndex, gtfsStorage, RealtimeFeed.empty());
+
+        //For now, load the realtime feed here. Later it shoud be periodically fetched from a configurable source
+        RealtimeFeed feed = loadExampleRealtimeFeed(graphHopperStorage, gtfsStorage, flagEncoder);
+
+        return new GraphHopperGtfs(flagEncoder, translationMap, graphHopperStorage, locationIndex, gtfsStorage, feed);
     }
 
     @Provides
@@ -113,6 +121,20 @@ public final class PtModule extends AbstractModule {
                 locationIndex.close();
             }
         };
+    }
+
+    private RealtimeFeed loadExampleRealtimeFeed(Graph graph, GtfsStorage staticGtfs, PtFlagEncoder flagEncoder) {
+        File realtimeFile = new File("reader-gtfs/files/gtfs-realtime-trimet-example");
+        RealtimeFeed feed = RealtimeFeed.empty();
+        try {
+            FileInputStream inputStream = new FileInputStream(realtimeFile);
+            GtfsRealtime.FeedMessage feedMessage = GtfsRealtime.FeedMessage.parseFrom(inputStream);
+            feed = RealtimeFeed.fromProtobuf(graph, staticGtfs, flagEncoder, feedMessage);
+        } catch (Exception e) {
+            System.out.println("Error while creating RealtimeFeed.");
+            e.printStackTrace();
+        }
+        return feed;
     }
 
 }

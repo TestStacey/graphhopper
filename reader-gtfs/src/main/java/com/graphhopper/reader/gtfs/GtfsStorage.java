@@ -26,12 +26,17 @@ import com.graphhopper.gtfs.fare.FixedFareAttributeLoader;
 import com.graphhopper.storage.Directory;
 import com.graphhopper.storage.Graph;
 import com.graphhopper.storage.GraphExtension;
-import org.mapdb.*;
+import org.mapdb.Bind;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipFile;
@@ -144,7 +149,7 @@ public class GtfsStorage implements GraphExtension {
 
 	@Override
 	public boolean loadExisting() {
-		this.data = DBMaker.newFileDB(new File(dir.getLocation() + "/transit_schedule")).transactionDisable().mmapFileEnable().readOnly().make();
+		this.data = DBMaker.newFileDB(new File(dir.getLocation() + "/transit_schedule")).transactionDisable().mmapFileEnable().make();
 		init();
 		for (String gtfsFeedId : this.gtfsFeedIds) {
 			try {
