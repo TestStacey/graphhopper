@@ -79,7 +79,7 @@ public class GHServer {
         // getSessionHandler and getSecurityHandler should always return null
         ServletContextHandler servHandler = new ServletContextHandler(ServletContextHandler.NO_SECURITY | ServletContextHandler.NO_SESSIONS);
         servHandler.setErrorHandler(new GHErrorHandler());
-        servHandler.setContextPath("/");
+        servHandler.setContextPath("/api/1/");
 
         // Putting this here (and not in the guice servlet module) because it should take precedence
         // over more specific routes. And guice, strangely, is order-dependent (even though, except in the servlet
