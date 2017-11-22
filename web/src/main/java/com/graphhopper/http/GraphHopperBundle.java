@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.http.resources.*;
@@ -33,6 +34,7 @@ import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.storage.GHDirectory;
+import com.graphhopper.storage.Graph;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.util.CmdArgs;
@@ -47,6 +49,8 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import javax.inject.Inject;
 import javax.servlet.DispatcherType;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -160,7 +164,8 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 configuration.has("datareader.file") ? Arrays.asList(configuration.get("datareader.file", "").split(",")) : Collections.emptyList());
         final TranslationMap translationMap = GraphHopperGtfs.createTranslationMap();
         final LocationIndex locationIndex = GraphHopperGtfs.createOrLoadIndex(ghDirectory, graphHopperStorage, ptFlagEncoder);
-        final GraphHopperAPI graphHopper = new GraphHopperGtfs(ptFlagEncoder, translationMap, graphHopperStorage, locationIndex, gtfsStorage, RealtimeFeed.empty());
+        final GraphHopperAPI graphHopper = new GraphHopperGtfs(ptFlagEncoder, translationMap, graphHopperStorage, locationIndex, gtfsStorage,
+                loadExampleRealtimeFeed(graphHopperStorage, gtfsStorage, ptFlagEncoder));
         environment.jersey().register(new AbstractBinder() {
             @Override
             protected void configure() {
@@ -187,6 +192,20 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 graphHopperStorage.close();
             }
         });
+    }
+
+    private RealtimeFeed loadExampleRealtimeFeed(Graph graph, GtfsStorage staticGtfs, PtFlagEncoder flagEncoder) {
+        File realtimeFile = new File("reader-gtfs/files/gtfs-realtime-trimet-example");
+        RealtimeFeed feed = RealtimeFeed.empty();
+        try {
+            FileInputStream inputStream = new FileInputStream(realtimeFile);
+            GtfsRealtime.FeedMessage feedMessage = GtfsRealtime.FeedMessage.parseFrom(inputStream);
+            feed = RealtimeFeed.fromProtobuf(graph, staticGtfs, flagEncoder, feedMessage);
+        } catch (Exception e) {
+            System.out.println("Error while creating RealtimeFeed.");
+            e.printStackTrace();
+        }
+        return feed;
     }
 
     private void runRegularGraphHopper(CmdArgs configuration, Environment environment) {

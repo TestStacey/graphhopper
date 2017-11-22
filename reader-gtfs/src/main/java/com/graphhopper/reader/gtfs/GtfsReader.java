@@ -122,7 +122,7 @@ class GtfsReader {
         this.i = graph.getNodes();
         this.startDate = feed.calculateStats().getStartDate();
         this.endDate = feed.calculateStats().getEndDate();
-        this.gtfsStorage.getFares().putAll(feed.fares);
+//        this.gtfsStorage.getFares().putAll(feed.fares);
     }
 
     void readGraph() {
