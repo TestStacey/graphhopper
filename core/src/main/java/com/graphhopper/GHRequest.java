@@ -116,6 +116,7 @@ public class GHRequest {
         for (GHPoint point : points) {
             this.points.add(new GHPointLocation(point));
         }
+        this.favoredHeadings.addAll(favoredHeadings);
     }
 
     public GHRequest(
