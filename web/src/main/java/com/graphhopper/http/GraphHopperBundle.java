@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.GraphHopperAPI;
+import com.graphhopper.http.api.JsonContainerResponseFilter;
 import com.graphhopper.http.resources.*;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
@@ -140,6 +141,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
     @Override
     public void run(HasGraphHopperConfiguration configuration, Environment environment) throws Exception {
         configuration.graphhopper().merge(CmdArgs.readFromConfigAndMerge(configuration.graphhopper()));
+        environment.jersey().register(JsonContainerResponseFilter.class);
 
         if (configuration.graphhopper().has("gtfs.file")) {
             // switch to different API implementation when using Pt
