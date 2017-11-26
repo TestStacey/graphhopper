@@ -101,8 +101,8 @@ public class GtfsStorage implements GraphExtension {
 	private Map<Integer, String> extra;
 	private Map<Integer, Integer> stopSequences;
 	private Map<String, Fare> fares;
-	private Map<GtfsRealtime.TripDescriptor, int[]> boardEdgesForTrip;
-	private Map<GtfsRealtime.TripDescriptor, int[]> leaveEdgesForTrip;
+	private Map<String, int[]> boardEdgesForTrip;
+	private Map<String, int[]> leaveEdgesForTrip;
 
 	private Map<String, Integer> stationNodes;
 
@@ -272,11 +272,11 @@ public class GtfsStorage implements GraphExtension {
 		return stopSequences;
 	}
 
-	Map<GtfsRealtime.TripDescriptor, int[]> getBoardEdgesForTrip() {
+	public Map<String, int[]> getBoardEdgesForTrip() {
 		return boardEdgesForTrip;
 	}
 
-	Map<GtfsRealtime.TripDescriptor, int[]> getAlightEdgesForTrip() {
+	Map<String, int[]> getAlightEdgesForTrip() {
 		return leaveEdgesForTrip;
 	}
 
