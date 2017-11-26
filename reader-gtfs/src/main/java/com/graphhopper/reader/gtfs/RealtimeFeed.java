@@ -271,6 +271,7 @@ public class RealtimeFeed {
             trip.route_id = tripUpdate.getTrip().getRouteId();
         }
         int delay = 0;
+        int time = -1;
         for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : tripUpdate.getStopTimeUpdateList()) {
             if (stopTimeUpdate.getScheduleRelationship() == SCHEDULED || stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
                 int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
@@ -280,8 +281,10 @@ public class RealtimeFeed {
                         logger.warn("Illegal stop time update: "+stopTimeUpdate);
                         break;
                     }
-                    originalStopTime.arrival_time += delay;
-                    originalStopTime.departure_time += delay;
+                    originalStopTime.arrival_time = Math.max(originalStopTime.arrival_time + delay, time);
+                    time = originalStopTime.arrival_time;
+                    originalStopTime.departure_time = Math.max(originalStopTime.departure_time + delay, time);
+                    time = originalStopTime.departure_time;
                     stopTimes.add(originalStopTime);
                 }
                 final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
@@ -291,11 +294,13 @@ public class RealtimeFeed {
                 if (stopTimeUpdate.hasArrival()) {
                     delay = stopTimeUpdate.getArrival().getDelay();
                 }
-                originalStopTime.arrival_time += delay;
+                originalStopTime.arrival_time = Math.max(originalStopTime.arrival_time + delay, time);
+                time = originalStopTime.arrival_time;
                 if (stopTimeUpdate.hasDeparture()) {
                     delay = stopTimeUpdate.getDeparture().getDelay();
                 }
-                originalStopTime.departure_time += delay;
+                originalStopTime.departure_time = Math.max(originalStopTime.departure_time + delay, time);
+                time = originalStopTime.departure_time;
                 stopTimes.add(originalStopTime);
             } else if (tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED) {
                 final StopTime stopTime = new StopTime();
