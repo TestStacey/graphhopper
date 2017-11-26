@@ -272,35 +272,40 @@ public class RealtimeFeed {
         }
         int delay = 0;
         for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : tripUpdate.getStopTimeUpdateList()) {
-            final StopTime stopTime = new StopTime();
-            stopTime.stop_sequence = stopTimeUpdate.getStopSequence();
-            stopTime.stop_id = stopTimeUpdate.getStopId();
-            stopTime.trip_id = trip.trip_id;
-
             if (stopTimeUpdate.getScheduleRelationship() == SCHEDULED || stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
+                int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
+                for (int i=nextStopSequence; i<stopTimeUpdate.getStopSequence(); i++) {
+                    StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
+                    originalStopTime.arrival_time += delay;
+                    originalStopTime.departure_time += delay;
+                    stopTimes.add(originalStopTime);
+                }
                 final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
-                stopTime.stop_id = originalStopTime.stop_id;
-                stopTime.trip_id = originalStopTime.trip_id;
                 if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
                     delay = 0;
                 }
                 if (stopTimeUpdate.hasArrival()) {
                     delay = stopTimeUpdate.getArrival().getDelay();
                 }
-                stopTime.arrival_time = originalStopTime.arrival_time + delay;
+                originalStopTime.arrival_time += delay;
                 if (stopTimeUpdate.hasDeparture()) {
                     delay = stopTimeUpdate.getDeparture().getDelay();
                 }
-                stopTime.departure_time = originalStopTime.departure_time + delay;
+                originalStopTime.departure_time += delay;
+                stopTimes.add(originalStopTime);
             } else if (tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED) {
+                final StopTime stopTime = new StopTime();
+                stopTime.stop_sequence = stopTimeUpdate.getStopSequence();
+                stopTime.stop_id = stopTimeUpdate.getStopId();
+                stopTime.trip_id = trip.trip_id;
                 final ZonedDateTime arrival_time = Instant.ofEpochSecond(stopTimeUpdate.getArrival().getTime()).atZone(ZoneId.of("America/Los_Angeles"));
                 stopTime.arrival_time = (int) Duration.between(arrival_time.truncatedTo(ChronoUnit.DAYS), arrival_time).getSeconds();
                 final ZonedDateTime departure_time = Instant.ofEpochSecond(stopTimeUpdate.getArrival().getTime()).atZone(ZoneId.of("America/Los_Angeles"));
                 stopTime.departure_time = (int) Duration.between(departure_time.truncatedTo(ChronoUnit.DAYS), departure_time).getSeconds();
+                stopTimes.add(stopTime);
             } else {
                 throw new RuntimeException();
             }
-            stopTimes.add(stopTime);
         }
         BitSet validOnDay = new BitSet();
         LocalDate startDate = feed.calculateStats().getStartDate();
