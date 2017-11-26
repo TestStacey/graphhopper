@@ -278,8 +278,7 @@ public class RealtimeFeed {
                 for (int i=nextStopSequence; i<stopTimeUpdate.getStopSequence(); i++) {
                     StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
                     if (originalStopTime == null) {
-                        logger.warn("Illegal stop time update: "+stopTimeUpdate);
-                        break;
+                        continue; // This can and does happen. Stop sequence numbers can be left out.
                     }
                     originalStopTime.arrival_time = Math.max(originalStopTime.arrival_time + delay, time);
                     time = originalStopTime.arrival_time;
