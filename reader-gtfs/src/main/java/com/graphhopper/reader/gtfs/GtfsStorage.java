@@ -149,7 +149,7 @@ public class GtfsStorage implements GraphExtension {
 
 	@Override
 	public boolean loadExisting() {
-		this.data = DBMaker.newFileDB(new File(dir.getLocation() + "/transit_schedule")).transactionDisable().mmapFileEnable().readOnly().make();
+		this.data = DBMaker.newFileDB(new File(dir.getLocation() + "/transit_schedule")).transactionDisable().mmapFileEnable().make();
 		init();
 		for (String gtfsFeedId : this.gtfsFeedIds) {
 			try {
