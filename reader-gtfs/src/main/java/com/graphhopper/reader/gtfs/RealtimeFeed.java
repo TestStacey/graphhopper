@@ -281,9 +281,13 @@ public class RealtimeFeed {
                 final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
                 stopTime.stop_id = originalStopTime.stop_id;
                 stopTime.trip_id = originalStopTime.trip_id;
-                delay = stopTimeUpdate.getArrival().getDelay();
+                if (stopTimeUpdate.hasArrival()) {
+                    delay = stopTimeUpdate.getArrival().getDelay();
+                }
                 stopTime.arrival_time = originalStopTime.arrival_time + delay;
-                delay = stopTimeUpdate.getDeparture().getDelay();
+                if (stopTimeUpdate.hasDeparture()) {
+                    delay = stopTimeUpdate.getDeparture().getDelay();
+                }
                 stopTime.departure_time = originalStopTime.departure_time + delay;
             } else if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
                 delay = 0;
