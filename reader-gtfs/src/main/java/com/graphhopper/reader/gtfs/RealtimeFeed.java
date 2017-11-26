@@ -277,10 +277,13 @@ public class RealtimeFeed {
             stopTime.stop_id = stopTimeUpdate.getStopId();
             stopTime.trip_id = trip.trip_id;
 
-            if (stopTimeUpdate.getScheduleRelationship() == SCHEDULED) {
+            if (stopTimeUpdate.getScheduleRelationship() == SCHEDULED || stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
                 final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
                 stopTime.stop_id = originalStopTime.stop_id;
                 stopTime.trip_id = originalStopTime.trip_id;
+                if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
+                    delay = 0;
+                }
                 if (stopTimeUpdate.hasArrival()) {
                     delay = stopTimeUpdate.getArrival().getDelay();
                 }
@@ -289,8 +292,6 @@ public class RealtimeFeed {
                     delay = stopTimeUpdate.getDeparture().getDelay();
                 }
                 stopTime.departure_time = originalStopTime.departure_time + delay;
-            } else if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
-                delay = 0;
             } else if (tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED) {
                 final ZonedDateTime arrival_time = Instant.ofEpochSecond(stopTimeUpdate.getArrival().getTime()).atZone(ZoneId.of("America/Los_Angeles"));
                 stopTime.arrival_time = (int) Duration.between(arrival_time.truncatedTo(ChronoUnit.DAYS), arrival_time).getSeconds();
