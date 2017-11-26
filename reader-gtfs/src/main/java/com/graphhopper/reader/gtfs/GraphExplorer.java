@@ -19,6 +19,7 @@
 package com.graphhopper.reader.gtfs;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.graphhopper.routing.QueryGraph;
 import com.graphhopper.routing.VirtualEdgeIteratorState;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.storage.Graph;
@@ -77,8 +78,9 @@ final class GraphExplorer {
 
     Stream<EdgeIteratorState> exploreEdgesAround(Label label) {
         final List<VirtualEdgeIteratorState> extraEdges = reverse ? extraEdgesByDestination.get(label.adjNode) : extraEdgesBySource.get(label.adjNode);
+        Graph baseGraph = ((QueryGraph) graph).mainGraph.getBaseGraph();
         return Stream.concat(
-                label.adjNode < graph.getNodes() ? mainEdgesAround(label) : Stream.empty(),
+                label.adjNode < baseGraph.getNodes() ? mainEdgesAround(label) : Stream.empty(),
                 extraEdges.stream()).filter(new EdgeIteratorStatePredicate(label));
     }
 
