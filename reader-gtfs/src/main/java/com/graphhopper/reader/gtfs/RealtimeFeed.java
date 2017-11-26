@@ -276,6 +276,10 @@ public class RealtimeFeed {
                 int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
                 for (int i=nextStopSequence; i<stopTimeUpdate.getStopSequence(); i++) {
                     StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
+                    if (originalStopTime == null) {
+                        logger.warn("Illegal stop time update: "+stopTimeUpdate);
+                        break;
+                    }
                     originalStopTime.arrival_time += delay;
                     originalStopTime.departure_time += delay;
                     stopTimes.add(originalStopTime);
