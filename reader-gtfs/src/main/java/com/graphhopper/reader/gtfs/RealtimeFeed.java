@@ -243,10 +243,6 @@ public class RealtimeFeed {
                     final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
                     if (boardEdges == null) {
                         logger.warn("Trip "+tripUpdate.getTrip()+" not found.");
-                        Map.Entry<String, int[]> next = staticGtfs.getBoardEdgesForTrip().entrySet().iterator().next();
-                        logger.warn(next.toString());
-                        int[] ints = staticGtfs.getBoardEdgesForTrip().get("7732602");
-
                         return;
                     }
                     final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip().getTripId());
@@ -278,6 +274,8 @@ public class RealtimeFeed {
 
             if (stopTimeUpdate.getScheduleRelationship() == SCHEDULED) {
                 final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
+                stopTime.stop_id = originalStopTime.stop_id;
+                stopTime.trip_id = originalStopTime.trip_id;
                 delay = stopTimeUpdate.getArrival().getDelay();
                 stopTime.arrival_time = originalStopTime.arrival_time + delay;
                 delay = stopTimeUpdate.getDeparture().getDelay();
