@@ -69,20 +69,20 @@ public class RealtimeFeed {
         String feedKey = "gtfs_0"; //FIXME
         GTFSFeed feed = staticGtfs.getGtfsFeeds().get(feedKey);
         final IntHashSet blockedEdges = new IntHashSet();
-        feedMessage.getEntityList().stream()
-            .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
-            .map(GtfsRealtime.FeedEntity::getTripUpdate)
-            .forEach(tripUpdate -> {
-                final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip());
-                final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip());
-                tripUpdate.getStopTimeUpdateList().stream()
-                        .filter(stopTimeUpdate -> stopTimeUpdate.getScheduleRelationship() == SKIPPED)
-                        .mapToInt(stu -> stu.getStopSequence()-1) // stop sequence number is 1-based, not 0-based
-                        .forEach(skippedStopSequenceNumber -> {
-                            blockedEdges.add(boardEdges[skippedStopSequenceNumber]);
-                            blockedEdges.add(leaveEdges[skippedStopSequenceNumber]);
-                        });
-            });
+//        feedMessage.getEntityList().stream()
+//            .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+//            .map(GtfsRealtime.FeedEntity::getTripUpdate)
+//            .forEach(tripUpdate -> {
+//                final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip());
+//                final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip());
+//                tripUpdate.getStopTimeUpdateList().stream()
+//                        .filter(stopTimeUpdate -> stopTimeUpdate.getScheduleRelationship() == SKIPPED)
+//                        .mapToInt(stu -> stu.getStopSequence()-1) // stop sequence number is 1-based, not 0-based
+//                        .forEach(skippedStopSequenceNumber -> {
+//                            blockedEdges.add(boardEdges[skippedStopSequenceNumber]);
+//                            blockedEdges.add(leaveEdges[skippedStopSequenceNumber]);
+//                        });
+//            });
         final List<VirtualEdgeIteratorState> additionalEdges = new ArrayList<>();
         final Graph overlayGraph = new Graph() {
             int nNodes = 0;
