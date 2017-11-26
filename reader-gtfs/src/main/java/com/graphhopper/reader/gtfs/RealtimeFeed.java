@@ -34,6 +34,8 @@ import com.graphhopper.util.EdgeExplorer;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.BBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -47,6 +49,9 @@ import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate
 import static java.time.temporal.ChronoUnit.DAYS;
 
 public class RealtimeFeed {
+
+    private static final Logger logger = LoggerFactory.getLogger(RealtimeFeed.class);
+
     private final IntHashSet blockedEdges;
 
     private final List<VirtualEdgeIteratorState> additionalEdges;
@@ -253,6 +258,22 @@ public class RealtimeFeed {
                 .forEach(trip -> gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(trip), 0));
         gtfsReader.wireUpStops();
         gtfsReader.connectStopsToStationNodes();
+
+        feedMessage.getEntityList().stream()
+                .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+                .map(GtfsRealtime.FeedEntity::getTripUpdate)
+                .forEach(tripUpdate -> {
+                    final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip());
+                    if (boardEdges == null) {
+                        logger.warn("Trip "+tripUpdate.getTrip()+" not found.");
+                        return;
+                    }
+                    final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip());
+                    blockedEdges.addAll(boardEdges);
+                    blockedEdges.addAll(leaveEdges);
+                });
+
+
         return new RealtimeFeed(blockedEdges, additionalEdges);
     }
 

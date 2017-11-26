@@ -341,7 +341,7 @@ class GtfsReader {
                 }
                 prev = stopTime;
             }
-            final GtfsRealtime.TripDescriptor tripDescriptor = GtfsRealtime.TripDescriptor.newBuilder().setTripId(trip.trip.trip_id).setStartTime(Entity.Writer.convertToGtfsTime(time)).build();
+            final GtfsRealtime.TripDescriptor tripDescriptor = GtfsRealtime.TripDescriptor.newBuilder().setTripId(trip.trip.trip_id)/*.setStartTime(Entity.Writer.convertToGtfsTime(time))*/.build();
             gtfsStorage.getBoardEdgesForTrip().put(tripDescriptor, boardEdges.toArray());
             gtfsStorage.getAlightEdgesForTrip().put(tripDescriptor, alightEdges.toArray());
             arrivalNodes.add(arrivalNode);
