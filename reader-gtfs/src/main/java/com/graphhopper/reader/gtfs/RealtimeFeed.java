@@ -263,8 +263,13 @@ public class RealtimeFeed {
         final List<StopTime> stopTimes = new ArrayList<>();
         Trip originalTrip = feed.trips.get(tripUpdate.getTrip().getTripId());
         Trip trip = new Trip();
-        trip.trip_id = tripUpdate.getTrip().getTripId();
-        trip.route_id = tripUpdate.getTrip().getRouteId();
+        if (originalTrip != null) {
+            trip.trip_id = originalTrip.trip_id;
+            trip.route_id = originalTrip.route_id;
+        } else {
+            trip.trip_id = tripUpdate.getTrip().getTripId();
+            trip.route_id = tripUpdate.getTrip().getRouteId();
+        }
         int delay = 0;
         for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : tripUpdate.getStopTimeUpdateList()) {
             final StopTime stopTime = new StopTime();
