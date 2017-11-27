@@ -195,7 +195,7 @@ class GtfsReader {
             Collection<Frequency> frequencies = feed.getFrequencies(trips.iterator().next().trip.trip_id);
             for (Frequency frequency : (frequencies.isEmpty() ? Collections.singletonList(SINGLE_FREQUENCY) : frequencies)) {
                 for (int time = frequency.start_time; time < frequency.end_time; time += frequency.headway_secs) {
-                    addTrips(zoneId, trips, time);
+                    addTrips(zoneId, trips, time, false);
                 }
             }
         });
@@ -246,7 +246,7 @@ class GtfsReader {
         }
     }
 
-    void addTrips(ZoneId zoneId, List<TripWithStopTimes> trips, int time) {
+    void addTrips(ZoneId zoneId, List<TripWithStopTimes> trips, int time, boolean update) {
         List<Integer> arrivalNodes = new ArrayList<>();
         for (TripWithStopTimes trip : trips) {
             IntArrayList boardEdges = new IntArrayList();
@@ -342,8 +342,10 @@ class GtfsReader {
                 prev = stopTime;
             }
             final GtfsRealtime.TripDescriptor tripDescriptor = GtfsRealtime.TripDescriptor.newBuilder().setTripId(trip.trip.trip_id).setStartTime(Entity.Writer.convertToGtfsTime(time)).build();
-            gtfsStorage.getBoardEdgesForTrip().put(tripDescriptor, boardEdges.toArray());
-            gtfsStorage.getAlightEdgesForTrip().put(tripDescriptor, alightEdges.toArray());
+            if (!update) {
+                gtfsStorage.getBoardEdgesForTrip().put(tripDescriptor, boardEdges.toArray());
+                gtfsStorage.getAlightEdgesForTrip().put(tripDescriptor, alightEdges.toArray());
+            }
             arrivalNodes.add(arrivalNode);
         }
     }

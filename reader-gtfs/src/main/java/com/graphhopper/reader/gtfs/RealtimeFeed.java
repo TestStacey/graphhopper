@@ -34,19 +34,24 @@ import com.graphhopper.util.EdgeExplorer;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.BBox;
+import org.mapdb.Fun;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA;
+import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SCHEDULED;
 import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED;
 import static java.time.temporal.ChronoUnit.DAYS;
 
 public class RealtimeFeed {
+
+    private static final Logger logger = LoggerFactory.getLogger(RealtimeFeed.class);
+
     private final IntHashSet blockedEdges;
 
     private final List<VirtualEdgeIteratorState> additionalEdges;
@@ -228,32 +233,92 @@ public class RealtimeFeed {
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
                 .filter(tripUpdate -> tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED)
-                .map(tripUpdate -> {
-                    Trip trip = new Trip();
-                    trip.trip_id = tripUpdate.getTrip().getTripId();
-                    trip.route_id = tripUpdate.getTrip().getRouteId();
-                    final List<StopTime> stopTimes = tripUpdate.getStopTimeUpdateList().stream()
-                            .map(stopTimeUpdate -> {
-                                final StopTime stopTime = new StopTime();
-                                stopTime.stop_sequence = stopTimeUpdate.getStopSequence();
-                                stopTime.stop_id = stopTimeUpdate.getStopId();
-                                stopTime.trip_id = trip.trip_id;
-                                final ZonedDateTime arrival_time = Instant.ofEpochSecond(stopTimeUpdate.getArrival().getTime()).atZone(ZoneId.of("America/Los_Angeles"));
-                                stopTime.arrival_time = (int) Duration.between(arrival_time.truncatedTo(ChronoUnit.DAYS), arrival_time).getSeconds();
-                                final ZonedDateTime departure_time = Instant.ofEpochSecond(stopTimeUpdate.getArrival().getTime()).atZone(ZoneId.of("America/Los_Angeles"));
-                                stopTime.departure_time = (int) Duration.between(departure_time.truncatedTo(ChronoUnit.DAYS), departure_time).getSeconds();
-                                return stopTime;
-                            })
-                            .collect(Collectors.toList());
-                    BitSet validOnDay = new BitSet();
-                    LocalDate startDate = feed.calculateStats().getStartDate();
-                    validOnDay.set((int) DAYS.between(startDate, dateToChange));
-                    return new GtfsReader.TripWithStopTimes(trip, stopTimes, validOnDay);
-                })
-                .forEach(trip -> gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(trip), 0));
+                .map(tripUpdate -> toTripWithStopTimes(feed, dateToChange, tripUpdate))
+                .forEach(trip -> gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(trip), 0, true));
+
+        feedMessage.getEntityList().stream()
+                .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+                .map(GtfsRealtime.FeedEntity::getTripUpdate)
+                .forEach(tripUpdate -> {
+                    final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip());
+                    if (boardEdges == null) {
+                        logger.warn("Trip "+tripUpdate.getTrip()+" not found.");
+                        return;
+                    }
+                    final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip());
+                    blockedEdges.addAll(boardEdges);
+                    blockedEdges.addAll(leaveEdges);
+
+                    gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(toTripWithStopTimes(feed, dateToChange, tripUpdate)), 0, true);
+                });
+
         gtfsReader.wireUpStops();
         gtfsReader.connectStopsToStationNodes();
+
+
         return new RealtimeFeed(blockedEdges, additionalEdges);
+    }
+
+    public static GtfsReader.TripWithStopTimes toTripWithStopTimes(GTFSFeed feed, LocalDate dateToChange, GtfsRealtime.TripUpdate tripUpdate) {
+        final List<StopTime> stopTimes = new ArrayList<>();
+        Trip originalTrip = feed.trips.get(tripUpdate.getTrip().getTripId());
+        Trip trip = new Trip();
+        if (originalTrip != null) {
+            trip.trip_id = originalTrip.trip_id;
+            trip.route_id = originalTrip.route_id;
+        } else {
+            trip.trip_id = tripUpdate.getTrip().getTripId();
+            trip.route_id = tripUpdate.getTrip().getRouteId();
+        }
+        int delay = 0;
+        int time = -1;
+        for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : tripUpdate.getStopTimeUpdateList()) {
+            if (stopTimeUpdate.getScheduleRelationship() == SCHEDULED || stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
+                int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
+                for (int i=nextStopSequence; i<stopTimeUpdate.getStopSequence(); i++) {
+                    StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
+                    if (originalStopTime == null) {
+                        continue; // This can and does happen. Stop sequence numbers can be left out.
+                    }
+                    originalStopTime.arrival_time = Math.max(originalStopTime.arrival_time + delay, time);
+                    time = originalStopTime.arrival_time;
+                    originalStopTime.departure_time = Math.max(originalStopTime.departure_time + delay, time);
+                    time = originalStopTime.departure_time;
+                    stopTimes.add(originalStopTime);
+                }
+                final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
+                if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
+                    delay = 0;
+                }
+                if (stopTimeUpdate.hasArrival()) {
+                    delay = stopTimeUpdate.getArrival().getDelay();
+                }
+                originalStopTime.arrival_time = Math.max(originalStopTime.arrival_time + delay, time);
+                time = originalStopTime.arrival_time;
+                if (stopTimeUpdate.hasDeparture()) {
+                    delay = stopTimeUpdate.getDeparture().getDelay();
+                }
+                originalStopTime.departure_time = Math.max(originalStopTime.departure_time + delay, time);
+                time = originalStopTime.departure_time;
+                stopTimes.add(originalStopTime);
+            } else if (tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED) {
+                final StopTime stopTime = new StopTime();
+                stopTime.stop_sequence = stopTimeUpdate.getStopSequence();
+                stopTime.stop_id = stopTimeUpdate.getStopId();
+                stopTime.trip_id = trip.trip_id;
+                final ZonedDateTime arrival_time = Instant.ofEpochSecond(stopTimeUpdate.getArrival().getTime()).atZone(ZoneId.of("America/Los_Angeles"));
+                stopTime.arrival_time = (int) Duration.between(arrival_time.truncatedTo(ChronoUnit.DAYS), arrival_time).getSeconds();
+                final ZonedDateTime departure_time = Instant.ofEpochSecond(stopTimeUpdate.getArrival().getTime()).atZone(ZoneId.of("America/Los_Angeles"));
+                stopTime.departure_time = (int) Duration.between(departure_time.truncatedTo(ChronoUnit.DAYS), departure_time).getSeconds();
+                stopTimes.add(stopTime);
+            } else {
+                throw new RuntimeException();
+            }
+        }
+        BitSet validOnDay = new BitSet();
+        LocalDate startDate = feed.calculateStats().getStartDate();
+        validOnDay.set((int) DAYS.between(startDate, dateToChange));
+        return new GtfsReader.TripWithStopTimes(trip, stopTimes, validOnDay);
     }
 
     boolean isBlocked(int edgeId) {
