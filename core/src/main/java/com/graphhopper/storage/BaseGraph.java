@@ -942,6 +942,9 @@ class BaseGraph implements Graph {
 
         @Override
         public EdgeIterator setBaseNode(int baseNode) {
+            if (baseNode >= baseGraph.nodeCount) {
+                throw new IllegalArgumentException();
+            }
             // always use base graph edge access
             setEdgeId(baseGraph.edgeAccess.getEdgeRef(baseNode));
             _setBaseNode(baseNode);
