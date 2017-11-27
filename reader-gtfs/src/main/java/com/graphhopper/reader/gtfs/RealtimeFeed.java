@@ -42,6 +42,7 @@ import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA;
 import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SCHEDULED;
@@ -69,20 +70,20 @@ public class RealtimeFeed {
         String feedKey = "gtfs_0"; //FIXME
         GTFSFeed feed = staticGtfs.getGtfsFeeds().get(feedKey);
         final IntHashSet blockedEdges = new IntHashSet();
-//        feedMessage.getEntityList().stream()
-//            .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
-//            .map(GtfsRealtime.FeedEntity::getTripUpdate)
-//            .forEach(tripUpdate -> {
-//                final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip());
-//                final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip());
-//                tripUpdate.getStopTimeUpdateList().stream()
-//                        .filter(stopTimeUpdate -> stopTimeUpdate.getScheduleRelationship() == SKIPPED)
-//                        .mapToInt(stu -> stu.getStopSequence()-1) // stop sequence number is 1-based, not 0-based
-//                        .forEach(skippedStopSequenceNumber -> {
-//                            blockedEdges.add(boardEdges[skippedStopSequenceNumber]);
-//                            blockedEdges.add(leaveEdges[skippedStopSequenceNumber]);
-//                        });
-//            });
+        feedMessage.getEntityList().stream()
+            .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+            .map(GtfsRealtime.FeedEntity::getTripUpdate)
+            .forEach(tripUpdate -> {
+                final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip());
+                final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip());
+                tripUpdate.getStopTimeUpdateList().stream()
+                        .filter(stopTimeUpdate -> stopTimeUpdate.getScheduleRelationship() == SKIPPED)
+                        .mapToInt(stu -> stu.getStopSequence()-1) // stop sequence number is 1-based, not 0-based
+                        .forEach(skippedStopSequenceNumber -> {
+                            blockedEdges.add(boardEdges[skippedStopSequenceNumber]);
+                            blockedEdges.add(leaveEdges[skippedStopSequenceNumber]);
+                        });
+            });
         final List<VirtualEdgeIteratorState> additionalEdges = new ArrayList<>();
         final Graph overlayGraph = new Graph() {
             int nNodes = 0;
@@ -239,18 +240,18 @@ public class RealtimeFeed {
         feedMessage.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
-                .filter(e -> e.getTrip().getTripId().equals("7741521"))
+                .filter(tripUpdate -> tripUpdate.getStopTimeUpdateList().stream().anyMatch(stu -> stu.getDeparture().hasDelay() || stu.getArrival().hasDelay()))
                 .forEach(tripUpdate -> {
-                    final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
+                    final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip());
                     if (boardEdges == null) {
                         logger.warn("Trip "+tripUpdate.getTrip()+" not found.");
                         return;
                     }
-                    final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip().getTripId());
+                    final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip());
                     blockedEdges.addAll(boardEdges);
                     blockedEdges.addAll(leaveEdges);
 
-                    gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(toTripWithStopTimes(feed, dateToChange, tripUpdate)), 0, true);
+                    gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(toTripWithStopTimes(feed, dateToChange, tripUpdate)), GtfsHelper.time(LocalTime.parse(tripUpdate.getTrip().getStartTime())) / 1000, true);
                 });
 
         gtfsReader.wireUpStops();
@@ -273,21 +274,33 @@ public class RealtimeFeed {
         }
         int delay = 0;
         int time = -1;
-        for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : tripUpdate.getStopTimeUpdateList()) {
-            if (stopTimeUpdate.getScheduleRelationship() == SCHEDULED || stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
-                int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
-                for (int i=nextStopSequence; i<stopTimeUpdate.getStopSequence(); i++) {
-                    StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
-                    if (originalStopTime == null) {
-                        continue; // This can and does happen. Stop sequence numbers can be left out.
-                    }
-                    originalStopTime.arrival_time = Math.max(originalStopTime.arrival_time + delay, time);
-                    time = originalStopTime.arrival_time;
-                    originalStopTime.departure_time = Math.max(originalStopTime.departure_time + delay, time);
-                    time = originalStopTime.departure_time;
-                    stopTimes.add(originalStopTime);
+        List<GtfsRealtime.TripUpdate.StopTimeUpdate> stopTimeUpdateListWithSentinel = new ArrayList<>(tripUpdate.getStopTimeUpdateList());
+        Iterable<StopTime> interpolatedStopTimesForTrip;
+        try {
+            interpolatedStopTimesForTrip = feed.getInterpolatedStopTimesForTrip(tripUpdate.getTrip().getTripId());
+        } catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
+            throw new RuntimeException(firstAndLastStopsDoNotHaveTimes);
+        }
+        int stopSequenceCeiling = Math.max(stopTimeUpdateListWithSentinel.get(stopTimeUpdateListWithSentinel.size() - 1).getStopSequence(),
+                StreamSupport.stream(interpolatedStopTimesForTrip.spliterator(), false).mapToInt(stopTime -> stopTime.stop_sequence).max().orElse(0)
+        ) + 1;
+        stopTimeUpdateListWithSentinel.add(GtfsRealtime.TripUpdate.StopTimeUpdate.newBuilder().setStopSequence(stopSequenceCeiling).setScheduleRelationship(NO_DATA).build());
+        for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : stopTimeUpdateListWithSentinel) {
+            int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
+            for (int i=nextStopSequence; i<stopTimeUpdate.getStopSequence(); i++) {
+                StopTime previousOriginalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
+                if (previousOriginalStopTime == null) {
+                    continue; // This can and does happen. Stop sequence numbers can be left out.
                 }
-                final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
+                previousOriginalStopTime.arrival_time = Math.max(previousOriginalStopTime.arrival_time + delay, time);
+                time = previousOriginalStopTime.arrival_time;
+                previousOriginalStopTime.departure_time = Math.max(previousOriginalStopTime.departure_time + delay, time);
+                time = previousOriginalStopTime.departure_time;
+                stopTimes.add(previousOriginalStopTime);
+            }
+
+            final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
+            if (originalStopTime != null) {
                 if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
                     delay = 0;
                 }
@@ -302,6 +315,7 @@ public class RealtimeFeed {
                 originalStopTime.departure_time = Math.max(originalStopTime.departure_time + delay, time);
                 time = originalStopTime.departure_time;
                 stopTimes.add(originalStopTime);
+            } else if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
             } else if (tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED) {
                 final StopTime stopTime = new StopTime();
                 stopTime.stop_sequence = stopTimeUpdate.getStopSequence();
