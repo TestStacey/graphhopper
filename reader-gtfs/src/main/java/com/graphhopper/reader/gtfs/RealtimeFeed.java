@@ -250,7 +250,7 @@ public class RealtimeFeed {
                     blockedEdges.addAll(boardEdges);
                     blockedEdges.addAll(leaveEdges);
 
-                    gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(toTripWithStopTimes(feed, dateToChange, tripUpdate)), 0);
+//                    gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(toTripWithStopTimes(feed, dateToChange, tripUpdate)), 0);
                 });
 
         gtfsReader.wireUpStops();

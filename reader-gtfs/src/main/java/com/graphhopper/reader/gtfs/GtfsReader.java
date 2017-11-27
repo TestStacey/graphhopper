@@ -342,7 +342,7 @@ class GtfsReader {
                 prev = stopTime;
             }
             final GtfsRealtime.TripDescriptor tripDescriptor = GtfsRealtime.TripDescriptor.newBuilder().setTripId(trip.trip.trip_id)/*.setStartTime(Entity.Writer.convertToGtfsTime(time))*/.build();
-            if (tripDescriptor.getTripId().equals("7732602")) {
+            if (tripDescriptor.getTripId().equals("7741521")) {
                 System.out.println(tripDescriptor + " " + Arrays.toString(boardEdges.toArray()));
 
             }
