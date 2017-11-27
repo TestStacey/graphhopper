@@ -42,6 +42,7 @@ import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA;
 import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SCHEDULED;
@@ -274,22 +275,32 @@ public class RealtimeFeed {
         int delay = 0;
         int time = -1;
         List<GtfsRealtime.TripUpdate.StopTimeUpdate> stopTimeUpdateListWithSentinel = new ArrayList<>(tripUpdate.getStopTimeUpdateList());
-        stopTimeUpdateListWithSentinel.add(GtfsRealtime.TripUpdate.StopTimeUpdate.newBuilder().setStopSequence(stopTimeUpdateListWithSentinel.get(stopTimeUpdateListWithSentinel.size()-1).getStopSequence()+1).setScheduleRelationship(NO_DATA).build());
+        Iterable<StopTime> interpolatedStopTimesForTrip;
+        try {
+            interpolatedStopTimesForTrip = feed.getInterpolatedStopTimesForTrip(tripUpdate.getTrip().getTripId());
+        } catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
+            throw new RuntimeException(firstAndLastStopsDoNotHaveTimes);
+        }
+        int stopSequenceCeiling = Math.max(stopTimeUpdateListWithSentinel.get(stopTimeUpdateListWithSentinel.size() - 1).getStopSequence(),
+                StreamSupport.stream(interpolatedStopTimesForTrip.spliterator(), false).mapToInt(stopTime -> stopTime.stop_sequence).max().orElse(0)
+        ) + 1;
+        stopTimeUpdateListWithSentinel.add(GtfsRealtime.TripUpdate.StopTimeUpdate.newBuilder().setStopSequence(stopSequenceCeiling).setScheduleRelationship(NO_DATA).build());
         for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : stopTimeUpdateListWithSentinel) {
+            int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
+            for (int i=nextStopSequence; i<stopTimeUpdate.getStopSequence(); i++) {
+                StopTime previousOriginalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
+                if (previousOriginalStopTime == null) {
+                    continue; // This can and does happen. Stop sequence numbers can be left out.
+                }
+                previousOriginalStopTime.arrival_time = Math.max(previousOriginalStopTime.arrival_time + delay, time);
+                time = previousOriginalStopTime.arrival_time;
+                previousOriginalStopTime.departure_time = Math.max(previousOriginalStopTime.departure_time + delay, time);
+                time = previousOriginalStopTime.departure_time;
+                stopTimes.add(previousOriginalStopTime);
+            }
+
             final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
             if (originalStopTime != null) {
-                int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
-                for (int i=nextStopSequence; i<stopTimeUpdate.getStopSequence(); i++) {
-                    StopTime previousOriginalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
-                    if (previousOriginalStopTime == null) {
-                        continue; // This can and does happen. Stop sequence numbers can be left out.
-                    }
-                    previousOriginalStopTime.arrival_time = Math.max(previousOriginalStopTime.arrival_time + delay, time);
-                    time = previousOriginalStopTime.arrival_time;
-                    previousOriginalStopTime.departure_time = Math.max(previousOriginalStopTime.departure_time + delay, time);
-                    time = previousOriginalStopTime.departure_time;
-                    stopTimes.add(previousOriginalStopTime);
-                }
                 if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
                     delay = 0;
                 }

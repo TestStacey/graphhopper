@@ -251,7 +251,7 @@ public class RealtimeIT {
     }
 
     @Test
-    public void testDelayWithoutTransfer() {
+    public void testDelayFromBeginningWithoutTransferAgain() {
         final double FROM_LAT = 36.914893, FROM_LON = -116.76821; // NADAV stop
         final double TO_LAT = 36.914944, TO_LON = -116.761472; // NANAA stop
         GHRequest ghRequest = new GHRequest(
@@ -276,15 +276,16 @@ public class RealtimeIT {
                 .getTripUpdateBuilder()
                 .setTrip(GtfsRealtime.TripDescriptor.newBuilder().setTripId("CITY2").setStartTime("06:00:00"))
                 .addStopTimeUpdateBuilder()
-                .setStopSequence(4)
+                .setStopSequence(1)
                 .setScheduleRelationship(SCHEDULED)
-                .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(180).build());
+                .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(180).build());
 
         GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(1, response.getAll().size());
 
         assertEquals("My line run is 3 minutes late.", time(0, 8), response.getBest().getTime(), 0.1);
     }
+
 
     @Test
     public void testDelayFromBeginningWithoutTransfer() {
