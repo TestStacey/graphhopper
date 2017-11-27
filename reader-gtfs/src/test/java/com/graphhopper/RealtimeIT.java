@@ -215,9 +215,9 @@ public class RealtimeIT {
     }
 
     @Test
-    public void testDelay() {
+    public void testZeroDelay() {
         final double FROM_LAT = 36.914893, FROM_LON = -116.76821; // NADAV stop
-        final double TO_LAT = 36.868446, TO_LON = -116.784582; // BEATTY_AIRPORT stop
+        final double TO_LAT = 36.914944, TO_LON = -116.761472; // NANAA stop
         GHRequest ghRequest = new GHRequest(
                 FROM_LAT, FROM_LON,
                 TO_LAT, TO_LON
@@ -228,7 +228,7 @@ public class RealtimeIT {
         ghRequest.getHints().put(Parameters.PT.IGNORE_TRANSFERS, true);
         ghRequest.getHints().put(Parameters.PT.MAX_WALK_DISTANCE_PER_LEG, 30);
 
-        // But the 6:00 departure of my line is going to be late :-(
+        // The 6:00 departure of my line is going to be "late" by 0 minutes
         final GtfsRealtime.FeedMessage.Builder feedMessageBuilder = GtfsRealtime.FeedMessage.newBuilder();
         feedMessageBuilder.setHeader(GtfsRealtime.FeedHeader.newBuilder()
                 .setGtfsRealtimeVersion("1")
@@ -240,14 +240,14 @@ public class RealtimeIT {
                 .getTripUpdateBuilder()
                 .setTrip(GtfsRealtime.TripDescriptor.newBuilder().setTripId("CITY2").setStartTime("06:00:00"))
                 .addStopTimeUpdateBuilder()
-                .setStopSequence(1)
+                .setStopSequence(5)
                 .setScheduleRelationship(SCHEDULED)
-                .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(360).build());
+                .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(0).build());
 
         GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(1, response.getAll().size());
 
-        assertEquals("My line run, and I, will be 3 minutes late.", time(0, 40), response.getBest().getTime(), 0.1);
+        assertEquals("My line run is 0 minutes late, doesn't matter.", time(0, 5), response.getBest().getTime(), 0.1);
     }
 
     @Test
