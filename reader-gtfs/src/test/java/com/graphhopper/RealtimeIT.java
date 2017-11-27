@@ -28,9 +28,7 @@ import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.util.Helper;
 import com.graphhopper.util.Parameters;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.File;
 import java.time.*;
@@ -51,8 +49,8 @@ public class RealtimeIT {
     private static GraphHopperStorage graphHopperStorage;
     private static LocationIndex locationIndex;
 
-    @BeforeClass
-    public static void init() {
+    @Before
+    public void init() {
         Helper.removeDir(new File(GRAPH_LOC));
         final PtFlagEncoder ptFlagEncoder = new PtFlagEncoder();
         EncodingManager encodingManager = new EncodingManager(Arrays.asList(ptFlagEncoder), 8);
@@ -63,8 +61,8 @@ public class RealtimeIT {
         graphHopperFactory = GraphHopperGtfs.createFactory(ptFlagEncoder, GraphHopperGtfs.createTranslationMap(), graphHopperStorage, locationIndex, gtfsStorage);
     }
 
-    @AfterClass
-    public static void close() {
+    @After
+    public void close() {
         graphHopperStorage.close();
         locationIndex.close();
     }
@@ -251,7 +249,7 @@ public class RealtimeIT {
     }
 
     @Test
-    public void testDelayFromBeginningWithoutTransferAgain() {
+    public void testDelayWithoutTransfer() {
         final double FROM_LAT = 36.914893, FROM_LON = -116.76821; // NADAV stop
         final double TO_LAT = 36.914944, TO_LON = -116.761472; // NANAA stop
         GHRequest ghRequest = new GHRequest(
@@ -276,9 +274,9 @@ public class RealtimeIT {
                 .getTripUpdateBuilder()
                 .setTrip(GtfsRealtime.TripDescriptor.newBuilder().setTripId("CITY2").setStartTime("06:00:00"))
                 .addStopTimeUpdateBuilder()
-                .setStopSequence(1)
+                .setStopSequence(4)
                 .setScheduleRelationship(SCHEDULED)
-                .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(180).build());
+                .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(180).build());
 
         GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(1, response.getAll().size());
