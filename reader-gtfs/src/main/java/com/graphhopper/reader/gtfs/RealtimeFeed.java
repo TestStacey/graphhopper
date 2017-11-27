@@ -239,6 +239,7 @@ public class RealtimeFeed {
         feedMessage.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
+                .filter(e -> e.getTrip().getTripId().equals("7741521"))
                 .forEach(tripUpdate -> {
                     final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
                     if (boardEdges == null) {

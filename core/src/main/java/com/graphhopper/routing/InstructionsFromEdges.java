@@ -95,6 +95,7 @@ public class InstructionsFromEdges implements Path.EdgeVisitor {
         int adjNode = edge.getAdjNode();
         int baseNode = edge.getBaseNode();
         long flags = edge.getFlags();
+        nodeAccess.ensureNode(adjNode); //FIXME
         double adjLat = nodeAccess.getLatitude(adjNode);
         double adjLon = nodeAccess.getLongitude(adjNode);
         double latitude, longitude;
