@@ -54,9 +54,9 @@ import java.util.*;
 public class QueryGraph implements Graph {
     final static int VE_BASE = 0, VE_BASE_REV = 1, VE_ADJ = 2, VE_ADJ_REV = 3;
     private static final AngleCalc AC = Helper.ANGLE_CALC;
-    private final Graph mainGraph;
+    public final Graph mainGraph;
     private final NodeAccess mainNodeAccess;
-    private final int mainNodes;
+    public final int mainNodes;
     private final int mainEdges;
     private final QueryGraph baseGraph;
     private final GraphExtension wrappedExtension;
