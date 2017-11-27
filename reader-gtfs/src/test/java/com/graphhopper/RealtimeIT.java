@@ -28,7 +28,9 @@ import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.util.Helper;
 import com.graphhopper.util.Parameters;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.File;
 import java.time.*;
@@ -227,6 +229,8 @@ public class RealtimeIT {
         ghRequest.getHints().put(Parameters.PT.IGNORE_TRANSFERS, true);
         ghRequest.getHints().put(Parameters.PT.MAX_WALK_DISTANCE_PER_LEG, 30);
 
+        GHResponse responseWithoutRealtimeUpdate = graphHopperFactory.createWithoutRealtimeFeed().route(ghRequest);
+
         // The 6:00 departure of my line is going to be "late" by 0 minutes
         final GtfsRealtime.FeedMessage.Builder feedMessageBuilder = GtfsRealtime.FeedMessage.newBuilder();
         feedMessageBuilder.setHeader(GtfsRealtime.FeedHeader.newBuilder()
@@ -243,10 +247,14 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(0).build());
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
-        assertEquals(1, response.getAll().size());
+        GHResponse responseWithRealtimeUpdate = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
+        assertEquals(1, responseWithRealtimeUpdate.getAll().size());
 
-        assertEquals("My line run is 0 minutes late, doesn't matter.", time(0, 5), response.getBest().getTime(), 0.1);
+        PathWrapper responseWithRealtimeUpdateBest = responseWithRealtimeUpdate.getBest();
+        PathWrapper responseWithoutRealtimeUpdateBest = responseWithoutRealtimeUpdate.getBest();
+        assertEquals("My line run is 0 minutes late, doesn't matter.", time(0, 5), responseWithRealtimeUpdateBest.getTime(), 0.1);
+
+//        assertEquals(responseWithoutRealtimeUpdateBest.toString(), responseWithRealtimeUpdateBest.toString());
     }
 
     @Test

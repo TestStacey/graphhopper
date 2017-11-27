@@ -480,6 +480,10 @@ class GtfsReader {
 
     private void setEdgeType(EdgeIteratorState edge, GtfsStorage.EdgeType edgeType) {
         edge.setFlags(encoder.setEdgeType(edge.getFlags(), edgeType));
+        GtfsStorage.EdgeType edgeType1 = encoder.getEdgeType(edge.getFlags());
+        if (edgeType != edgeType1) {
+            throw new RuntimeException();
+        }
     }
 
     private BitSet getValidOn(BitSet validOnDay, int dayShift) {
