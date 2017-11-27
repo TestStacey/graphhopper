@@ -273,7 +273,9 @@ public class RealtimeFeed {
         }
         int delay = 0;
         int time = -1;
-        for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : tripUpdate.getStopTimeUpdateList()) {
+        List<GtfsRealtime.TripUpdate.StopTimeUpdate> stopTimeUpdateListWithSentinel = new ArrayList<>(tripUpdate.getStopTimeUpdateList());
+        stopTimeUpdateListWithSentinel.add(GtfsRealtime.TripUpdate.StopTimeUpdate.newBuilder().setStopSequence(stopTimeUpdateListWithSentinel.get(stopTimeUpdateListWithSentinel.size()-1).getStopSequence()+1).setScheduleRelationship(NO_DATA).build());
+        for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : stopTimeUpdateListWithSentinel) {
             final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
             if (originalStopTime != null) {
                 int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
@@ -302,6 +304,7 @@ public class RealtimeFeed {
                 originalStopTime.departure_time = Math.max(originalStopTime.departure_time + delay, time);
                 time = originalStopTime.departure_time;
                 stopTimes.add(originalStopTime);
+            } else if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
             } else if (tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED) {
                 final StopTime stopTime = new StopTime();
                 stopTime.stop_sequence = stopTimeUpdate.getStopSequence();
