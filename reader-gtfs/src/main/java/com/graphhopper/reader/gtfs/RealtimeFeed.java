@@ -185,9 +185,9 @@ public class RealtimeFeed {
             public EdgeIteratorState edge(int a, int b, double distance, boolean bothDirections) {
                 int edge = firstEdge++;
                 final VirtualEdgeIteratorState newEdge = new VirtualEdgeIteratorState(-1,
-                        edge, a, b, 0,0, "", new PointList());
+                        edge, a, b, distance,0, "", new PointList());
                 final VirtualEdgeIteratorState reverseNewEdge = new VirtualEdgeIteratorState(-1,
-                        edge, b, a, 0,0, "", new PointList());
+                        edge, b, a, distance,0, "", new PointList());
 
                 newEdge.setReverseEdge(reverseNewEdge);
                 reverseNewEdge.setReverseEdge(newEdge);
@@ -257,7 +257,9 @@ public class RealtimeFeed {
         gtfsReader.wireUpStops();
         gtfsReader.connectStopsToStationNodes();
 
-
+        for (VirtualEdgeIteratorState additionalEdge : additionalEdges) {
+            System.out.println(encoder.getEdgeType(additionalEdge.getFlags()));
+        }
         return new RealtimeFeed(blockedEdges, additionalEdges);
     }
 
