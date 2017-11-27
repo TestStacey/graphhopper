@@ -239,6 +239,7 @@ public class RealtimeFeed {
         feedMessage.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
+                .filter(tripUpdate -> tripUpdate.getStopTimeUpdateList().stream().anyMatch(stu -> stu.getDeparture().hasDelay() || stu.getArrival().hasDelay()))
                 .forEach(tripUpdate -> {
                     final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip());
                     if (boardEdges == null) {
@@ -273,20 +274,20 @@ public class RealtimeFeed {
         int delay = 0;
         int time = -1;
         for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : tripUpdate.getStopTimeUpdateList()) {
-            if (stopTimeUpdate.getScheduleRelationship() == SCHEDULED || stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
+            final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
+            if (originalStopTime != null) {
                 int nextStopSequence = stopTimes.isEmpty() ? 1 : stopTimes.get(stopTimes.size()-1).stop_sequence+1;
                 for (int i=nextStopSequence; i<stopTimeUpdate.getStopSequence(); i++) {
-                    StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
-                    if (originalStopTime == null) {
+                    StopTime previousOriginalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), i));
+                    if (previousOriginalStopTime == null) {
                         continue; // This can and does happen. Stop sequence numbers can be left out.
                     }
-                    originalStopTime.arrival_time = Math.max(originalStopTime.arrival_time + delay, time);
-                    time = originalStopTime.arrival_time;
-                    originalStopTime.departure_time = Math.max(originalStopTime.departure_time + delay, time);
-                    time = originalStopTime.departure_time;
-                    stopTimes.add(originalStopTime);
+                    previousOriginalStopTime.arrival_time = Math.max(previousOriginalStopTime.arrival_time + delay, time);
+                    time = previousOriginalStopTime.arrival_time;
+                    previousOriginalStopTime.departure_time = Math.max(previousOriginalStopTime.departure_time + delay, time);
+                    time = previousOriginalStopTime.departure_time;
+                    stopTimes.add(previousOriginalStopTime);
                 }
-                final StopTime originalStopTime = feed.stop_times.get(new Fun.Tuple2(tripUpdate.getTrip().getTripId(), stopTimeUpdate.getStopSequence()));
                 if (stopTimeUpdate.getScheduleRelationship() == NO_DATA) {
                     delay = 0;
                 }
