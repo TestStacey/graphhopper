@@ -241,7 +241,6 @@ public class RealtimeFeed {
         feedMessage.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
-                .filter(e -> e.getTrip().getTripId().equals("7741521"))
                 .filter(tripUpdate -> tripUpdate.getStopTimeUpdateList().stream().anyMatch(stu -> stu.getDeparture().hasDelay() || stu.getArrival().hasDelay()))
                 .forEach(tripUpdate -> {
                     final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
