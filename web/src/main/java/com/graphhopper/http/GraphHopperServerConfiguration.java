@@ -24,11 +24,17 @@ import io.dropwizard.Configuration;
 public class GraphHopperServerConfiguration extends Configuration implements HasGraphHopperConfiguration {
     public final CmdArgs graphhopper = new CmdArgs();
 
+    public final RealtimeFeedConfiguration gtfsRealtime = new RealtimeFeedConfiguration();
+
     public GraphHopperServerConfiguration() {
     }
 
     @Override
     public CmdArgs graphhopper() {
         return graphhopper;
+    }
+
+    public RealtimeFeedConfiguration gtfsrealtime() {
+        return gtfsRealtime;
     }
 }

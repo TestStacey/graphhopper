@@ -3,6 +3,9 @@ graphhopper:
   gtfs.file: gtfs.zip
   graph.location: trimet
 
+gtfsRealtime:
+  url: file:///Users/michaelzilske/git/graphhopper/graphhopper/reader-gtfs/files/gtfs-realtime-trimet-example
+
 server:
   minThreads: 1
   maxThreads: 10

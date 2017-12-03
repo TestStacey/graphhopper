@@ -18,12 +18,34 @@
 
 package com.graphhopper.http;
 
-import com.graphhopper.util.CmdArgs;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.transit.realtime.GtfsRealtime;
 
-public interface HasGraphHopperConfiguration {
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URL;
 
-    CmdArgs graphhopper();
+public class RealtimeFeedConfiguration {
 
-    RealtimeFeedConfiguration gtfsrealtime();
+    private URL url;
+
+    @JsonProperty
+    public URL getUrl() {
+        return url;
+    }
+
+    @JsonProperty
+    public void setUrl(URL url) {
+        this.url = url;
+    }
+
+    public GtfsRealtime.FeedMessage getRealtimeFeed() {
+        try {
+            return GtfsRealtime.FeedMessage.parseFrom(url.openStream());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }

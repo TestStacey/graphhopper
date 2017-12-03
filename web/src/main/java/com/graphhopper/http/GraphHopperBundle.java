@@ -144,9 +144,9 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
 
         if (configuration.graphhopper().has("gtfs.file")) {
             // switch to different API implementation when using Pt
-            runPtGraphHopper(configuration.graphhopper(), environment);
+            runPtGraphHopper(configuration, environment);
         } else {
-            runRegularGraphHopper(configuration.graphhopper(), environment);
+            runRegularGraphHopper(configuration, environment);
         }
 
         environment.servlets().addFilter("cors", CORSFilter.class).addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), false, "*");
@@ -154,15 +154,15 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
 
     }
 
-    private void runPtGraphHopper(CmdArgs configuration, Environment environment) {
+    private void runPtGraphHopper(HasGraphHopperConfiguration configuration, Environment environment) {
         final PtFlagEncoder ptFlagEncoder = new PtFlagEncoder();
-        final GHDirectory ghDirectory = GraphHopperGtfs.createGHDirectory(configuration.get("graph.location", "target/tmp"));
+        final GHDirectory ghDirectory = GraphHopperGtfs.createGHDirectory(configuration.graphhopper().get("graph.location", "target/tmp"));
         final GtfsStorage gtfsStorage = GraphHopperGtfs.createGtfsStorage();
         final EncodingManager encodingManager = new EncodingManager(Arrays.asList(ptFlagEncoder), 8);
         final GraphHopperStorage graphHopperStorage = GraphHopperGtfs.createOrLoad(ghDirectory, encodingManager, ptFlagEncoder, gtfsStorage,
-                configuration.getBool("gtfs.createwalknetwork", false),
-                configuration.has("gtfs.file") ? Arrays.asList(configuration.get("gtfs.file", "").split(",")) : Collections.emptyList(),
-                configuration.has("datareader.file") ? Arrays.asList(configuration.get("datareader.file", "").split(",")) : Collections.emptyList());
+                configuration.graphhopper().getBool("gtfs.createwalknetwork", false),
+                configuration.graphhopper().has("gtfs.file") ? Arrays.asList(configuration.graphhopper().get("gtfs.file", "").split(",")) : Collections.emptyList(),
+                configuration.graphhopper().has("datareader.file") ? Arrays.asList(configuration.graphhopper().get("datareader.file", "").split(",")) : Collections.emptyList());
         final TranslationMap translationMap = GraphHopperGtfs.createTranslationMap();
         final LocationIndex locationIndex = GraphHopperGtfs.createOrLoadIndex(ghDirectory, graphHopperStorage, ptFlagEncoder);
         int[] ints = gtfsStorage.getBoardEdgesForTrip().get("7732602");
@@ -173,11 +173,11 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
         environment.jersey().register(new AbstractBinder() {
             @Override
             protected void configure() {
-                bind(configuration).to(CmdArgs.class);
+                bind(configuration.graphhopper()).to(CmdArgs.class);
                 bindFactory(new Factory<RealtimeFeed>() {
                     @Override
                     public RealtimeFeed provide() {
-                        return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, loadExampleRealtimeFeed());
+                        return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().getRealtimeFeed());
                     }
 
                     @Override
@@ -188,7 +188,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 bindFactory(new Factory<GraphHopperAPI>() {
                     @Override
                     public GraphHopperAPI provide() {
-                        return graphHopperFactory.createWith(loadExampleRealtimeFeed());
+                        return graphHopperFactory.createWith(configuration.gtfsrealtime().getRealtimeFeed());
                     }
 
                     @Override
@@ -220,24 +220,13 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
         });
     }
 
-    private GtfsRealtime.FeedMessage loadExampleRealtimeFeed() {
-        File realtimeFile = new File("reader-gtfs/files/gtfs-realtime-trimet-example");
-        try {
-            FileInputStream inputStream = new FileInputStream(realtimeFile);
-            return GtfsRealtime.FeedMessage.parseFrom(inputStream);
-        } catch (Exception e) {
-            System.out.println("Error while creating RealtimeFeed.");
-            return GtfsRealtime.FeedMessage.newBuilder().build();
-        }
-    }
-
-    private void runRegularGraphHopper(CmdArgs configuration, Environment environment) {
-        final GraphHopperManaged graphHopperManaged = new GraphHopperManaged(configuration);
+    private void runRegularGraphHopper(HasGraphHopperConfiguration configuration, Environment environment) {
+        final GraphHopperManaged graphHopperManaged = new GraphHopperManaged(configuration.graphhopper());
         environment.lifecycle().manage(graphHopperManaged);
         environment.jersey().register(new AbstractBinder() {
             @Override
             protected void configure() {
-                bind(configuration).to(CmdArgs.class);
+                bind(configuration.graphhopper()).to(CmdArgs.class);
                 bind(graphHopperManaged).to(GraphHopperManaged.class);
                 bind(graphHopperManaged.getGraphHopper()).to(GraphHopper.class);
                 bind(graphHopperManaged.getGraphHopper()).to(GraphHopperAPI.class);
@@ -250,7 +239,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
             }
         });
 
-        if (configuration.getBool("web.change_graph.enabled", false)) {
+        if (configuration.graphhopper().getBool("web.change_graph.enabled", false)) {
             environment.jersey().register(ChangeGraphResource.class);
         }
         environment.jersey().register(NearestResource.class);
