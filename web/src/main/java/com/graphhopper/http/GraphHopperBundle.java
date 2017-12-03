@@ -32,6 +32,7 @@ import com.graphhopper.http.resources.*;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
+import com.graphhopper.reader.gtfs.RealtimeFeed;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.storage.GHDirectory;
 import com.graphhopper.storage.GraphHopperStorage;
@@ -173,6 +174,17 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
             @Override
             protected void configure() {
                 bind(configuration).to(CmdArgs.class);
+                bindFactory(new Factory<RealtimeFeed>() {
+                    @Override
+                    public RealtimeFeed provide() {
+                        return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, loadExampleRealtimeFeed());
+                    }
+
+                    @Override
+                    public void dispose(RealtimeFeed instance) {
+
+                    }
+                });
                 bindFactory(new Factory<GraphHopperAPI>() {
                     @Override
                     public GraphHopperAPI provide() {
