@@ -255,8 +255,14 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
             for (Label solution : solutions) {
                 final List<Trip.Leg> legs = tripFromLabel.getTrip(arriveBy, flagEncoder, translation, graphExplorer, weighting, solution);
                 if (separateWalkQuery) {
-                    legs.addAll(0, walkPaths.get(accessNode(solution)).getLegs());
-                    legs.addAll(walkPaths.get(egressNode(solution)).getLegs());
+                    PathWrapper accessLeg = walkPaths.get(accessNode(solution));
+                    if (accessLeg != null) {
+                        legs.addAll(0, accessLeg.getLegs());
+                    }
+                    PathWrapper egressLeg = walkPaths.get(egressNode(solution));
+                    if (egressLeg != null) {
+                        legs.addAll(egressLeg.getLegs());
+                    }
                 }
                 final PathWrapper pathWrapper = tripFromLabel.createPathWrapper(translation, waypoints, legs);
                 // TODO: remove

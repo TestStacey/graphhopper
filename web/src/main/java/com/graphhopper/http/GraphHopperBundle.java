@@ -206,6 +206,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
         environment.jersey().register(RouteResource.class);
         environment.jersey().register(I18NResource.class);
         environment.jersey().register(InfoResource.class);
+        environment.jersey().register(StaticFeedResource.class);
         environment.jersey().register(RealtimeFeedResource.class);
         environment.lifecycle().manage(new Managed() {
             @Override

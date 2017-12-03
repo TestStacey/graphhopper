@@ -283,7 +283,11 @@ class GtfsReader {
                             false);
                     edge.setName(stop.stop_name);
                     setEdgeType(edge, GtfsStorage.EdgeType.HOP);
-                    edge.setFlags(encoder.setTime(edge.getFlags(), stopTime.arrival_time - prev.departure_time));
+                    int timediff = stopTime.arrival_time - prev.departure_time;
+                    if (timediff < 0) {
+                        throw new RuntimeException();
+                    }
+                    edge.setFlags(encoder.setTime(edge.getFlags(), timediff));
                     gtfsStorage.getStopSequences().put(edge.getEdge(), stopTime.stop_sequence);
                 }
                 final int departureTimelineNode = i++;
