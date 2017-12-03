@@ -18,8 +18,9 @@
 
 package com.graphhopper.reader.gtfs;
 
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 import com.google.common.collect.ArrayListMultimap;
-import com.graphhopper.routing.QueryGraph;
 import com.graphhopper.routing.QueryGraph;
 import com.graphhopper.routing.VirtualEdgeIteratorState;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
@@ -33,7 +34,6 @@ import com.graphhopper.util.PointList;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Spliterators;
 import java.util.function.Consumer;
@@ -50,7 +50,7 @@ final class GraphExplorer {
     private final boolean reverse;
     private final PtTravelTimeWeighting weighting;
     private final PointList extraNodes;
-    private final List<EdgeIteratorState> extraEdges = new ArrayList<>();
+    private final IntObjectMap<EdgeIteratorState> extraEdges = new IntObjectHashMap<>();
     private final ArrayListMultimap<Integer, VirtualEdgeIteratorState> extraEdgesBySource = ArrayListMultimap.create();
     private final ArrayListMultimap<Integer, VirtualEdgeIteratorState> extraEdgesByDestination = ArrayListMultimap.create();
     private final Graph graph;
@@ -66,7 +66,7 @@ final class GraphExplorer {
         this.realtimeFeed = realtimeFeed;
         this.reverse = reverse;
         this.extraNodes = extraNodes;
-        this.extraEdges.addAll(extraEdges);
+        extraEdges.forEach(e -> this.extraEdges.put(e.getEdge(), e));
         for (VirtualEdgeIteratorState extraEdge : extraEdges) {
             if (extraEdge == null) {
                 throw new RuntimeException();
@@ -157,9 +157,12 @@ final class GraphExplorer {
         if (edgeId == -1) {
             throw new RuntimeException();
         }
-        return extraEdges.stream()
-                .filter(edge -> edge.getEdge() == edgeId)
-                .findFirst().orElseGet(() -> graph.getEdgeIteratorState(edgeId, adjNode));
+        EdgeIteratorState extraEdge = extraEdges.get(edgeId);
+        if (extraEdge != null) {
+            return extraEdge;
+        } else {
+            return graph.getEdgeIteratorState(edgeId, adjNode);
+        }
     }
 
     NodeAccess getNodeAccess() {
