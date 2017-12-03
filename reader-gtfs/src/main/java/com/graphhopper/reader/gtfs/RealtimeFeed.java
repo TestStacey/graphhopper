@@ -235,7 +235,6 @@ public class RealtimeFeed {
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
                 .filter(tripUpdate -> tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED)
                 .map(tripUpdate -> toTripWithStopTimes(feed, dateToChange, tripUpdate))
-                .peek(trip -> System.out.println(" new Route: " + trip.trip.route_id))
                 .forEach(trip -> gtfsReader.addTrips(agencyId, ZoneId.systemDefault(), Collections.singletonList(trip), 0, true));
 
         feedMessage.getEntityList().stream()
@@ -255,17 +254,12 @@ public class RealtimeFeed {
                     blockedEdges.addAll(leaveEdges);
 
                     GtfsReader.TripWithStopTimes tripWithStopTimes = toTripWithStopTimes(feed, dateToChange, tripUpdate);
-                    System.out.println("route: !!! ");
-                    System.out.println(tripWithStopTimes.trip.route_id);
                     gtfsReader.addTrips(agencyId, ZoneId.systemDefault(), Collections.singletonList(tripWithStopTimes), 0, true);
                 });
 
         gtfsReader.wireUpStops();
         gtfsReader.connectStopsToStationNodes();
 
-        for (VirtualEdgeIteratorState additionalEdge : additionalEdges) {
-            System.out.println(encoder.getEdgeType(additionalEdge.getFlags()));
-        }
         return new RealtimeFeed(feedMessage, blockedEdges, additionalEdges);
     }
 
