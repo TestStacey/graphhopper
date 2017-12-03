@@ -25,9 +25,10 @@ import java.util.regex.Pattern;
 
 public class GHLocation {
 
+    private static final Pattern PATTERN = Pattern.compile("^Stop\\((.*)\\)$");
+
     public static GHLocation fromString(String s) {
-        final Pattern pattern = Pattern.compile("^Stop\\((.*)\\)$");
-        final Matcher matcher = pattern.matcher(s);
+        final Matcher matcher = PATTERN.matcher(s);
         if (matcher.find()) {
             return new GHStationLocation(matcher.group(1));
         } else {
