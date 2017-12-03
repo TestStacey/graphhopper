@@ -54,7 +54,7 @@ public class RealtimeFeed {
     private final IntHashSet blockedEdges;
     private final List<VirtualEdgeIteratorState> additionalEdges;
 
-    private final GtfsRealtime.FeedMessage feedMessage;
+    public final GtfsRealtime.FeedMessage feedMessage;
 
     private RealtimeFeed(GtfsRealtime.FeedMessage feedMessage, IntHashSet blockedEdges, List<VirtualEdgeIteratorState> additionalEdges) {
         this.feedMessage = feedMessage;
