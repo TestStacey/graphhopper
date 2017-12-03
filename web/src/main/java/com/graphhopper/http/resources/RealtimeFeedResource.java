@@ -18,7 +18,11 @@
 
 package com.graphhopper.http.resources;
 
+import com.conveyal.gtfs.model.Trip;
 import com.google.protobuf.TextFormat;
+import com.google.transit.realtime.GtfsRealtime;
+import com.graphhopper.http.RealtimeFeedConfiguration;
+import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 
 import javax.inject.Inject;
@@ -32,10 +36,12 @@ import java.io.PrintWriter;
 @Path("realtime-feed")
 public class RealtimeFeedResource {
 
-    private final RealtimeFeed realtimeFeed;
+    private final RealtimeFeedConfiguration realtimeFeed;
+    private final GtfsStorage staticGtfs;
 
     @Inject
-    public RealtimeFeedResource(RealtimeFeed realtimeFeed) {
+    public RealtimeFeedResource(RealtimeFeedConfiguration realtimeFeed, GtfsStorage staticGtfs) {
+        this.staticGtfs = staticGtfs;
         this.realtimeFeed = realtimeFeed;
     }
 
@@ -44,7 +50,47 @@ public class RealtimeFeedResource {
     public StreamingOutput dump() throws IOException {
         return output -> {
             PrintWriter writer = new PrintWriter(output);
-            TextFormat.print(realtimeFeed.feedMessage, writer);
+            TextFormat.print(realtimeFeed.getRealtimeFeed(), writer);
+            writer.flush();
+        };
+    }
+
+    @GET
+    @Path("report")
+    @Produces("text/plain")
+    public StreamingOutput report() {
+        return output -> {
+            PrintWriter writer = new PrintWriter(output);
+            GtfsRealtime.FeedMessage realtimeFeed = this.realtimeFeed.getRealtimeFeed();
+            realtimeFeed.getEntityList().stream()
+                .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+                .map(GtfsRealtime.FeedEntity::getTripUpdate)
+                .forEach(tripUpdate -> {
+                    if (tripUpdate.getTrip().getScheduleRelationship() != GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED) {
+                        Trip trip = staticGtfs.getGtfsFeeds().get("gtfs_0").trips.get(tripUpdate.getTrip().getTripId());
+                        if (trip == null) {
+                            writer.println("Not found:");
+                            try {
+                                TextFormat.print(tripUpdate, writer);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+                });
+            writer.flush();
+
+            realtimeFeed.getEntityList().stream()
+                .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+                .map(GtfsRealtime.FeedEntity::getTripUpdate)
+                .filter(tripUpdate -> tripUpdate.getTrip().getScheduleRelationship() != GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED)
+                .map(tripUpdate -> tripUpdate.getTrip().getTripId())
+                .map(tripId -> staticGtfs.getGtfsFeeds().get("gtfs_0").trips.get(tripId))
+                .map(trip -> trip.route_id)
+                .map(routeId -> staticGtfs.getGtfsFeeds().get("gtfs_0").routes.get(routeId))
+                .map(route -> route.agency_id)
+                .distinct()
+                .forEach(agency_id -> writer.println(agency_id));
             writer.flush();
         };
     }

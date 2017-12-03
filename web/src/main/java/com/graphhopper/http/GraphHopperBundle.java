@@ -174,6 +174,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
             @Override
             protected void configure() {
                 bind(configuration.graphhopper()).to(CmdArgs.class);
+                bind(configuration.gtfsrealtime()).to(RealtimeFeedConfiguration.class);
                 bindFactory(new Factory<RealtimeFeed>() {
                     @Override
                     public RealtimeFeed provide() {
@@ -201,6 +202,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 bind(translationMap).to(TranslationMap.class);
                 bind(encodingManager).to(EncodingManager.class);
                 bind(graphHopperStorage).to(GraphHopperStorage.class);
+                bind(gtfsStorage).to(GtfsStorage.class);
             }
         });
         environment.jersey().register(NearestResource.class);
