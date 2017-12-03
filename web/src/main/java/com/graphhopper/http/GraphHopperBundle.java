@@ -32,10 +32,8 @@ import com.graphhopper.http.resources.*;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
-import com.graphhopper.reader.gtfs.RealtimeFeed;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.storage.GHDirectory;
-import com.graphhopper.storage.Graph;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.util.CmdArgs;
@@ -169,13 +167,23 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
         int[] ints = gtfsStorage.getBoardEdgesForTrip().get("7732602");
         System.out.println(Arrays.toString(ints));
 
-        final GraphHopperAPI graphHopper = new GraphHopperGtfs(ptFlagEncoder, translationMap, graphHopperStorage, locationIndex, gtfsStorage,
-                loadExampleRealtimeFeed(graphHopperStorage, gtfsStorage, ptFlagEncoder));
+        GraphHopperGtfs.Factory graphHopperFactory = GraphHopperGtfs.createFactory(ptFlagEncoder, translationMap, graphHopperStorage, locationIndex, gtfsStorage);
+
         environment.jersey().register(new AbstractBinder() {
             @Override
             protected void configure() {
                 bind(configuration).to(CmdArgs.class);
-                bind(graphHopper).to(GraphHopperAPI.class);
+                bindFactory(new Factory<GraphHopperAPI>() {
+                    @Override
+                    public GraphHopperAPI provide() {
+                        return graphHopperFactory.createWith(loadExampleRealtimeFeed());
+                    }
+
+                    @Override
+                    public void dispose(GraphHopperAPI instance) {
+
+                    }
+                }).to(GraphHopperAPI.class);
                 bind(false).to(Boolean.class).named("hasElevation");
                 bind(locationIndex).to(LocationIndex.class);
                 bind(translationMap).to(TranslationMap.class);
@@ -199,18 +207,15 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
         });
     }
 
-    private RealtimeFeed loadExampleRealtimeFeed(Graph graph, GtfsStorage staticGtfs, PtFlagEncoder flagEncoder) {
+    private GtfsRealtime.FeedMessage loadExampleRealtimeFeed() {
         File realtimeFile = new File("reader-gtfs/files/gtfs-realtime-trimet-example");
-        RealtimeFeed feed = RealtimeFeed.empty();
         try {
             FileInputStream inputStream = new FileInputStream(realtimeFile);
-            GtfsRealtime.FeedMessage feedMessage = GtfsRealtime.FeedMessage.parseFrom(inputStream);
-            feed = RealtimeFeed.fromProtobuf(graph, staticGtfs, flagEncoder, feedMessage);
+            return GtfsRealtime.FeedMessage.parseFrom(inputStream);
         } catch (Exception e) {
             System.out.println("Error while creating RealtimeFeed.");
-            e.printStackTrace();
+            return GtfsRealtime.FeedMessage.newBuilder().build();
         }
-        return feed;
     }
 
     private void runRegularGraphHopper(CmdArgs configuration, Environment environment) {

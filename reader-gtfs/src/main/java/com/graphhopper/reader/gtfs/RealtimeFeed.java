@@ -41,11 +41,9 @@ import org.slf4j.LoggerFactory;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA;
-import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SCHEDULED;
 import static com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED;
 import static java.time.temporal.ChronoUnit.DAYS;
 
@@ -54,16 +52,18 @@ public class RealtimeFeed {
     private static final Logger logger = LoggerFactory.getLogger(RealtimeFeed.class);
 
     private final IntHashSet blockedEdges;
-
     private final List<VirtualEdgeIteratorState> additionalEdges;
 
-    private RealtimeFeed(IntHashSet blockedEdges, List<VirtualEdgeIteratorState> additionalEdges) {
+    private final GtfsRealtime.FeedMessage feedMessage;
+
+    private RealtimeFeed(GtfsRealtime.FeedMessage feedMessage, IntHashSet blockedEdges, List<VirtualEdgeIteratorState> additionalEdges) {
+        this.feedMessage = feedMessage;
         this.blockedEdges = blockedEdges;
         this.additionalEdges = additionalEdges;
     }
 
     public static RealtimeFeed empty() {
-        return new RealtimeFeed(new IntHashSet(), Collections.emptyList());
+        return new RealtimeFeed(GtfsRealtime.FeedMessage.newBuilder().build(), new IntHashSet(), Collections.emptyList());
     }
 
     public static RealtimeFeed fromProtobuf(Graph graph, GtfsStorage staticGtfs, PtFlagEncoder encoder, GtfsRealtime.FeedMessage feedMessage) {
@@ -261,7 +261,7 @@ public class RealtimeFeed {
         for (VirtualEdgeIteratorState additionalEdge : additionalEdges) {
             System.out.println(encoder.getEdgeType(additionalEdge.getFlags()));
         }
-        return new RealtimeFeed(blockedEdges, additionalEdges);
+        return new RealtimeFeed(feedMessage, blockedEdges, additionalEdges);
     }
 
     public static GtfsReader.TripWithStopTimes toTripWithStopTimes(GTFSFeed feed, LocalDate dateToChange, GtfsRealtime.TripUpdate tripUpdate) {
