@@ -241,7 +241,9 @@ public class RealtimeFeed {
         feedMessage.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
-                .filter(tripUpdate -> tripUpdate.getStopTimeUpdateList().stream().anyMatch(stu -> stu.getDeparture().hasDelay() || stu.getArrival().hasDelay()))
+                .filter(tripUpdate -> tripUpdate.getStopTimeUpdateList().stream().anyMatch(stu ->
+                        stu.getDeparture().hasDelay() && stu.getDeparture().getDelay() != 0
+                        || stu.getArrival().hasDelay() && stu.getArrival().getDelay() != 0))
                 .forEach(tripUpdate -> {
                     final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
                     if (boardEdges == null) {
@@ -287,7 +289,7 @@ public class RealtimeFeed {
         } catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
             throw new RuntimeException(firstAndLastStopsDoNotHaveTimes);
         }
-        int stopSequenceCeiling = Math.max(stopTimeUpdateListWithSentinel.get(stopTimeUpdateListWithSentinel.size() - 1).getStopSequence(),
+        int stopSequenceCeiling = Math.max(stopTimeUpdateListWithSentinel.isEmpty() ? 0 : stopTimeUpdateListWithSentinel.get(stopTimeUpdateListWithSentinel.size() - 1).getStopSequence(),
                 StreamSupport.stream(interpolatedStopTimesForTrip.spliterator(), false).mapToInt(stopTime -> stopTime.stop_sequence).max().orElse(0)
         ) + 1;
         stopTimeUpdateListWithSentinel.add(GtfsRealtime.TripUpdate.StopTimeUpdate.newBuilder().setStopSequence(stopSequenceCeiling).setScheduleRelationship(NO_DATA).build());
