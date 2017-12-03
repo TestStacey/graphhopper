@@ -74,8 +74,8 @@ public class RealtimeFeed {
             .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
             .map(GtfsRealtime.FeedEntity::getTripUpdate)
             .forEach(tripUpdate -> {
-                final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip());
-                final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip());
+                final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
+                final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip().getTripId());
                 tripUpdate.getStopTimeUpdateList().stream()
                         .filter(stopTimeUpdate -> stopTimeUpdate.getScheduleRelationship() == SKIPPED)
                         .mapToInt(stu -> stu.getStopSequence()-1) // stop sequence number is 1-based, not 0-based
@@ -235,6 +235,7 @@ public class RealtimeFeed {
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
                 .filter(tripUpdate -> tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED)
                 .map(tripUpdate -> toTripWithStopTimes(feed, dateToChange, tripUpdate))
+                .peek(trip -> System.out.println(" new Route: " + trip.trip.route_id))
                 .forEach(trip -> gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(trip), 0, true));
 
         feedMessage.getEntityList().stream()
@@ -252,7 +253,10 @@ public class RealtimeFeed {
                     blockedEdges.addAll(boardEdges);
                     blockedEdges.addAll(leaveEdges);
 
-                    gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(toTripWithStopTimes(feed, dateToChange, tripUpdate)), 0, true);
+                    GtfsReader.TripWithStopTimes tripWithStopTimes = toTripWithStopTimes(feed, dateToChange, tripUpdate);
+                    System.out.println("route: !!! ");
+                    System.out.println(tripWithStopTimes.trip.route_id);
+                    gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(tripWithStopTimes), 0, true);
                 });
 
         gtfsReader.wireUpStops();

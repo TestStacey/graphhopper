@@ -475,7 +475,9 @@ class GtfsReader {
 
     private String getRouteName(GTFSFeed feed, Trip trip) {
         Route route = feed.routes.get(trip.route_id);
-        return (route.route_long_name != null ? route.route_long_name : route.route_short_name) + " " + trip.trip_headsign;
+        return ((route != null) ?
+                (route.route_long_name != null ? route.route_long_name : route.route_short_name) : "")
+                + " " + trip.trip_headsign;
     }
 
     private void setEdgeType(EdgeIteratorState edge, GtfsStorage.EdgeType edgeType) {
