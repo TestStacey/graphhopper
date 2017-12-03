@@ -66,7 +66,7 @@ public class RealtimeFeed {
         return new RealtimeFeed(GtfsRealtime.FeedMessage.newBuilder().build(), new IntHashSet(), Collections.emptyList());
     }
 
-    public static RealtimeFeed fromProtobuf(Graph graph, GtfsStorage staticGtfs, PtFlagEncoder encoder, GtfsRealtime.FeedMessage feedMessage) {
+    public static RealtimeFeed fromProtobuf(Graph graph, GtfsStorage staticGtfs, PtFlagEncoder encoder, GtfsRealtime.FeedMessage feedMessage, String agencyId) {
         String feedKey = "gtfs_0"; //FIXME
         GTFSFeed feed = staticGtfs.getGtfsFeeds().get(feedKey);
         final IntHashSet blockedEdges = new IntHashSet();
@@ -236,7 +236,7 @@ public class RealtimeFeed {
                 .filter(tripUpdate -> tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED)
                 .map(tripUpdate -> toTripWithStopTimes(feed, dateToChange, tripUpdate))
                 .peek(trip -> System.out.println(" new Route: " + trip.trip.route_id))
-                .forEach(trip -> gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(trip), 0, true));
+                .forEach(trip -> gtfsReader.addTrips(agencyId, ZoneId.systemDefault(), Collections.singletonList(trip), 0, true));
 
         feedMessage.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
@@ -256,7 +256,7 @@ public class RealtimeFeed {
                     GtfsReader.TripWithStopTimes tripWithStopTimes = toTripWithStopTimes(feed, dateToChange, tripUpdate);
                     System.out.println("route: !!! ");
                     System.out.println(tripWithStopTimes.trip.route_id);
-                    gtfsReader.addTrips(ZoneId.systemDefault(), Collections.singletonList(tripWithStopTimes), 0, true);
+                    gtfsReader.addTrips(agencyId, ZoneId.systemDefault(), Collections.singletonList(tripWithStopTimes), 0, true);
                 });
 
         gtfsReader.wireUpStops();

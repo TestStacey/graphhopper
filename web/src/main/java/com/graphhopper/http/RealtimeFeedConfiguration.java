@@ -21,14 +21,13 @@ package com.graphhopper.http;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.transit.realtime.GtfsRealtime;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 
 public class RealtimeFeedConfiguration {
 
     private URL url;
+    private String agencyId;
 
     @JsonProperty
     public URL getUrl() {
@@ -38,6 +37,16 @@ public class RealtimeFeedConfiguration {
     @JsonProperty
     public void setUrl(URL url) {
         this.url = url;
+    }
+
+    @JsonProperty
+    public String getAgencyId() {
+        return agencyId;
+    }
+
+    @JsonProperty
+    public void setAgencyId(String agencyId) {
+        this.agencyId = agencyId;
     }
 
     public GtfsRealtime.FeedMessage getRealtimeFeed() {

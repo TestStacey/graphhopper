@@ -74,11 +74,13 @@ class GtfsReader {
     }
 
     private static class TimelineNodeIdWithTripId {
+        final String agencyId;
         final String tripId;
         final String routeId;
         final int timelineNodeId;
 
-        private TimelineNodeIdWithTripId(int timelineNodeId, String tripId, String routeId) {
+        private TimelineNodeIdWithTripId(String agencyId, int timelineNodeId, String tripId, String routeId) {
+            this.agencyId = agencyId;
             this.tripId = tripId;
             this.routeId = routeId;
             this.timelineNodeId = timelineNodeId;
@@ -191,11 +193,12 @@ class GtfsReader {
             if (trips.stream().map(trip -> feed.getFrequencies(trip.trip.trip_id)).distinct().count() != 1) {
                 throw new RuntimeException("Found a block with frequency-based trips. Not supported.");
             }
-            ZoneId zoneId = ZoneId.of(feed.agency.get(feed.routes.get(trips.iterator().next().trip.route_id).agency_id).agency_timezone);
+            String agency_id = feed.routes.get(trips.iterator().next().trip.route_id).agency_id;
+            ZoneId zoneId = ZoneId.of(feed.agency.get(agency_id).agency_timezone);
             Collection<Frequency> frequencies = feed.getFrequencies(trips.iterator().next().trip.trip_id);
             for (Frequency frequency : (frequencies.isEmpty() ? Collections.singletonList(SINGLE_FREQUENCY) : frequencies)) {
                 for (int time = frequency.start_time; time < frequency.end_time; time += frequency.headway_secs) {
-                    addTrips(zoneId, trips, time, false);
+                    addTrips(agency_id, zoneId, trips, time, false);
                 }
             }
         });
@@ -209,34 +212,40 @@ class GtfsReader {
                 List<Integer> stopExitNodeIds = new ArrayList<>();
 
                 if (arrivalTimelineNodes.containsKey(stop.stop_id)) {
-                    final Map<String, List<TimelineNodeIdWithTripId>> arrivalTimelineNodesByRoute = arrivalTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.routeId));
-
-                    arrivalTimelineNodesByRoute.forEach((routeId, timelineNodesWithTripId) -> {
-                        nodeAccess.setNode(i++, stop.stop_lat, stop.stop_lon);
-                        int stopExitNode = i-1;
-                        nodeAccess.setAdditionalNodeField(stopExitNode, NodeType.STOP_EXIT_NODE.ordinal());
-                        stopExitNodeIds.add(stopExitNode);
-                        NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = new TreeSet<>();
-                        timelineNodesWithTripId.stream().map(t -> t.timelineNodeId)
-                                .forEach(nodeId -> timeNodes.add(new Fun.Tuple2<>(times.get(nodeId) % (24*60*60), nodeId)));
-                        wireUpAndAndConnectArrivalTimeline(stop, routeId,stopExitNode, timeNodes);
+                    final Map<String, List<TimelineNodeIdWithTripId>> arrivalTimelineNodesByAgency = arrivalTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.agencyId));
+                    arrivalTimelineNodesByAgency.forEach((agency_id, timelineNodesWithTripId) -> {
+                        ZoneId zoneId = ZoneId.of(feed.agency.get(agency_id).agency_timezone);
+                        Map<String, List<TimelineNodeIdWithTripId>> arrivalTimelineNodesByRoute = timelineNodesWithTripId.stream().collect(Collectors.groupingBy(t -> t.routeId));
+                        arrivalTimelineNodesByRoute.forEach((routeId, timelineNodesForRoute) -> {
+                            nodeAccess.setNode(i++, stop.stop_lat, stop.stop_lon);
+                            int stopExitNode = i-1;
+                            nodeAccess.setAdditionalNodeField(stopExitNode, NodeType.STOP_EXIT_NODE.ordinal());
+                            stopExitNodeIds.add(stopExitNode);
+                            NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = new TreeSet<>();
+                            timelineNodesForRoute.stream().map(t -> t.timelineNodeId)
+                                    .forEach(nodeId -> timeNodes.add(new Fun.Tuple2<>(times.get(nodeId) % (24*60*60), nodeId)));
+                            wireUpAndAndConnectArrivalTimeline(zoneId, stop, routeId,stopExitNode, timeNodes);
+                        });
                     });
 
                 }
                 List<Integer> stopEnterNodeIds = new ArrayList<>();
 
                 if (departureTimelineNodes.containsKey(stop.stop_id)) {
-                    final Map<String, List<TimelineNodeIdWithTripId>> departureTimelineNodesByRoute = departureTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.routeId));
-
-                    departureTimelineNodesByRoute.forEach((routeId, timelineNodesWithTripId) -> {
-                        nodeAccess.setNode(i++, stop.stop_lat, stop.stop_lon);
-                        int stopEnterNode = i-1;
-                        nodeAccess.setAdditionalNodeField(stopEnterNode, NodeType.STOP_ENTER_NODE.ordinal());
-                        stopEnterNodeIds.add(stopEnterNode);
-                        NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = new TreeSet<>();
-                        timelineNodesWithTripId.stream().map(t -> t.timelineNodeId)
-                                .forEach(nodeId -> timeNodes.add(new Fun.Tuple2<>(times.get(nodeId) % (24*60*60), nodeId)));
-                        wireUpAndAndConnectDepartureTimeline(stop, routeId,stopEnterNode, timeNodes);
+                    final Map<String, List<TimelineNodeIdWithTripId>> departureTimelineNodesByAgency = departureTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.agencyId));
+                    departureTimelineNodesByAgency.forEach((agency_id, timelineNodesWithTripId) -> {
+                        ZoneId zoneId = ZoneId.of(feed.agency.get(agency_id).agency_timezone);
+                        Map<String, List<TimelineNodeIdWithTripId>> departureTimelineNodesByRoute = timelineNodesWithTripId.stream().collect(Collectors.groupingBy(t -> t.routeId));
+                        departureTimelineNodesByRoute.forEach((routeId, timelineNodesForRoute) -> {
+                            nodeAccess.setNode(i++, stop.stop_lat, stop.stop_lon);
+                            int stopEnterNode = i - 1;
+                            nodeAccess.setAdditionalNodeField(stopEnterNode, NodeType.STOP_ENTER_NODE.ordinal());
+                            stopEnterNodeIds.add(stopEnterNode);
+                            NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = new TreeSet<>();
+                            timelineNodesWithTripId.stream().map(t -> t.timelineNodeId)
+                                    .forEach(nodeId -> timeNodes.add(new Fun.Tuple2<>(times.get(nodeId) % (24 * 60 * 60), nodeId)));
+                            wireUpAndAndConnectDepartureTimeline(zoneId, stop, routeId, stopEnterNode, timeNodes);
+                        });
                     });
                 }
 
@@ -246,7 +255,7 @@ class GtfsReader {
         }
     }
 
-    void addTrips(ZoneId zoneId, List<TripWithStopTimes> trips, int time, boolean update) {
+    void addTrips(String agencyId, ZoneId zoneId, List<TripWithStopTimes> trips, int time, boolean update) {
         List<Integer> arrivalNodes = new ArrayList<>();
         for (TripWithStopTimes trip : trips) {
             IntArrayList boardEdges = new IntArrayList();
@@ -281,12 +290,12 @@ class GtfsReader {
                 nodeAccess.setNode(departureTimelineNode, stop.stop_lat, stop.stop_lon);
                 nodeAccess.setAdditionalNodeField(departureTimelineNode, NodeType.INTERNAL_PT.ordinal());
                 times.put(departureTimelineNode, stopTime.departure_time + time);
-                departureTimelineNodes.put(stopTime.stop_id, new TimelineNodeIdWithTripId(departureTimelineNode, trip.trip.trip_id, trip.trip.route_id));
+                departureTimelineNodes.put(stopTime.stop_id, new TimelineNodeIdWithTripId(agencyId, departureTimelineNode, trip.trip.trip_id, trip.trip.route_id));
                 final int arrivalTimelineNode = i++;
                 nodeAccess.setNode(arrivalTimelineNode, stop.stop_lat, stop.stop_lon);
                 nodeAccess.setAdditionalNodeField(arrivalTimelineNode, NodeType.INTERNAL_PT.ordinal());
                 times.put(arrivalTimelineNode, stopTime.arrival_time + time);
-                arrivalTimelineNodes.put(stopTime.stop_id, new TimelineNodeIdWithTripId(arrivalTimelineNode, trip.trip.trip_id, trip.trip.route_id));
+                arrivalTimelineNodes.put(stopTime.stop_id, new TimelineNodeIdWithTripId(agencyId, arrivalTimelineNode, trip.trip.trip_id, trip.trip.route_id));
                 departureNode = i++;
                 nodeAccess.setNode(departureNode, stop.stop_lat, stop.stop_lon);
                 nodeAccess.setAdditionalNodeField(departureNode, NodeType.INTERNAL_PT.ordinal());
@@ -354,8 +363,7 @@ class GtfsReader {
         }
     }
 
-    private void wireUpAndAndConnectArrivalTimeline(Stop toStop, String routeId, int stopExitNode, NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes) {
-        ZoneId zoneId = ZoneId.of(feed.agency.get(feed.routes.get(routeId).agency_id).agency_timezone);
+    private void wireUpAndAndConnectArrivalTimeline(ZoneId zoneId, Stop toStop, String routeId, int stopExitNode, NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes) {
         int time = 0;
         int prev = -1;
         for (Fun.Tuple2<Integer, Integer> e : timeNodes.descendingSet()) {
@@ -386,8 +394,7 @@ class GtfsReader {
         leaveTimeExpandedNetworkEdge.setFlags(encoder.setValidityId(leaveTimeExpandedNetworkEdge.getFlags(), validityId));
     }
 
-    private void wireUpAndAndConnectDepartureTimeline(Stop toStop, String toRouteId, int stopEnterNode, NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes) {
-        ZoneId zoneId = ZoneId.of(feed.agency.get(feed.routes.get(toRouteId).agency_id).agency_timezone);
+    private void wireUpAndAndConnectDepartureTimeline(ZoneId zoneId, Stop toStop, String toRouteId, int stopEnterNode, NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes) {
         int time = 0;
         int prev = -1;
         for (Fun.Tuple2<Integer, Integer> e : timeNodes.descendingSet()) {

@@ -24,7 +24,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.http.api.JsonContainerResponseFilter;
@@ -49,8 +48,6 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import javax.inject.Inject;
 import javax.servlet.DispatcherType;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -178,7 +175,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 bindFactory(new Factory<RealtimeFeed>() {
                     @Override
                     public RealtimeFeed provide() {
-                        return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().getRealtimeFeed());
+                        return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().getRealtimeFeed(), configuration.gtfsrealtime().getAgencyId());
                     }
 
                     @Override
@@ -189,7 +186,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 bindFactory(new Factory<GraphHopperAPI>() {
                     @Override
                     public GraphHopperAPI provide() {
-                        return graphHopperFactory.createWith(configuration.gtfsrealtime().getRealtimeFeed());
+                        return graphHopperFactory.createWith(configuration.gtfsrealtime().getRealtimeFeed(), configuration.gtfsrealtime().getAgencyId());
                     }
 
                     @Override
