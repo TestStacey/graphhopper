@@ -36,6 +36,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import static com.conveyal.gtfs.model.Entity.Writer.convertToGtfsTime;
+
 @Path("static-feed")
 public class StaticFeedResource {
 
@@ -56,7 +58,7 @@ public class StaticFeedResource {
             Iterable<StopTime> interpolatedStopTimesForTrip = getInterpolatedStoptimesForTrip(trip_id);
             for (StopTime stopTime : interpolatedStopTimesForTrip) {
                 Stop stop = gtfsStorage.getGtfsFeeds().get("gtfs_0").stops.get(stopTime.stop_id);
-                out.printf("Stop(%s) %f, %f\n", stopTime.stop_id, stop.stop_lat, stop.stop_lon);
+                out.printf("Stop(%s) %s %s\n", stopTime.stop_id, convertToGtfsTime(stopTime.arrival_time), convertToGtfsTime(stopTime.departure_time));
             }
             out.flush();
         };
