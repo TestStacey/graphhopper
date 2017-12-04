@@ -47,6 +47,7 @@ import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.DispatcherType;
 import java.io.IOException;
 import java.util.Arrays;
@@ -182,24 +183,15 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                     public void dispose(RealtimeFeed instance) {
 
                     }
-                }).to(RealtimeFeed.class);
-                bindFactory(new Factory<GraphHopperAPI>() {
-                    @Override
-                    public GraphHopperAPI provide() {
-                        return graphHopperFactory.createWith(configuration.gtfsrealtime().getRealtimeFeed(), configuration.gtfsrealtime().getAgencyId());
-                    }
-
-                    @Override
-                    public void dispose(GraphHopperAPI instance) {
-
-                    }
-                }).to(GraphHopperAPI.class);
+                }).to(RealtimeFeed.class).in(Singleton.class);
                 bind(false).to(Boolean.class).named("hasElevation");
                 bind(locationIndex).to(LocationIndex.class);
                 bind(translationMap).to(TranslationMap.class);
                 bind(encodingManager).to(EncodingManager.class);
                 bind(graphHopperStorage).to(GraphHopperStorage.class);
                 bind(gtfsStorage).to(GtfsStorage.class);
+                bindFactory(GraphHopperAPIFactory.class).to(GraphHopperAPI.class);
+
             }
         });
         environment.jersey().register(NearestResource.class);
@@ -310,4 +302,32 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
         }
     }
 
+    private static class GraphHopperAPIFactory implements Factory<GraphHopperAPI> {
+        private final PtFlagEncoder ptFlagEncoder;
+        private final TranslationMap translationMap;
+        private final GraphHopperStorage graphHopperStorage;
+        private final LocationIndex locationIndex;
+        private final GtfsStorage gtfsStorage;
+        private final RealtimeFeed realtimeFeed;
+
+        @Inject
+        public GraphHopperAPIFactory(EncodingManager encodingManager, TranslationMap translationMap, GraphHopperStorage graphHopperStorage, LocationIndex locationIndex, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed) {
+            this.ptFlagEncoder = ((PtFlagEncoder) encodingManager.getEncoder("pt"));
+            this.translationMap = translationMap;
+            this.graphHopperStorage = graphHopperStorage;
+            this.locationIndex = locationIndex;
+            this.gtfsStorage = gtfsStorage;
+            this.realtimeFeed = realtimeFeed;
+        }
+
+        @Override
+        public GraphHopperAPI provide() {
+            return new GraphHopperGtfs(ptFlagEncoder, translationMap, graphHopperStorage, locationIndex, gtfsStorage, realtimeFeed);
+        }
+
+        @Override
+        public void dispose(GraphHopperAPI instance) {
+
+        }
+    }
 }

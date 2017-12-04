@@ -36,11 +36,11 @@ import java.io.PrintWriter;
 @Path("realtime-feed")
 public class RealtimeFeedResource {
 
-    private final RealtimeFeedConfiguration realtimeFeed;
+    private final RealtimeFeed realtimeFeed;
     private final GtfsStorage staticGtfs;
 
     @Inject
-    public RealtimeFeedResource(RealtimeFeedConfiguration realtimeFeed, GtfsStorage staticGtfs) {
+    public RealtimeFeedResource(RealtimeFeed realtimeFeed, GtfsStorage staticGtfs) {
         this.staticGtfs = staticGtfs;
         this.realtimeFeed = realtimeFeed;
     }
@@ -50,7 +50,7 @@ public class RealtimeFeedResource {
     public StreamingOutput dump() throws IOException {
         return output -> {
             PrintWriter writer = new PrintWriter(output);
-            TextFormat.print(realtimeFeed.getRealtimeFeed(), writer);
+            TextFormat.print(realtimeFeed.feedMessage, writer);
             writer.flush();
         };
     }
@@ -61,7 +61,7 @@ public class RealtimeFeedResource {
     public StreamingOutput report() {
         return output -> {
             PrintWriter writer = new PrintWriter(output);
-            GtfsRealtime.FeedMessage realtimeFeed = this.realtimeFeed.getRealtimeFeed();
+            GtfsRealtime.FeedMessage realtimeFeed = this.realtimeFeed.feedMessage;
             realtimeFeed.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
