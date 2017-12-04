@@ -63,12 +63,13 @@ public class RealtimeFeed {
     }
 
     public static RealtimeFeed empty() {
-        return new RealtimeFeed(GtfsRealtime.FeedMessage.newBuilder().build(), new IntHashSet(), Collections.emptyList());
+        return new RealtimeFeed(GtfsRealtime.FeedMessage.newBuilder().setHeader(GtfsRealtime.FeedHeader.newBuilder().setGtfsRealtimeVersion("1").build()).build(), new IntHashSet(), Collections.emptyList());
     }
 
     public static RealtimeFeed fromProtobuf(Graph graph, GtfsStorage staticGtfs, PtFlagEncoder encoder, GtfsRealtime.FeedMessage feedMessage, String agencyId) {
         String feedKey = "gtfs_0"; //FIXME
         GTFSFeed feed = staticGtfs.getGtfsFeeds().get(feedKey);
+        ZoneId zoneId = ZoneId.of(feed.agency.get(agencyId).agency_timezone);
         final IntHashSet blockedEdges = new IntHashSet();
         feedMessage.getEntityList().stream()
             .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
@@ -228,7 +229,7 @@ public class RealtimeFeed {
         };
         final GtfsReader gtfsReader = new GtfsReader(feedKey, overlayGraph, encoder, null);
         Instant timestamp = Instant.ofEpochSecond(feedMessage.getHeader().getTimestamp());
-        LocalDate dateToChange = timestamp.atZone(ZoneId.of(feed.agency.values().iterator().next().agency_timezone)).toLocalDate(); //FIXME
+        LocalDate dateToChange = timestamp.atZone(zoneId).toLocalDate(); //FIXME
 
         feedMessage.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
@@ -254,7 +255,7 @@ public class RealtimeFeed {
                     blockedEdges.addAll(leaveEdges);
 
                     GtfsReader.TripWithStopTimes tripWithStopTimes = toTripWithStopTimes(feed, dateToChange, tripUpdate);
-                    gtfsReader.addTrips(agencyId, ZoneId.systemDefault(), Collections.singletonList(tripWithStopTimes), 0, true);
+                    gtfsReader.addTrips(agencyId, zoneId, Collections.singletonList(tripWithStopTimes), 0, true);
                 });
 
         gtfsReader.wireUpStops();
