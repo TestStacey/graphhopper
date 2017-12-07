@@ -163,10 +163,6 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 configuration.graphhopper().has("datareader.file") ? Arrays.asList(configuration.graphhopper().get("datareader.file", "").split(",")) : Collections.emptyList());
         final TranslationMap translationMap = GraphHopperGtfs.createTranslationMap();
         final LocationIndex locationIndex = GraphHopperGtfs.createOrLoadIndex(ghDirectory, graphHopperStorage, ptFlagEncoder);
-        int[] ints = gtfsStorage.getBoardEdgesForTrip().get("7732602");
-        System.out.println(Arrays.toString(ints));
-
-        GraphHopperGtfs.Factory graphHopperFactory = GraphHopperGtfs.createFactory(ptFlagEncoder, translationMap, graphHopperStorage, locationIndex, gtfsStorage);
 
         environment.jersey().register(new AbstractBinder() {
             @Override

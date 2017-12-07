@@ -71,195 +71,196 @@ public class RealtimeFeed {
         GTFSFeed feed = staticGtfs.getGtfsFeeds().get(feedKey);
         ZoneId zoneId = ZoneId.of(feed.agency.get(agencyId).agency_timezone);
         final IntHashSet blockedEdges = new IntHashSet();
-        feedMessage.getEntityList().stream()
-            .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
-            .map(GtfsRealtime.FeedEntity::getTripUpdate)
-            .forEach(tripUpdate -> {
-                final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
-                final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip().getTripId());
-                tripUpdate.getStopTimeUpdateList().stream()
-                        .filter(stopTimeUpdate -> stopTimeUpdate.getScheduleRelationship() == SKIPPED)
-                        .mapToInt(stu -> stu.getStopSequence()-1) // stop sequence number is 1-based, not 0-based
-                        .forEach(skippedStopSequenceNumber -> {
-                            blockedEdges.add(boardEdges[skippedStopSequenceNumber]);
-                            blockedEdges.add(leaveEdges[skippedStopSequenceNumber]);
-                        });
-            });
         final List<VirtualEdgeIteratorState> additionalEdges = new ArrayList<>();
-        final Graph overlayGraph = new Graph() {
-            int nNodes = 0;
-            int firstEdge = graph.getAllEdges().getMaxId()+1;
-            final NodeAccess nodeAccess = new NodeAccess() {
-                IntIntHashMap additionalNodeFields = new IntIntHashMap();
 
-                @Override
-                public int getAdditionalNodeField(int nodeId) {
-                    return 0;
-                }
-
-                @Override
-                public void setAdditionalNodeField(int nodeId, int additionalValue) {
-                    additionalNodeFields.put(nodeId, additionalValue);
-                }
-
-                @Override
-                public boolean is3D() {
-                    return false;
-                }
-
-                @Override
-                public int getDimension() {
-                    return 0;
-                }
-
-                @Override
-                public void ensureNode(int nodeId) {
-
-                }
-
-                @Override
-                public void setNode(int nodeId, double lat, double lon) {
-
-                }
-
-                @Override
-                public void setNode(int nodeId, double lat, double lon, double ele) {
-
-                }
-
-                @Override
-                public double getLatitude(int nodeId) {
-                    return 0;
-                }
-
-                @Override
-                public double getLat(int nodeId) {
-                    return 0;
-                }
-
-                @Override
-                public double getLongitude(int nodeId) {
-                    return 0;
-                }
-
-                @Override
-                public double getLon(int nodeId) {
-                    return 0;
-                }
-
-                @Override
-                public double getElevation(int nodeId) {
-                    return 0;
-                }
-
-                @Override
-                public double getEle(int nodeId) {
-                    return 0;
-                }
-            };
-            @Override
-            public Graph getBaseGraph() {
-                return null;
-            }
-
-            @Override
-            public int getNodes() {
-                return graph.getNodes() + nNodes;
-            }
-
-            @Override
-            public NodeAccess getNodeAccess() {
-                return nodeAccess;
-            }
-
-            @Override
-            public BBox getBounds() {
-                return null;
-            }
-
-            @Override
-            public EdgeIteratorState edge(int a, int b) {
-                return null;
-            }
-
-            @Override
-            public EdgeIteratorState edge(int a, int b, double distance, boolean bothDirections) {
-                int edge = firstEdge++;
-                final VirtualEdgeIteratorState newEdge = new VirtualEdgeIteratorState(-1,
-                        edge, a, b, distance,0, "", new PointList());
-                final VirtualEdgeIteratorState reverseNewEdge = new VirtualEdgeIteratorState(-1,
-                        edge, b, a, distance,0, "", new PointList());
-
-                newEdge.setReverseEdge(reverseNewEdge);
-                reverseNewEdge.setReverseEdge(newEdge);
-                additionalEdges.add(newEdge);
-//                additionalEdges.add(reverseNewEdge); //FIXME
-                return newEdge;
-            }
-
-            @Override
-            public EdgeIteratorState getEdgeIteratorState(int edgeId, int adjNode) {
-                return null;
-            }
-
-            @Override
-            public AllEdgesIterator getAllEdges() {
-                return null;
-            }
-
-            @Override
-            public EdgeExplorer createEdgeExplorer(EdgeFilter filter) {
-                return null;
-            }
-
-            @Override
-            public EdgeExplorer createEdgeExplorer() {
-                return null;
-            }
-
-            @Override
-            public Graph copyTo(Graph g) {
-                return null;
-            }
-
-            @Override
-            public GraphExtension getExtension() {
-                return staticGtfs;
-            }
-        };
-        final GtfsReader gtfsReader = new GtfsReader(feedKey, overlayGraph, encoder, null);
-        Instant timestamp = Instant.ofEpochSecond(feedMessage.getHeader().getTimestamp());
-        LocalDate dateToChange = timestamp.atZone(zoneId).toLocalDate(); //FIXME
-
-        feedMessage.getEntityList().stream()
-                .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
-                .map(GtfsRealtime.FeedEntity::getTripUpdate)
-                .filter(tripUpdate -> tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED)
-                .map(tripUpdate -> toTripWithStopTimes(feed, dateToChange, tripUpdate))
-                .forEach(trip -> gtfsReader.addTrips(agencyId, ZoneId.systemDefault(), Collections.singletonList(trip), 0, true));
-
-        feedMessage.getEntityList().stream()
-                .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
-                .map(GtfsRealtime.FeedEntity::getTripUpdate)
-                .filter(tripUpdate -> tripUpdate.getStopTimeUpdateList().stream().anyMatch(stu ->
-                        stu.getDeparture().hasDelay() && stu.getDeparture().getDelay() != 0
-                        || stu.getArrival().hasDelay() && stu.getArrival().getDelay() != 0))
-                .forEach(tripUpdate -> {
-                    final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
-                    if (boardEdges == null) {
-                        logger.warn("Trip "+tripUpdate.getTrip()+" not found.");
-                        return;
-                    }
-                    final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip().getTripId());
-                    blockedEdges.addAll(boardEdges);
-                    blockedEdges.addAll(leaveEdges);
-
-                    GtfsReader.TripWithStopTimes tripWithStopTimes = toTripWithStopTimes(feed, dateToChange, tripUpdate);
-                    gtfsReader.addTrips(agencyId, zoneId, Collections.singletonList(tripWithStopTimes), 0, true);
-                });
-
-        gtfsReader.wireUpStops();
-        gtfsReader.connectStopsToStationNodes();
+//        feedMessage.getEntityList().stream()
+//            .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+//            .map(GtfsRealtime.FeedEntity::getTripUpdate)
+//            .forEach(tripUpdate -> {
+//                final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
+//                final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip().getTripId());
+//                tripUpdate.getStopTimeUpdateList().stream()
+//                        .filter(stopTimeUpdate -> stopTimeUpdate.getScheduleRelationship() == SKIPPED)
+//                        .mapToInt(stu -> stu.getStopSequence()-1) // stop sequence number is 1-based, not 0-based
+//                        .forEach(skippedStopSequenceNumber -> {
+//                            blockedEdges.add(boardEdges[skippedStopSequenceNumber]);
+//                            blockedEdges.add(leaveEdges[skippedStopSequenceNumber]);
+//                        });
+//            });
+//        final Graph overlayGraph = new Graph() {
+//            int nNodes = 0;
+//            int firstEdge = graph.getAllEdges().getMaxId()+1;
+//            final NodeAccess nodeAccess = new NodeAccess() {
+//                IntIntHashMap additionalNodeFields = new IntIntHashMap();
+//
+//                @Override
+//                public int getAdditionalNodeField(int nodeId) {
+//                    return 0;
+//                }
+//
+//                @Override
+//                public void setAdditionalNodeField(int nodeId, int additionalValue) {
+//                    additionalNodeFields.put(nodeId, additionalValue);
+//                }
+//
+//                @Override
+//                public boolean is3D() {
+//                    return false;
+//                }
+//
+//                @Override
+//                public int getDimension() {
+//                    return 0;
+//                }
+//
+//                @Override
+//                public void ensureNode(int nodeId) {
+//
+//                }
+//
+//                @Override
+//                public void setNode(int nodeId, double lat, double lon) {
+//
+//                }
+//
+//                @Override
+//                public void setNode(int nodeId, double lat, double lon, double ele) {
+//
+//                }
+//
+//                @Override
+//                public double getLatitude(int nodeId) {
+//                    return 0;
+//                }
+//
+//                @Override
+//                public double getLat(int nodeId) {
+//                    return 0;
+//                }
+//
+//                @Override
+//                public double getLongitude(int nodeId) {
+//                    return 0;
+//                }
+//
+//                @Override
+//                public double getLon(int nodeId) {
+//                    return 0;
+//                }
+//
+//                @Override
+//                public double getElevation(int nodeId) {
+//                    return 0;
+//                }
+//
+//                @Override
+//                public double getEle(int nodeId) {
+//                    return 0;
+//                }
+//            };
+//            @Override
+//            public Graph getBaseGraph() {
+//                return null;
+//            }
+//
+//            @Override
+//            public int getNodes() {
+//                return graph.getNodes() + nNodes;
+//            }
+//
+//            @Override
+//            public NodeAccess getNodeAccess() {
+//                return nodeAccess;
+//            }
+//
+//            @Override
+//            public BBox getBounds() {
+//                return null;
+//            }
+//
+//            @Override
+//            public EdgeIteratorState edge(int a, int b) {
+//                return null;
+//            }
+//
+//            @Override
+//            public EdgeIteratorState edge(int a, int b, double distance, boolean bothDirections) {
+//                int edge = firstEdge++;
+//                final VirtualEdgeIteratorState newEdge = new VirtualEdgeIteratorState(-1,
+//                        edge, a, b, distance,0, "", new PointList());
+//                final VirtualEdgeIteratorState reverseNewEdge = new VirtualEdgeIteratorState(-1,
+//                        edge, b, a, distance,0, "", new PointList());
+//
+//                newEdge.setReverseEdge(reverseNewEdge);
+//                reverseNewEdge.setReverseEdge(newEdge);
+//                additionalEdges.add(newEdge);
+////                additionalEdges.add(reverseNewEdge); //FIXME
+//                return newEdge;
+//            }
+//
+//            @Override
+//            public EdgeIteratorState getEdgeIteratorState(int edgeId, int adjNode) {
+//                return null;
+//            }
+//
+//            @Override
+//            public AllEdgesIterator getAllEdges() {
+//                return null;
+//            }
+//
+//            @Override
+//            public EdgeExplorer createEdgeExplorer(EdgeFilter filter) {
+//                return null;
+//            }
+//
+//            @Override
+//            public EdgeExplorer createEdgeExplorer() {
+//                return null;
+//            }
+//
+//            @Override
+//            public Graph copyTo(Graph g) {
+//                return null;
+//            }
+//
+//            @Override
+//            public GraphExtension getExtension() {
+//                return staticGtfs;
+//            }
+//        };
+//        final GtfsReader gtfsReader = new GtfsReader(feedKey, overlayGraph, encoder, null);
+//        Instant timestamp = Instant.ofEpochSecond(feedMessage.getHeader().getTimestamp());
+//        LocalDate dateToChange = timestamp.atZone(zoneId).toLocalDate(); //FIXME
+//
+//        feedMessage.getEntityList().stream()
+//                .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+//                .map(GtfsRealtime.FeedEntity::getTripUpdate)
+//                .filter(tripUpdate -> tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED)
+//                .map(tripUpdate -> toTripWithStopTimes(feed, dateToChange, tripUpdate))
+//                .forEach(trip -> gtfsReader.addTrips(agencyId, ZoneId.systemDefault(), Collections.singletonList(trip), 0, true));
+//
+//        feedMessage.getEntityList().stream()
+//                .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
+//                .map(GtfsRealtime.FeedEntity::getTripUpdate)
+//                .filter(tripUpdate -> tripUpdate.getStopTimeUpdateList().stream().anyMatch(stu ->
+//                        stu.getDeparture().hasDelay() && stu.getDeparture().getDelay() != 0
+//                        || stu.getArrival().hasDelay() && stu.getArrival().getDelay() != 0))
+//                .forEach(tripUpdate -> {
+//                    final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(tripUpdate.getTrip().getTripId());
+//                    if (boardEdges == null) {
+//                        logger.warn("Trip "+tripUpdate.getTrip()+" not found.");
+//                        return;
+//                    }
+//                    final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(tripUpdate.getTrip().getTripId());
+//                    blockedEdges.addAll(boardEdges);
+//                    blockedEdges.addAll(leaveEdges);
+//
+//                    GtfsReader.TripWithStopTimes tripWithStopTimes = toTripWithStopTimes(feed, dateToChange, tripUpdate);
+//                    gtfsReader.addTrips(agencyId, zoneId, Collections.singletonList(tripWithStopTimes), 0, true);
+//                });
+//
+//        gtfsReader.wireUpStops();
+//        gtfsReader.connectStopsToStationNodes();
 
         return new RealtimeFeed(feedMessage, blockedEdges, additionalEdges);
     }
