@@ -110,13 +110,14 @@ public class RealtimeFeed {
     }
 
     public Optional<GtfsReader.TripWithStopTimes> getTripUpdate(GtfsRealtime.TripDescriptor tripDescriptor) {
+        logger.trace("getTripUpdate {}", tripDescriptor);
         if (feedMessage == null) {
             return Optional.empty();
         } else {
             return feedMessage.getEntityList().stream()
                     .filter(e -> e.hasTripUpdate())
                     .map(e -> e.getTripUpdate())
-                    .filter(tu -> tu.getTrip().equals(tripDescriptor))
+                    .filter(tu -> tu.getTrip().getTripId().equals(tripDescriptor.getTripId()))
                     .map(tu -> toTripWithStopTimes(staticFeed, agency, tu))
                     .findFirst();
         }
