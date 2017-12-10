@@ -179,7 +179,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                     public void dispose(RealtimeFeed instance) {
 
                     }
-                }).to(RealtimeFeed.class).in(Singleton.class);
+                }).to(RealtimeFeed.class);
                 bind(false).to(Boolean.class).named("hasElevation");
                 bind(locationIndex).to(LocationIndex.class);
                 bind(translationMap).to(TranslationMap.class);
