@@ -49,7 +49,7 @@ public class RealtimeFeedConfiguration {
         this.agencyId = agencyId;
     }
 
-    public GtfsRealtime.FeedMessage getRealtimeFeed() {
+    public GtfsRealtime.FeedMessage getFeedMessage() {
         try {
             return GtfsRealtime.FeedMessage.parseFrom(url.openStream());
         } catch (IOException e) {

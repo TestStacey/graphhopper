@@ -18,12 +18,14 @@
 
 package com.graphhopper.http;
 
+import com.codahale.metrics.health.HealthCheck;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.http.api.JsonContainerResponseFilter;
@@ -47,7 +49,6 @@ import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.servlet.DispatcherType;
 import java.io.IOException;
 import java.util.Arrays;
@@ -172,7 +173,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 bindFactory(new Factory<RealtimeFeed>() {
                     @Override
                     public RealtimeFeed provide() {
-                        return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().getRealtimeFeed(), configuration.gtfsrealtime().getAgencyId());
+                        return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().getFeedMessage(), configuration.gtfsrealtime().getAgencyId());
                     }
 
                     @Override
@@ -188,6 +189,13 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 bind(gtfsStorage).to(GtfsStorage.class);
                 bindFactory(GraphHopperAPIFactory.class).to(GraphHopperAPI.class);
 
+            }
+        });
+        environment.healthChecks().register("realtime-feed", new HealthCheck() {
+            @Override
+            protected Result check() throws Exception {
+                GtfsRealtime.FeedMessage feedMessage = configuration.gtfsrealtime().getFeedMessage();
+                return Result.healthy();
             }
         });
         environment.jersey().register(NearestResource.class);
