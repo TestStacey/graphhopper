@@ -101,8 +101,8 @@ public class GtfsStorage implements GraphExtension {
 	private Map<Integer, byte[]> tripDescriptors;
 	private Map<Integer, Integer> stopSequences;
 	private Map<String, Fare> fares;
-	private Map<String, int[]> boardEdgesForTrip;
-	private Map<String, int[]> leaveEdgesForTrip;
+	private Map<GtfsRealtime.TripDescriptor, int[]> boardEdgesForTrip;
+	private Map<GtfsRealtime.TripDescriptor, int[]> leaveEdgesForTrip;
 
 	private Map<String, Integer> stationNodes;
 
@@ -149,7 +149,7 @@ public class GtfsStorage implements GraphExtension {
 
 	@Override
 	public boolean loadExisting() {
-		this.data = DBMaker.newFileDB(new File(dir.getLocation() + "/transit_schedule")).transactionDisable().mmapFileEnable().make();
+		this.data = DBMaker.newFileDB(new File(dir.getLocation() + "/transit_schedule")).transactionDisable().mmapFileEnable().readOnly().make();
 		init();
 		for (String gtfsFeedId : this.gtfsFeedIds) {
 			try {
@@ -272,11 +272,11 @@ public class GtfsStorage implements GraphExtension {
 		return stopSequences;
 	}
 
-	public Map<String, int[]> getBoardEdgesForTrip() {
+	Map<GtfsRealtime.TripDescriptor, int[]> getBoardEdgesForTrip() {
 		return boardEdgesForTrip;
 	}
 
-	Map<String, int[]> getAlightEdgesForTrip() {
+	Map<GtfsRealtime.TripDescriptor, int[]> getAlightEdgesForTrip() {
 		return leaveEdgesForTrip;
 	}
 

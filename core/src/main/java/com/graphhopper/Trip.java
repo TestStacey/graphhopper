@@ -101,8 +101,8 @@ public class Trip {
         public final String route_id;
 
         @JsonCreator
-        public PtLeg(@JsonProperty("stops") List<Stop> stops, @JsonProperty("departureTime") Date departureTime, @JsonProperty("edges") List<EdgeIteratorState> edges, @JsonProperty("geometry") Geometry geometry, @JsonProperty("distance") double distance, @JsonProperty("arrivalTime") Date arrivalTime, @JsonProperty("feed_id") String feedId, @JsonProperty("trip_id") String tripId, @JsonProperty("route_id") String routeId, @JsonProperty("isInSameVehicleAsPrevious") boolean isInSameVehicleAsPrevious, @JsonProperty("travelTime") long travelTime) {
-            super("pt", stops.get(0).stop_name, departureTime, edges, geometry, distance, arrivalTime);
+        public PtLeg(@JsonProperty("stops") List<Stop> stops, @JsonProperty("edges") List<EdgeIteratorState> edges, @JsonProperty("geometry") Geometry geometry, @JsonProperty("distance") double distance, @JsonProperty("feed_id") String feedId, @JsonProperty("trip_id") String tripId, @JsonProperty("route_id") String routeId, @JsonProperty("isInSameVehicleAsPrevious") boolean isInSameVehicleAsPrevious, @JsonProperty("travelTime") long travelTime) {
+            super("pt", stops.get(0).stop_name, edges, geometry, distance);
             this.feed_id = feedId;
             this.isInSameVehicleAsPrevious = isInSameVehicleAsPrevious;
             this.trip_id = tripId;

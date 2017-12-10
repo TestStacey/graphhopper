@@ -248,7 +248,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(0).build());
 
-        GHResponse responseWithRealtimeUpdate = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
+        GHResponse responseWithRealtimeUpdate = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
         assertEquals(1, responseWithRealtimeUpdate.getAll().size());
 
         PathWrapper responseWithRealtimeUpdateBest = responseWithRealtimeUpdate.getBest();
@@ -289,7 +289,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(180).build());
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
         assertEquals(1, response.getAll().size());
 
         assertEquals("My line run is 3 minutes late.", time(0, 8), response.getBest().getLegs().get(response.getBest().getLegs().size() - 1).getArrivalTime().toInstant().toEpochMilli() - initialTime.toEpochMilli(), 0.1);
@@ -327,7 +327,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(180).build());
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
         assertEquals(1, response.getAll().size());
 
         assertEquals("My line run is 3 minutes late.", LocalDateTime.parse("2007-01-01T06:52:00").atZone(zoneId).toInstant(), response.getBest().getLegs().get(response.getBest().getLegs().size() - 1).getArrivalTime().toInstant());

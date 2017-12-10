@@ -51,9 +51,6 @@ public class ImportCommand extends ConfiguredCommand<GraphHopperServerConfigurat
                     configuration.graphhopper().getBool("gtfs.createwalknetwork", false),
                     configuration.graphhopper().has("gtfs.file") ? Arrays.asList(configuration.graphhopper().get("gtfs.file", "").split(",")) : Collections.emptyList(),
                     configuration.graphhopper().has("datareader.file") ? Arrays.asList(configuration.graphhopper().get("datareader.file", "").split(",")) : Collections.emptyList());
-            int[] ints = gtfsStorage.getBoardEdgesForTrip().get("7732602");
-            System.out.println(Arrays.toString(ints));
-
             graphHopperStorage.close();
         } else {
             final GraphHopperManaged graphHopper = new GraphHopperManaged(configuration.graphhopper());
