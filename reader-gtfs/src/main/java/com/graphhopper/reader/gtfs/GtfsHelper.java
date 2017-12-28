@@ -21,6 +21,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * Generic helper for GTFS routines.
@@ -55,6 +56,6 @@ public class GtfsHelper {
     }
 
     public static LocalDateTime localDateTimeFromDate(Date date) {
-        return LocalDateTime.parse(new SimpleDateFormat("YYYY-MM-dd'T'HH:mm").format(date));
+        return LocalDateTime.parse(new SimpleDateFormat("YYYY-MM-dd'T'HH:mm", Locale.ROOT).format(date));
     }
 }

@@ -1,12 +1,21 @@
-FROM openjdk:8-jre
+FROM openjdk:8-jdk
 
-WORKDIR /var/graphhopper
+ENV JETTY_PORT 11111
+ENV JAVA_OPTS "-server -Xconcurrentio -Xmx1g -Xms1g -XX:+UseG1GC -XX:MetaspaceSize=100M"
 
-ADD graphhopper-web-0.10-SNAPSHOT.jar /var/graphhopper/graphhopper-dw.jar
-ADD vbb.yml /var/graphhopper/vbb.yml
-ADD brandenburg-latest.osm.pbf /var/graphhopper/brandenburg-latest.osm.pbf
-ADD 1190951.zip /var/graphhopper/1190951.zip
+RUN mkdir -p /data && \
+    mkdir -p /graphhopper
 
-EXPOSE 8989 8990
+COPY . /graphhopper/
 
-ENTRYPOINT ["java", "-Xmx6000m", "-jar", "graphhopper-dw.jar", "server", "vbb.yml"]
+WORKDIR /graphhopper
+
+RUN ./graphhopper.sh buildweb
+
+VOLUME [ "/data" ]
+
+EXPOSE 11111
+
+ENTRYPOINT [ "./graphhopper.sh", "web" ]
+
+CMD [ "/data/europe_germany_berlin.pbf" ]
