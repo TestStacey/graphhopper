@@ -169,18 +169,32 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
             @Override
             protected void configure() {
                 bind(configuration.graphhopper()).to(CmdArgs.class);
-                bind(configuration.gtfsrealtime()).to(RealtimeFeedConfiguration.class);
-                bindFactory(new Factory<RealtimeFeed>() {
-                    @Override
-                    public RealtimeFeed provide() {
-                        return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().getFeedMessage(), configuration.gtfsrealtime().getAgencyId());
-                    }
+                if (configuration.gtfsrealtime().getUrl() != null) {
+                    bind(configuration.gtfsrealtime()).to(RealtimeFeedConfiguration.class);
+                    bindFactory(new Factory<RealtimeFeed>() {
+                        @Override
+                        public RealtimeFeed provide() {
+                            return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().getFeedMessage(), configuration.gtfsrealtime().getAgencyId());
+                        }
 
-                    @Override
-                    public void dispose(RealtimeFeed instance) {
+                        @Override
+                        public void dispose(RealtimeFeed instance) {
 
-                    }
-                }).to(RealtimeFeed.class);
+                        }
+                    }).to(RealtimeFeed.class);
+                } else {
+                    bindFactory(new Factory<RealtimeFeed>() {
+                        @Override
+                        public RealtimeFeed provide() {
+                            return RealtimeFeed.empty();
+                        }
+
+                        @Override
+                        public void dispose(RealtimeFeed instance) {
+
+                        }
+                    }).to(RealtimeFeed.class);
+                }
                 bind(false).to(Boolean.class).named("hasElevation");
                 bind(locationIndex).to(LocationIndex.class);
                 bind(translationMap).to(TranslationMap.class);
