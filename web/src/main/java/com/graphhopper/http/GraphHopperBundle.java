@@ -186,7 +186,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                     bindFactory(new Factory<RealtimeFeed>() {
                         @Override
                         public RealtimeFeed provide() {
-                            return RealtimeFeed.empty();
+                            return RealtimeFeed.empty(gtfsStorage);
                         }
 
                         @Override
