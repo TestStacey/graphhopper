@@ -392,7 +392,7 @@ public class RealtimeFeed {
     }
 
     public GtfsRealtime.TripDescriptor normalize(GtfsRealtime.TripDescriptor tripDescriptor) {
-        return GtfsRealtime.TripDescriptor.newBuilder(tripDescriptor).clearRouteId().build();
+        return GtfsRealtime.TripDescriptor.newBuilder(tripDescriptor).clearRouteId().clearStartTime().build();
     }
 
     public static GtfsReader.TripWithStopTimes toTripWithStopTimes(GTFSFeed feed, Agency agency, GtfsRealtime.TripUpdate tripUpdate) {
