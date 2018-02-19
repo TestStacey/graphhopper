@@ -42,7 +42,7 @@ class Transfers {
     List<Transfer> getTransfersToStop(Stop to, String toRouteId) {
         final List<Transfer> allInboundTransfers = transfers.getOrDefault(to.stop_id, Collections.emptyList());
         final Map<String, List<Transfer>> byFromStop = allInboundTransfers.stream()
-                .filter(t -> t.transfer_type == 2)
+                .filter(t -> t.transfer_type == 0 || t.transfer_type == 2)
                 .filter(t -> t.to_route_id == null || toRouteId.equals(t.to_route_id))
                 .collect(Collectors.groupingBy(t -> t.from_stop_id));
         final List<Transfer> result = new ArrayList<>();
