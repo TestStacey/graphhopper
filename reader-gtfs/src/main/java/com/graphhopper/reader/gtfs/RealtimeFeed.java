@@ -359,7 +359,7 @@ public class RealtimeFeed {
                     GtfsReader.TripWithStopTimes tripWithStopTimes = new GtfsReader.TripWithStopTimes(trip, stopTimes, validOnDay, Collections.emptySet(), Collections.emptySet());
                     gtfsReader.addTrip(ZoneId.of(agency.agency_timezone), 0, new ArrayList<>(), tripWithStopTimes, tripUpdate.getTrip());
                 });
-        gtfsReader.wireUpStops();
+        gtfsReader.wireUpStops(ZoneId.of(agency.agency_timezone));
         gtfsReader.connectStopsToStationNodes();
         return new RealtimeFeed(staticGtfs, feed, agency, feedMessage, blockedEdges, delaysForAlightEdges, additionalEdges, tripDescriptors, stopSequences);
     }

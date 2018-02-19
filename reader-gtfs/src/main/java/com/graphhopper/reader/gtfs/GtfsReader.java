@@ -224,10 +224,10 @@ class GtfsReader {
             }
         });
 
-        wireUpStops();
+        wireUpStops(ZoneId.of(feed.agency.values().iterator().next().agency_timezone)); // FIXME
     }
 
-    void wireUpStops() {
+    void wireUpStops(ZoneId zoneId) {
         for (Stop stop : feed.stops.values()) {
             if (stop.location_type == 0) { // Only stops. Not interested in parent stations for now.
                 List<Integer> stopExitNodeIds = new ArrayList<>();
@@ -243,7 +243,7 @@ class GtfsReader {
                         NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = new TreeSet<>();
                         timelineNodesWithTripId.stream().map(t -> t.timelineNodeId)
                                 .forEach(nodeId -> timeNodes.add(new Fun.Tuple2<>(times.get(nodeId) % (24*60*60), nodeId)));
-                        wireUpAndAndConnectArrivalTimeline(stop, routeId,stopExitNode, timeNodes);
+                        wireUpAndAndConnectArrivalTimeline(stop, stopExitNode, timeNodes, zoneId);
                     });
 
                 }
@@ -385,8 +385,7 @@ class GtfsReader {
         arrivalNodes.add(arrivalNode);
     }
 
-    private void wireUpAndAndConnectArrivalTimeline(Stop toStop, String routeId, int stopExitNode, NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes) {
-        ZoneId zoneId = ZoneId.of(feed.agency.get(feed.routes.get(routeId).agency_id).agency_timezone);
+    private void wireUpAndAndConnectArrivalTimeline(Stop toStop, int stopExitNode, NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes, ZoneId zoneId) {
         int time = 0;
         int prev = -1;
         for (Fun.Tuple2<Integer, Integer> e : timeNodes.descendingSet()) {
@@ -508,7 +507,8 @@ class GtfsReader {
 
     private String getRouteName(GTFSFeed feed, Trip trip) {
         Route route = feed.routes.get(trip.route_id);
-        return (route.route_long_name != null ? route.route_long_name : route.route_short_name) + " " + trip.trip_headsign;
+        String routePart = route != null ? (route.route_long_name != null ? route.route_long_name : route.route_short_name) : "extra";
+        return routePart + " " + trip.trip_headsign;
     }
 
     private void setEdgeType(EdgeIteratorState edge, GtfsStorage.EdgeType edgeType) {
