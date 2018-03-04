@@ -213,7 +213,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
             }
         });
         environment.jersey().register(NearestResource.class);
-        environment.jersey().register(RouteResource.class);
+        environment.jersey().register(graphHopper);
         environment.jersey().register(I18NResource.class);
         environment.jersey().register(InfoResource.class);
         environment.jersey().register(StaticFeedResource.class);

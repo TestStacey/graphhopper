@@ -121,7 +121,7 @@ public class GHRequest {
 
     public GHRequest(
             @Context UriInfo uriInfo,
-            @QueryParam("point") List<GHLocation> points,
+            @QueryParam("point") List<GHPoint> points,
             @QueryParam("heading") List<Double> favoredHeadings,
             @QueryParam("vehicle") @DefaultValue("car") String vehicleStr,
             @QueryParam("weighting") @DefaultValue("fastest") String weighting,
@@ -132,18 +132,16 @@ public class GHRequest {
             @QueryParam(WAY_POINT_MAX_DISTANCE) @DefaultValue("1") double minPathPrecision,
             @QueryParam(Parameters.Routing.POINT_HINT) List<String> pointHints,
             @QueryParam(Parameters.DETAILS.PATH_DETAILS) List<String> pathDetails) {
-        if (favoredHeadings != null && points != null) {
-            if (favoredHeadings.size() == 0) {
-                favoredHeadings = new ArrayList<>(Collections.nCopies(points.size(), Double.NaN));
-            } else if (favoredHeadings.size() == 1 && points.size() > 0) {
-                // if only one favored heading is specified take as start heading
-                final Double startHeading = favoredHeadings.get(0);
-                favoredHeadings = new ArrayList<>(Collections.nCopies(points.size(), Double.NaN));
-                favoredHeadings.set(0, startHeading);
-            }
-            this.points.addAll(points);
-            this.favoredHeadings.addAll(favoredHeadings);
+        if (favoredHeadings.size() == 0) {
+            favoredHeadings = new ArrayList<>(Collections.nCopies(points.size(), Double.NaN));
+        } else if (favoredHeadings.size() == 1 && points.size() > 0) {
+            // if only one favored heading is specified take as start heading
+            final Double startHeading = favoredHeadings.get(0);
+            favoredHeadings = new ArrayList<>(Collections.nCopies(points.size(), Double.NaN));
+            favoredHeadings.set(0, startHeading);
         }
+        this.points = points;
+        this.favoredHeadings = favoredHeadings;
         for (Map.Entry<String, List<String>> e : uriInfo.getQueryParameters().entrySet()) {
             if (e.getValue().size() == 1) {
                 hints.put(e.getKey(), e.getValue().get(0));
