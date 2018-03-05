@@ -199,6 +199,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 bind(locationIndex).to(LocationIndex.class);
                 bind(translationMap).to(TranslationMap.class);
                 bind(encodingManager).to(EncodingManager.class);
+                bind(ptFlagEncoder).to(PtFlagEncoder.class);
                 bind(graphHopperStorage).to(GraphHopperStorage.class);
                 bind(gtfsStorage).to(GtfsStorage.class);
 
