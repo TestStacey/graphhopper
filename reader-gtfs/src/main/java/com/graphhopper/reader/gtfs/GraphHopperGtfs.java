@@ -331,6 +331,7 @@ public final class GraphHopperGtfs {
         }
     }
 
+    @Inject
     public GraphHopperGtfs(PtFlagEncoder flagEncoder, TranslationMap translationMap, GraphHopperStorage graphHopperStorage, LocationIndex locationIndex, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed) {
         this.flagEncoder = flagEncoder;
         this.translationMap = translationMap;

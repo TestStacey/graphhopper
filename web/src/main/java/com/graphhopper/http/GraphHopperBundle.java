@@ -201,7 +201,6 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 bind(encodingManager).to(EncodingManager.class);
                 bind(graphHopperStorage).to(GraphHopperStorage.class);
                 bind(gtfsStorage).to(GtfsStorage.class);
-                bindFactory(GraphHopperAPIFactory.class).to(GraphHopperAPI.class);
 
             }
         });
@@ -213,7 +212,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
             }
         });
         environment.jersey().register(NearestResource.class);
-        environment.jersey().register(graphHopper);
+        environment.jersey().register(GraphHopperGtfs.class);
         environment.jersey().register(I18NResource.class);
         environment.jersey().register(InfoResource.class);
         environment.jersey().register(StaticFeedResource.class);
@@ -320,32 +319,4 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
         }
     }
 
-    private static class GraphHopperAPIFactory implements Factory<GraphHopperAPI> {
-        private final PtFlagEncoder ptFlagEncoder;
-        private final TranslationMap translationMap;
-        private final GraphHopperStorage graphHopperStorage;
-        private final LocationIndex locationIndex;
-        private final GtfsStorage gtfsStorage;
-        private final RealtimeFeed realtimeFeed;
-
-        @Inject
-        public GraphHopperAPIFactory(EncodingManager encodingManager, TranslationMap translationMap, GraphHopperStorage graphHopperStorage, LocationIndex locationIndex, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed) {
-            this.ptFlagEncoder = ((PtFlagEncoder) encodingManager.getEncoder("pt"));
-            this.translationMap = translationMap;
-            this.graphHopperStorage = graphHopperStorage;
-            this.locationIndex = locationIndex;
-            this.gtfsStorage = gtfsStorage;
-            this.realtimeFeed = realtimeFeed;
-        }
-
-        @Override
-        public GraphHopperAPI provide() {
-            return new GraphHopperGtfs(ptFlagEncoder, translationMap, graphHopperStorage, locationIndex, gtfsStorage, realtimeFeed);
-        }
-
-        @Override
-        public void dispose(GraphHopperAPI instance) {
-
-        }
-    }
 }
