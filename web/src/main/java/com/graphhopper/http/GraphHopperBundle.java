@@ -164,6 +164,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 configuration.graphhopper().has("datareader.file") ? Arrays.asList(configuration.graphhopper().get("datareader.file", "").split(",")) : Collections.emptyList());
         final TranslationMap translationMap = GraphHopperGtfs.createTranslationMap();
         final LocationIndex locationIndex = GraphHopperGtfs.createOrLoadIndex(ghDirectory, graphHopperStorage, ptFlagEncoder);
+        final RealtimeFeedCache realtimeFeedCache = new RealtimeFeedCache(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime());
 
         environment.jersey().register(new AbstractBinder() {
             @Override
@@ -174,7 +175,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                     bindFactory(new Factory<RealtimeFeed>() {
                         @Override
                         public RealtimeFeed provide() {
-                            return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().getFeedMessage(), configuration.gtfsrealtime().getAgencyId());
+                            return realtimeFeedCache.getRealtimeFeed();
                         }
 
                         @Override
