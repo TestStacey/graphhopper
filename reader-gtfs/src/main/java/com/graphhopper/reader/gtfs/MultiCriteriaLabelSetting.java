@@ -17,16 +17,19 @@
  */
 package com.graphhopper.reader.gtfs;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.util.EdgeIterator;
-import com.graphhopper.util.EdgeIteratorState;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.PriorityQueue;
+import java.util.Spliterators;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -45,7 +48,7 @@ class MultiCriteriaLabelSetting {
     private long startTime;
     private final PtFlagEncoder flagEncoder;
     private final PtTravelTimeWeighting weighting;
-    private final SetMultimap<Integer, Label> fromMap;
+    private final Multimap<Integer, Label> fromMap;
     private final PriorityQueue<Label> fromHeap;
     private final int maxVisitedNodes;
     private final boolean reverse;
@@ -73,7 +76,7 @@ class MultiCriteriaLabelSetting {
                 .thenComparing(Comparator.comparingLong(l1 -> l1.nWalkDistanceConstraintViolations))
                 .thenComparing(Comparator.comparingLong(l -> departureTimeCriterion(l) != null ? departureTimeCriterion(l) : 0));
         fromHeap = new PriorityQueue<>(queueComparator);
-        fromMap = HashMultimap.create();
+        fromMap = ArrayListMultimap.create();
     }
 
     Stream<Label> calcLabels(int from, int to, Instant startTime) {
@@ -86,12 +89,12 @@ class MultiCriteriaLabelSetting {
     private class MultiCriteriaLabelSettingSpliterator extends Spliterators.AbstractSpliterator<Label> {
 
         private final int to;
-        private final Set<Label> targetLabels;
+        private final Collection<Label> targetLabels;
 
         MultiCriteriaLabelSettingSpliterator(int from, int to) {
             super(0, 0);
             this.to = to;
-            targetLabels = new HashSet<>();
+            targetLabels = new ArrayList<>();
             Label label = new Label(startTime, EdgeIterator.NO_EDGE, from, 0, 0, 0.0, null, 0, 0,false,null);
             fromMap.put(from, label);
             fromHeap.add(label);
@@ -131,7 +134,7 @@ class MultiCriteriaLabelSetting {
                     long walkTime = label.walkTime + (edgeType == GtfsStorage.EdgeType.HIGHWAY || edgeType == GtfsStorage.EdgeType.ENTER_PT || edgeType == GtfsStorage.EdgeType.EXIT_PT ? nextTime - label.currentTime : 0);
                     int nWalkDistanceConstraintViolations = Math.min(1, label.nWalkDistanceConstraintViolations + (
                             isTryingToReEnterPtAfterTransferWalking ? 1 : (label.walkDistanceOnCurrentLeg <= maxWalkDistancePerLeg && walkDistanceOnCurrentLeg > maxWalkDistancePerLeg ? 1 : 0)));
-                    Set<Label> sptEntries = fromMap.get(edge.getAdjNode());
+                    Collection<Label> sptEntries = fromMap.get(edge.getAdjNode());
                     boolean impossible = label.impossible
                             || explorer.isBlocked(edge)
                             || (!reverse) && edgeType == GtfsStorage.EdgeType.BOARD && label.residualDelay > 0
@@ -167,7 +170,7 @@ class MultiCriteriaLabelSetting {
         }
     }
 
-    private boolean isNotDominatedByAnyOf(Label me, Set<Label> sptEntries) {
+    private boolean isNotDominatedByAnyOf(Label me, Collection<Label> sptEntries) {
         if (me.nWalkDistanceConstraintViolations > 0) {
             return false;
         }
@@ -180,7 +183,7 @@ class MultiCriteriaLabelSetting {
     }
 
 
-    private void removeDominated(Label me, Set<Label> sptEntries) {
+    private void removeDominated(Label me, Collection<Label> sptEntries) {
         for (Iterator<Label> iterator = sptEntries.iterator(); iterator.hasNext();) {
             Label sptEntry = iterator.next();
             if (dominates(me, sptEntry)) {
