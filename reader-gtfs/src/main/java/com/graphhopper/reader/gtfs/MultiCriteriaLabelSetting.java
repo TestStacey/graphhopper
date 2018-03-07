@@ -112,6 +112,7 @@ class MultiCriteriaLabelSetting {
                 action.accept(label);
                 explorer.exploreEdgesAround(label).forEach(edge -> {
                     GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edge.getFlags());
+                    if (edgeType == GtfsStorage.EdgeType.HIGHWAY && maxTransferDistancePerLeg <= 0.0) return;
                     long nextTime;
                     if (reverse) {
                         nextTime = label.currentTime - explorer.calcTravelTimeMillis(edge, label.currentTime);
@@ -157,6 +158,10 @@ class MultiCriteriaLabelSetting {
                         removeDominated(nEdge, sptEntries);
                         if (to == edge.getAdjNode()) {
                             removeDominated(nEdge, targetLabels);
+                        }
+                        // System.out.println(fromMap.get(edge.getAdjNode()).size());
+                        if(fromMap.get(edge.getAdjNode()).size() > 1) {
+                            System.out.println(edgeType);
                         }
                         fromMap.put(edge.getAdjNode(), nEdge);
                         if (to == edge.getAdjNode()) {
