@@ -26,6 +26,7 @@ import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 import com.graphhopper.storage.GraphHopperStorage;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class RealtimeFeedCache {
@@ -52,6 +53,11 @@ public class RealtimeFeedCache {
     }
 
     public RealtimeFeed getRealtimeFeed() {
-        return cache.getUnchecked("pups");
+        try {
+            return cache.get("pups");
+        } catch (ExecutionException | RuntimeException e) {
+            System.out.println(e);
+            return RealtimeFeed.empty(gtfsStorage);
+        }
     }
 }
