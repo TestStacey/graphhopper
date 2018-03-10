@@ -92,11 +92,13 @@ class MultiCriteriaLabelSetting {
 
     private class MultiCriteriaLabelSettingSpliterator extends Spliterators.AbstractSpliterator<Label> {
 
+        private final int from;
         private final int to;
         private final Collection<Label> targetLabels;
 
         MultiCriteriaLabelSettingSpliterator(int from, int to) {
             super(0, 0);
+            this.from = from;
             this.to = to;
             targetLabels = new ArrayList<>();
             Label label = new Label(startTime, EdgeIterator.NO_EDGE, from, 0, 0, 0.0, null, 0, 0,false,null);
@@ -117,8 +119,8 @@ class MultiCriteriaLabelSetting {
                 explorer.exploreEdgesAround(label).forEach(edge -> {
                     GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edge.getFlags());
                     if (edgeType == GtfsStorage.EdgeType.HIGHWAY && maxTransferDistancePerLeg <= 0.0) return;
-                    if (edgeType == GtfsStorage.EdgeType.ENTER_PT && flagEncoder.getTime(edge.getFlags()) == 0 && maxTransferDistancePerLeg <= 0.0) return;
-                    if (edgeType == GtfsStorage.EdgeType.EXIT_PT && flagEncoder.getTime(edge.getFlags()) == 0 && maxTransferDistancePerLeg <= 0.0) return;
+                    if (edgeType == GtfsStorage.EdgeType.ENTER_PT && ((reverse?edge.getAdjNode():edge.getBaseNode()) != (reverse?to:from)) && maxTransferDistancePerLeg <= 0.0) return;
+                    if (edgeType == GtfsStorage.EdgeType.EXIT_PT && ((reverse?edge.getBaseNode():edge.getAdjNode()) != (reverse?from:to)) && maxTransferDistancePerLeg <= 0.0) return;
                     long nextTime;
                     if (reverse) {
                         nextTime = label.currentTime - explorer.calcTravelTimeMillis(edge, label.currentTime);
