@@ -314,7 +314,6 @@ public final class GraphHopperGtfs {
         }
 
         private List<Label> findPaths(int startNode, int destNode, Consumer<? super Label> action) {
-            System.out.println("wurst");
             StopWatch stopWatch = new StopWatch().start();
             graphExplorer = new GraphExplorer(queryGraph, weighting, flagEncoder, gtfsStorage, realtimeFeed, arriveBy, extraNodes, extraEdges, false);
             MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, weighting, arriveBy, maxWalkDistancePerLeg, -1, !ignoreTransfers, profileQuery, maxVisitedNodesForRequest);
