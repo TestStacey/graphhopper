@@ -165,22 +165,6 @@ class MultiCriteriaLabelSetting {
                         if (to == edge.getAdjNode()) {
                             removeDominated(nEdge, targetLabels);
                         }
-                        if(fromMap.get(edge.getAdjNode()).size() > 0) {
-                            System.out.println(fromMap.get(edge.getAdjNode()).size());
-
-                                System.out.println("---");
-//                                ArrayList<Label.Transition> transitions = new ArrayList<>();
-//                                reverseEdges(label, explorer, flagEncoder, true)
-//                                        .forEach(transitions::add);
-//                                Collections.reverse(transitions);
-//                                transitions.forEach(t -> System.out.println(t));
-                                Label i = label;
-                                while (i != null) {
-                                    EdgeIteratorState edgeIteratorState = explorer.getEdgeIteratorState(label.edge, label.adjNode);
-                                    System.out.println(flagEncoder.getEdgeType(edgeIteratorState.getFlags()));
-                                    i = i.parent;
-                                }
-                        }
                         fromMap.put(edge.getAdjNode(), nEdge);
                         if (to == edge.getAdjNode()) {
                             targetLabels.add(nEdge);
