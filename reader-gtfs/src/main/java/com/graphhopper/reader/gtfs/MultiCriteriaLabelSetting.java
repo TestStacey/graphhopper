@@ -21,10 +21,12 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.util.EdgeIterator;
+import com.graphhopper.util.EdgeIteratorState;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.PriorityQueue;
@@ -32,6 +34,8 @@ import java.util.Spliterators;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import static com.graphhopper.reader.gtfs.Label.reverseEdges;
 
 /**
  * Implements a Multi-Criteria Label Setting (MLS) path finding algorithm
@@ -113,6 +117,8 @@ class MultiCriteriaLabelSetting {
                 explorer.exploreEdgesAround(label).forEach(edge -> {
                     GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edge.getFlags());
                     if (edgeType == GtfsStorage.EdgeType.HIGHWAY && maxTransferDistancePerLeg <= 0.0) return;
+                    if (edgeType == GtfsStorage.EdgeType.ENTER_PT && flagEncoder.getTime(edge.getFlags()) == 0 && maxTransferDistancePerLeg <= 0.0) return;
+                    if (edgeType == GtfsStorage.EdgeType.EXIT_PT && flagEncoder.getTime(edge.getFlags()) == 0 && maxTransferDistancePerLeg <= 0.0) return;
                     long nextTime;
                     if (reverse) {
                         nextTime = label.currentTime - explorer.calcTravelTimeMillis(edge, label.currentTime);
@@ -159,9 +165,21 @@ class MultiCriteriaLabelSetting {
                         if (to == edge.getAdjNode()) {
                             removeDominated(nEdge, targetLabels);
                         }
-                        // System.out.println(fromMap.get(edge.getAdjNode()).size());
-                        if(fromMap.get(edge.getAdjNode()).size() > 1) {
-                            System.out.println(edgeType);
+                        if(fromMap.get(edge.getAdjNode()).size() > 0) {
+                            System.out.println(fromMap.get(edge.getAdjNode()).size());
+
+                                System.out.println("---");
+//                                ArrayList<Label.Transition> transitions = new ArrayList<>();
+//                                reverseEdges(label, explorer, flagEncoder, true)
+//                                        .forEach(transitions::add);
+//                                Collections.reverse(transitions);
+//                                transitions.forEach(t -> System.out.println(t));
+                                Label i = label;
+                                while (i != null) {
+                                    EdgeIteratorState edgeIteratorState = explorer.getEdgeIteratorState(label.edge, label.adjNode);
+                                    System.out.println(flagEncoder.getEdgeType(edgeIteratorState.getFlags()));
+                                    i = i.parent;
+                                }
                         }
                         fromMap.put(edge.getAdjNode(), nEdge);
                         if (to == edge.getAdjNode()) {
