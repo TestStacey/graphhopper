@@ -24,13 +24,7 @@ import com.graphhopper.util.EdgeIterator;
 import com.graphhopper.util.EdgeIteratorState;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.PriorityQueue;
-import java.util.Spliterators;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -161,20 +155,33 @@ class MultiCriteriaLabelSetting {
                             residualDelay = 0;
                         }
                     }
-                    Label nEdge = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, residualDelay, impossible, label);
-                    if (isNotDominatedByAnyOf(nEdge, sptEntries) && isNotDominatedByAnyOf(nEdge, targetLabels)) {
-                        removeDominated(nEdge, sptEntries);
-                        if (to == edge.getAdjNode()) {
-                            removeDominated(nEdge, targetLabels);
-                        }
-                        fromMap.put(edge.getAdjNode(), nEdge);
-                        if (to == edge.getAdjNode()) {
-                            targetLabels.add(nEdge);
-                        }
-                        fromHeap.add(nEdge);
+                    if (!reverse && edgeType == GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK && residualDelay > 0) {
+                        Label newImpossibleLabelForDelayedTrip = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, residualDelay, true, label);
+                        insertIfNotDominated(edge, sptEntries, newImpossibleLabelForDelayedTrip);
+                        nextTime += residualDelay;
+                        residualDelay = 0;
+                        Label newLabel = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, residualDelay, impossible, label);
+                        insertIfNotDominated(edge, sptEntries, newLabel);
+                    } else {
+                        Label newLabel = new Label(nextTime, edge.getEdge(), edge.getAdjNode(), nTransfers, nWalkDistanceConstraintViolations, walkDistanceOnCurrentLeg, firstPtDepartureTime, walkTime, residualDelay, impossible, label);
+                        insertIfNotDominated(edge, sptEntries, newLabel);
                     }
                 });
                 return true;
+            }
+        }
+
+        private void insertIfNotDominated(EdgeIteratorState edge, Collection<Label> sptEntries, Label nEdge) {
+            if (isNotDominatedByAnyOf(nEdge, sptEntries) && isNotDominatedByAnyOf(nEdge, targetLabels)) {
+                removeDominated(nEdge, sptEntries);
+                if (to == edge.getAdjNode()) {
+                    removeDominated(nEdge, targetLabels);
+                }
+                fromMap.put(edge.getAdjNode(), nEdge);
+                if (to == edge.getAdjNode()) {
+                    targetLabels.add(nEdge);
+                }
+                fromHeap.add(nEdge);
             }
         }
     }
