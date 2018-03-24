@@ -188,7 +188,7 @@ public class RealtimeIT {
                 .setStopSequence(3)
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(120).build());
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
 
         assertEquals("I am two minutes late for my bus, but the bus is two minutes late, too, so I catch it!", time(0, 5), response.getBest().getTime(), 0.1);
     }
