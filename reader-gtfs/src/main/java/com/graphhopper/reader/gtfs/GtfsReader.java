@@ -30,6 +30,7 @@ import com.conveyal.gtfs.model.Trip;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.transit.realtime.GtfsRealtime;
+import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.storage.Graph;
 import com.graphhopper.storage.NodeAccess;
@@ -51,6 +52,7 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -58,8 +60,12 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.Spliterators;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static com.conveyal.gtfs.model.Entity.Writer.convertToGtfsTime;
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -231,6 +237,7 @@ class GtfsReader {
                         EdgeIteratorState entryEdge = graph.edge(streetNode, stopEnterNode, 0.0, false);
                         setEdgeType(entryEdge, GtfsStorage.EdgeType.ENTER_PT);
                         entryEdge.setName(stop.stop_name);
+                        gtfsStorage.getRoutes().put(entryEdge.getEdge(), routeId);
 
                         NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
                         wireUpAndAndConnectDepartureTimeline(stop, routeId,stopEnterNode, timeNodes);
@@ -239,6 +246,78 @@ class GtfsReader {
             }
         }
         insertTransfers();
+    }
+
+    void wireUpAdditionalDepartures() {
+        for (Stop stop : feed.stops.values()) {
+            if (departureTimelineNodes.containsKey(stop.stop_id)) {
+                int stationNode = gtfsStorage.getStationNodes().get(stop.stop_id);
+                final Map<String, List<TimelineNodeIdWithTripId>> departureTimelineNodesByRoute = departureTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.routeId));
+                departureTimelineNodesByRoute.forEach((routeId, timelineNodesWithTripId) -> {
+                    NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
+                    Iterator<Fun.Tuple2<Integer, Integer>> realtimeTimelineIterator = timeNodes.iterator();
+                    Stream<Fun.Tuple2<Integer, Integer>> staticTimelineNodesForRoute = findDepartureTimelineNodesForRoute(stationNode, routeId);
+                    System.out.println("s --");
+                    staticTimelineNodesForRoute.forEach(System.out::println);
+                    System.out.println("d --");
+                    realtimeTimelineIterator.forEachRemaining(System.out::println);
+
+                    //                                        int departureTime = (int) encoder.getTime(j.getFlags());
+//                                        if (departureTime < e.a + minimumTransferTime) {
+//                                            continue;
+//                                        }
+//                                        EdgeIteratorState edge = graph.edge(e.b, j.getAdjNode(), 0.0, false);
+//                                        setEdgeType(edge, GtfsStorage.EdgeType.TRANSFER);
+//                                        edge.setFlags(encoder.setTime(edge.getFlags(), departureTime - e.a));
+
+                });
+            }
+        }
+    }
+
+    private Stream<Fun.Tuple2<Integer, Integer>> findDepartureTimelineNodesForRoute(int stationNode, String routeId) {
+        return StreamSupport.stream(new Spliterators.AbstractSpliterator<Fun.Tuple2<Integer, Integer>>(0, 0) {
+            int node = findFirstDepartureTimelineNodeForRoute(stationNode, routeId);
+            @Override
+            public boolean tryAdvance(Consumer<? super Fun.Tuple2<Integer, Integer>> action) {
+                if (node != -1) {
+                    action.accept(new Fun.Tuple2<>(times.get(node) % (24*60*60), node));
+                    EdgeIterator edgeIterator = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, false, true)).setBaseNode(node);
+                    node = -1;
+                    while (edgeIterator.next()) {
+                        if (encoder.getEdgeType(edgeIterator.getFlags()) == GtfsStorage.EdgeType.WAIT) {
+                            node = edgeIterator.getAdjNode();
+                            break;
+                        }
+                    }
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+
+        }, false);
+    }
+
+    private int findFirstDepartureTimelineNodeForRoute(int stationNode, String routeId) {
+        EdgeIterator i = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, false, true)).setBaseNode(stationNode);
+        while (i.next()) {
+            GtfsStorage.EdgeType edgeType = encoder.getEdgeType(i.getFlags());
+            if (edgeType == GtfsStorage.EdgeType.ENTER_PT) {
+                String anObject = gtfsStorage.getRoutes().get(i.getEdge());
+                if (routeId.equals(anObject)) {
+                    EdgeIterator j = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, false, true)).setBaseNode(i.getAdjNode());
+                    while (j.next()) {
+                        if (encoder.getEdgeType(j.getFlags()) == GtfsStorage.EdgeType.ENTER_TIME_EXPANDED_NETWORK) {
+                            return j.getAdjNode();
+                        }
+                    }
+
+                }
+            }
+        }
+        return -1;
     }
 
     private NavigableSet<Fun.Tuple2<Integer, Integer>> sorted(List<TimelineNodeIdWithTripId> timelineNodesWithTripId) {
