@@ -276,28 +276,24 @@ class GtfsReader {
     }
 
     private Stream<Fun.Tuple2<Integer, Integer>> findDepartureTimelineNodesForRoute(int stationNode, String routeId) {
-        return StreamSupport.stream(new Spliterators.AbstractSpliterator<Fun.Tuple2<Integer, Integer>>(0, 0) {
-            int node = findFirstDepartureTimelineNodeForRoute(stationNode, routeId);
+        int node = findFirstDepartureTimelineNodeForRoute(stationNode, routeId);
+        if (node == -1) {
+            return Stream.empty();
+        }
+        return StreamSupport.stream(new Spliterators.AbstractSpliterator<EdgeIteratorState>(0, 0) {
+            EdgeIterator edgeIterator = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, false, true)).setBaseNode(node);
             @Override
-            public boolean tryAdvance(Consumer<? super Fun.Tuple2<Integer, Integer>> action) {
-                if (node != -1) {
-                    action.accept(new Fun.Tuple2<>(times.get(node) % (24*60*60), node));
-                    EdgeIterator edgeIterator = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, false, true)).setBaseNode(node);
-                    node = -1;
-                    while (edgeIterator.next()) {
-                        if (encoder.getEdgeType(edgeIterator.getFlags()) == GtfsStorage.EdgeType.WAIT) {
-                            node = edgeIterator.getAdjNode();
-                            break;
-                        }
-                    }
+            public boolean tryAdvance(Consumer<? super EdgeIteratorState> action) {
+                if (edgeIterator.next()) {
+                    action.accept(edgeIterator);
                     return true;
                 } else {
                     return false;
                 }
             }
-
-
-        }, false);
+        }, false)
+                .filter(edge -> encoder.getEdgeType(edge.getFlags()) == GtfsStorage.EdgeType.ENTER_TIME_EXPANDED_NETWORK)
+                .map(edge -> new Fun.Tuple2<>((int) encoder.getTime(edge.getFlags()), edge.getAdjNode()));
     }
 
     private int findFirstDepartureTimelineNodeForRoute(int stationNode, String routeId) {
@@ -305,15 +301,8 @@ class GtfsReader {
         while (i.next()) {
             GtfsStorage.EdgeType edgeType = encoder.getEdgeType(i.getFlags());
             if (edgeType == GtfsStorage.EdgeType.ENTER_PT) {
-                String anObject = gtfsStorage.getRoutes().get(i.getEdge());
-                if (routeId.equals(anObject)) {
-                    EdgeIterator j = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, false, true)).setBaseNode(i.getAdjNode());
-                    while (j.next()) {
-                        if (encoder.getEdgeType(j.getFlags()) == GtfsStorage.EdgeType.ENTER_TIME_EXPANDED_NETWORK) {
-                            return j.getAdjNode();
-                        }
-                    }
-
+                if (routeId.equals(gtfsStorage.getRoutes().get(i.getEdge()))) {
+                    return i.getAdjNode();
                 }
             }
         }
