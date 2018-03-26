@@ -248,19 +248,51 @@ class GtfsReader {
         insertTransfers();
     }
 
-    void wireUpAdditionalDepartures() {
+    void wireUpAdditionalDepartures(ZoneId zoneId) {
         for (Stop stop : feed.stops.values()) {
-            if (departureTimelineNodes.containsKey(stop.stop_id)) {
-                int stationNode = gtfsStorage.getStationNodes().get(stop.stop_id);
-                final Map<String, List<TimelineNodeIdWithTripId>> departureTimelineNodesByRoute = departureTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.routeId));
-                departureTimelineNodesByRoute.forEach((routeId, timelineNodesWithTripId) -> {
+            int stationNode = gtfsStorage.getStationNodes().get(stop.stop_id);
+            final Map<String, List<TimelineNodeIdWithTripId>> departureTimelineNodesByRoute = departureTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.routeId));
+            departureTimelineNodesByRoute.forEach((routeId, timelineNodesWithTripId) -> {
+                int platformNode = findPlatformEnterNode(stationNode, routeId);
+                if (platformNode != -1) {
                     NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
                     Iterator<Fun.Tuple2<Integer, Integer>> realtimeTimelineIterator = timeNodes.iterator();
-                    Stream<Fun.Tuple2<Integer, Integer>> staticTimelineNodesForRoute = findDepartureTimelineNodesForRoute(stationNode, routeId);
+                    NavigableSet<Fun.Tuple2<Integer, Integer>> staticTimelineNodesForRoute = findDepartureTimelineNodesForRoute(stationNode, routeId).collect(Collectors.toCollection(TreeSet::new));
                     System.out.println("s --");
                     staticTimelineNodesForRoute.forEach(System.out::println);
                     System.out.println("d --");
-                    realtimeTimelineIterator.forEachRemaining(System.out::println);
+                    realtimeTimelineIterator.forEachRemaining(timelineNode -> {
+
+                        SortedSet<Fun.Tuple2<Integer, Integer>> headSet = staticTimelineNodesForRoute.headSet(timelineNode);
+                        if(!headSet.isEmpty()) {
+                            Fun.Tuple2<Integer, Integer> before = headSet.last();
+                            EdgeIteratorState edge = graph.edge(before.b, timelineNode.b,0.0, false);
+                            setEdgeType(edge, GtfsStorage.EdgeType.WAIT);
+                            edge.setFlags(encoder.setTime(edge.getFlags(), timelineNode.a-before.a));
+
+                            System.out.println(" "+ before);
+
+                        }
+                        SortedSet<Fun.Tuple2<Integer, Integer>> tailSet = staticTimelineNodesForRoute.tailSet(timelineNode);
+                        System.out.println(timelineNode);
+
+                        if (!tailSet.isEmpty()) {
+                            Fun.Tuple2<Integer, Integer> after = tailSet.first();
+                            EdgeIteratorState edge = graph.edge(timelineNode.b, after.b, 0.0, false);
+                            setEdgeType(edge, GtfsStorage.EdgeType.WAIT);
+                            edge.setFlags(encoder.setTime(edge.getFlags(), after.a-timelineNode.a));
+
+                            System.out.println(" "+ after);
+                        }
+
+                        // Likely doesn't help because has to be inserted "in order".
+                        EdgeIteratorState edge = graph.edge(platformNode, timelineNode.b, 0.0, false);
+                        setEdgeType(edge, GtfsStorage.EdgeType.ENTER_TIME_EXPANDED_NETWORK);
+                        System.out.println("furz");
+                        System.out.println(edge);
+                        edge.setFlags(encoder.setTime(edge.getFlags(), timelineNode.a));
+                        setFeedIdWithTimezone(edge, new GtfsStorage.FeedIdWithTimezone(id, zoneId));
+                    });
 
                     //                                        int departureTime = (int) encoder.getTime(j.getFlags());
 //                                        if (departureTime < e.a + minimumTransferTime) {
@@ -270,13 +302,30 @@ class GtfsReader {
 //                                        setEdgeType(edge, GtfsStorage.EdgeType.TRANSFER);
 //                                        edge.setFlags(encoder.setTime(edge.getFlags(), departureTime - e.a));
 
-                });
-            }
+                }
+            });
+            final Map<String, List<TimelineNodeIdWithTripId>> arrivalTimelineNodesByRoute = arrivalTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.routeId));
+            arrivalTimelineNodesByRoute.forEach((routeId, timelineNodesWithTripId) -> {
+                int platformNode = findPlatformExitNode(stationNode, routeId);
+                if (platformNode != -1) {
+                    NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
+                    Iterator<Fun.Tuple2<Integer, Integer>> realtimeTimelineIterator = timeNodes.iterator();
+                    realtimeTimelineIterator.forEachRemaining(timelineNode -> {
+                        System.out.println("pups");
+                        // Likely doesn't help because has to be inserted "in order".
+                        EdgeIteratorState edge = graph.edge(timelineNode.b, platformNode, 0.0, false);
+                        setEdgeType(edge, GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK);
+                        System.out.println(edge);
+                        edge.setFlags(encoder.setTime(edge.getFlags(), timelineNode.a));
+                        setFeedIdWithTimezone(edge, new GtfsStorage.FeedIdWithTimezone(id, zoneId));
+                    });
+                }
+            });
         }
     }
 
     private Stream<Fun.Tuple2<Integer, Integer>> findDepartureTimelineNodesForRoute(int stationNode, String routeId) {
-        int node = findFirstDepartureTimelineNodeForRoute(stationNode, routeId);
+        int node = findPlatformEnterNode(stationNode, routeId);
         if (node == -1) {
             return Stream.empty();
         }
@@ -296,11 +345,24 @@ class GtfsReader {
                 .map(edge -> new Fun.Tuple2<>((int) encoder.getTime(edge.getFlags()), edge.getAdjNode()));
     }
 
-    private int findFirstDepartureTimelineNodeForRoute(int stationNode, String routeId) {
+    private int findPlatformEnterNode(int stationNode, String routeId) {
         EdgeIterator i = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, false, true)).setBaseNode(stationNode);
         while (i.next()) {
             GtfsStorage.EdgeType edgeType = encoder.getEdgeType(i.getFlags());
             if (edgeType == GtfsStorage.EdgeType.ENTER_PT) {
+                if (routeId.equals(gtfsStorage.getRoutes().get(i.getEdge()))) {
+                    return i.getAdjNode();
+                }
+            }
+        }
+        return -1;
+    }
+
+    private int findPlatformExitNode(int stationNode, String routeId) {
+        EdgeIterator i = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, true, false)).setBaseNode(stationNode);
+        while (i.next()) {
+            GtfsStorage.EdgeType edgeType = encoder.getEdgeType(i.getFlags());
+            if (edgeType == GtfsStorage.EdgeType.EXIT_PT) {
                 if (routeId.equals(gtfsStorage.getRoutes().get(i.getEdge()))) {
                     return i.getAdjNode();
                 }

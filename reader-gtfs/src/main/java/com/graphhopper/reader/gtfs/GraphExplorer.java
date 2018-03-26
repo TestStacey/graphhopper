@@ -77,6 +77,9 @@ final class GraphExplorer {
 
     Stream<EdgeIteratorState> exploreEdgesAround(Label label) {
         final List<VirtualEdgeIteratorState> extraEdges = reverse ? extraEdgesByDestination.get(label.adjNode) : extraEdgesBySource.get(label.adjNode);
+        if (label.adjNode == 2636) {
+            System.out.println("schnurz");
+        }
         return Stream.concat(
                 label.adjNode < graph.getNodes() ? mainEdgesAround(label) : Stream.empty(),
                 extraEdges.stream()).filter(new EdgeIteratorStatePredicate(label));
@@ -187,6 +190,10 @@ final class GraphExplorer {
 
         @Override
         public boolean test(EdgeIteratorState edgeIterator) {
+            if (edgeIterator.getBaseNode() == 2634) {
+                System.out.println(edgeIterator);
+
+            }
             final GtfsStorage.EdgeType edgeType = flagEncoder.getEdgeType(edgeIterator.getFlags());
             if (walkOnly && edgeType != GtfsStorage.EdgeType.HIGHWAY && edgeType != (reverse ? GtfsStorage.EdgeType.EXIT_PT : GtfsStorage.EdgeType.ENTER_PT)) {
                 return false;
@@ -198,14 +205,16 @@ final class GraphExplorer {
                 return false;
             }
             if (edgeType == GtfsStorage.EdgeType.ENTER_TIME_EXPANDED_NETWORK && !reverse) {
+
                 if (secondsOnTrafficDay(edgeIterator, label.currentTime) > flagEncoder.getTime(edgeIterator.getFlags())) {
                     return false;
                 } else {
-                    if (foundEnteredTimeExpandedNetworkEdge) {
-                        return false;
-                    } else {
-                        foundEnteredTimeExpandedNetworkEdge = true;
-                    }
+
+//                    if (foundEnteredTimeExpandedNetworkEdge) {
+//                        return false;
+//                    } else {
+//                        foundEnteredTimeExpandedNetworkEdge = true;
+//                    }
                 }
             } else if (edgeType == GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK && reverse) {
                 if (secondsOnTrafficDay(edgeIterator, label.currentTime) < flagEncoder.getTime(edgeIterator.getFlags())) {
