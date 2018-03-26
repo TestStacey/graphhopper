@@ -298,7 +298,6 @@ class GtfsReader {
                     entryEdge.setName(stop.stop_name);
                     NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
                     wireUpAndAndConnectDepartureTimeline(stop, routeId,stopEnterNode, timeNodes);
-
                 }
             });
             final Map<String, List<TimelineNodeIdWithTripId>> arrivalTimelineNodesByRoute = arrivalTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.routeId));
