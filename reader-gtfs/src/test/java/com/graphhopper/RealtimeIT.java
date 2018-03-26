@@ -295,7 +295,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SKIPPED);
 
         // Add a few more trips (but we only need the first one)
-        for (int i=0; i<3; i++){
+        for (int i=0; i<1; i++){
             final GtfsRealtime.TripUpdate.Builder extraTripUpdate = feedMessageBuilder.addEntityBuilder()
                     .setId("2")
                     .getTripUpdateBuilder()
@@ -655,7 +655,7 @@ public class RealtimeIT {
         final GtfsRealtime.TripUpdate.Builder extraTripUpdate = feedMessageBuilder.addEntityBuilder()
                 .setId("2")
                 .getTripUpdateBuilder()
-                .setTrip(GtfsRealtime.TripDescriptor.newBuilder().setScheduleRelationship(ADDED).setTripId("EXTRA").setRouteId("CITY").setStartTime("06:45:00"));
+                .setTrip(GtfsRealtime.TripDescriptor.newBuilder().setScheduleRelationship(ADDED).setTripId("EXTRA").setRouteId("STBA").setStartTime("06:45:00"));
         extraTripUpdate
                 .addStopTimeUpdateBuilder()
                 .setStopSequence(1)
@@ -674,6 +674,8 @@ public class RealtimeIT {
 
         assertEquals("The 6:44 bus will be late at STAGECOACH, but I won't be late because there's an extra trip.", time(0, 36), response.getBest().getTime(), 0.1);
     }
+    // TODO: Similar case, but where I need a new transfer edge for it to work
+    // TODO: Similar case, but where the departure of the second leg is later than all other departures on that day.
 
     @Test
     public void testMissedTransferBecauseOfDelayBackwards() {
