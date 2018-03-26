@@ -262,20 +262,16 @@ class GtfsReader {
                     staticTimelineNodesForRoute.forEach(System.out::println);
                     System.out.println("d --");
                     realtimeTimelineIterator.forEachRemaining(timelineNode -> {
-
                         SortedSet<Fun.Tuple2<Integer, Integer>> headSet = staticTimelineNodesForRoute.headSet(timelineNode);
                         if(!headSet.isEmpty()) {
                             Fun.Tuple2<Integer, Integer> before = headSet.last();
                             EdgeIteratorState edge = graph.edge(before.b, timelineNode.b,0.0, false);
                             setEdgeType(edge, GtfsStorage.EdgeType.WAIT);
                             edge.setFlags(encoder.setTime(edge.getFlags(), timelineNode.a-before.a));
-
                             System.out.println(" "+ before);
-
                         }
                         SortedSet<Fun.Tuple2<Integer, Integer>> tailSet = staticTimelineNodesForRoute.tailSet(timelineNode);
                         System.out.println(timelineNode);
-
                         if (!tailSet.isEmpty()) {
                             Fun.Tuple2<Integer, Integer> after = tailSet.first();
                             EdgeIteratorState edge = graph.edge(timelineNode.b, after.b, 0.0, false);
@@ -293,14 +289,15 @@ class GtfsReader {
                         edge.setFlags(encoder.setTime(edge.getFlags(), timelineNode.a));
                         setFeedIdWithTimezone(edge, new GtfsStorage.FeedIdWithTimezone(id, zoneId));
                     });
-
-                    //                                        int departureTime = (int) encoder.getTime(j.getFlags());
-//                                        if (departureTime < e.a + minimumTransferTime) {
-//                                            continue;
-//                                        }
-//                                        EdgeIteratorState edge = graph.edge(e.b, j.getAdjNode(), 0.0, false);
-//                                        setEdgeType(edge, GtfsStorage.EdgeType.TRANSFER);
-//                                        edge.setFlags(encoder.setTime(edge.getFlags(), departureTime - e.a));
+                } else {
+                    nodeAccess.setNode(i++, stop.stop_lat, stop.stop_lon);
+                    int stopEnterNode = i-1;
+                    nodeAccess.setAdditionalNodeField(stopEnterNode, NodeType.STOP_ENTER_NODE.ordinal());
+                    EdgeIteratorState entryEdge = graph.edge(stationNode, stopEnterNode, 0.0, false);
+                    setEdgeType(entryEdge, GtfsStorage.EdgeType.ENTER_PT);
+                    entryEdge.setName(stop.stop_name);
+                    NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
+                    wireUpAndAndConnectDepartureTimeline(stop, routeId,stopEnterNode, timeNodes);
 
                 }
             });
@@ -319,6 +316,15 @@ class GtfsReader {
                         edge.setFlags(encoder.setTime(edge.getFlags(), timelineNode.a));
                         setFeedIdWithTimezone(edge, new GtfsStorage.FeedIdWithTimezone(id, zoneId));
                     });
+                } else {
+                    nodeAccess.setNode(i++, stop.stop_lat, stop.stop_lon);
+                    int stopExitNode = i-1;
+                    nodeAccess.setAdditionalNodeField(stopExitNode, NodeType.STOP_EXIT_NODE.ordinal());
+                    EdgeIteratorState exitEdge = graph.edge(stopExitNode, stationNode, 0.0, false);
+                    setEdgeType(exitEdge, GtfsStorage.EdgeType.EXIT_PT);
+                    exitEdge.setName(stop.stop_name);
+                    NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
+                    wireUpAndAndConnectArrivalTimeline(stop, routeId,stopExitNode, timeNodes);
                 }
             });
         }
