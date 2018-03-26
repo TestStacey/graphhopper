@@ -279,6 +279,13 @@ class GtfsReader {
                             edge.setFlags(encoder.setTime(edge.getFlags(), after.a-timelineNode.a));
 
                             System.out.println(" "+ after);
+                            EdgeIterator ei = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, true, false)).setBaseNode(after.b);
+                            while(ei.next()) {
+                                if (encoder.getEdgeType(ei.getFlags()) == GtfsStorage.EdgeType.TRANSFER) {
+                                    System.out.println("   "+ei+"   @"+Long.toString(after.a-encoder.getTime(ei.getFlags())));
+                                }
+                            }
+
                         }
 
                         // Likely doesn't help because has to be inserted "in order".
@@ -303,8 +310,9 @@ class GtfsReader {
             final Map<String, List<TimelineNodeIdWithTripId>> arrivalTimelineNodesByRoute = arrivalTimelineNodes.get(stop.stop_id).stream().collect(Collectors.groupingBy(t -> t.routeId));
             arrivalTimelineNodesByRoute.forEach((routeId, timelineNodesWithTripId) -> {
                 int platformNode = findPlatformExitNode(stationNode, routeId);
+                NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
+
                 if (platformNode != -1) {
-                    NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
                     Iterator<Fun.Tuple2<Integer, Integer>> realtimeTimelineIterator = timeNodes.iterator();
                     realtimeTimelineIterator.forEachRemaining(timelineNode -> {
                         System.out.println("pups");
@@ -322,9 +330,15 @@ class GtfsReader {
                     EdgeIteratorState exitEdge = graph.edge(stopExitNode, stationNode, 0.0, false);
                     setEdgeType(exitEdge, GtfsStorage.EdgeType.EXIT_PT);
                     exitEdge.setName(stop.stop_name);
-                    NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
                     wireUpAndAndConnectArrivalTimeline(stop, routeId,stopExitNode, timeNodes);
                 }
+                final Optional<Transfer> withinStationTransfer = transfers.getTransfersFromStop(stop.stop_id, routeId).stream().filter(t -> t.from_stop_id.equals(stop.stop_id)).findAny();
+                if (!withinStationTransfer.isPresent()) {
+                    insertOutboundTransfers(stop.stop_id, null, 0, timeNodes);
+                }
+                transfers.getTransfersFromStop(stop.stop_id, routeId).forEach(transfer -> {
+                    insertOutboundTransfers(transfer.from_stop_id, transfer.from_route_id, transfer.min_transfer_time, timeNodes);
+                });
             });
         }
     }
@@ -397,21 +411,6 @@ class GtfsReader {
                 });
             });
         });
-        if (graph.getBaseGraph() != null) {
-            arrivalTimelineNodes.asMap().forEach((fromStopId, timelineNodesWithTripId) -> {
-                Map<String, List<TimelineNodeIdWithTripId>> arrivalTimelineNodesByRoute = timelineNodesWithTripId.stream().collect(Collectors.groupingBy(t -> t.routeId));
-                arrivalTimelineNodesByRoute.forEach((fromRouteId, timelineNodesByRoute) -> {
-                    NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesByRoute);
-                    final Optional<Transfer> withinStationTransfer = transfers.getTransfersFromStop(fromStopId, fromRouteId).stream().filter(t -> t.from_stop_id.equals(fromStopId)).findAny();
-                    if (!withinStationTransfer.isPresent()) {
-                        insertOutboundTransfers(fromStopId, null, 0, timeNodes);
-                    }
-                    transfers.getTransfersFromStop(fromStopId, fromRouteId).forEach(transfer -> {
-                        insertOutboundTransfers(transfer.from_stop_id, transfer.from_route_id, transfer.min_transfer_time, timeNodes);
-                    });
-                });
-            });
-        }
     }
 
     private void addTrips(ZoneId zoneId, List<TripWithStopTimes> trips, int time, boolean frequencyBased) {

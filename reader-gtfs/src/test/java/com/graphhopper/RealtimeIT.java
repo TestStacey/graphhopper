@@ -673,6 +673,8 @@ public class RealtimeIT {
 
         assertEquals("The 6:44 bus will be late at STAGECOACH, but I won't be late because there's an extra trip.", time(0, 36), response.getBest().getTime(), 0.1);
     }
+    // TODO: Similar case, but where I need a new transfer edge for it to work
+    // TODO: Similar case, but where the departure of the second leg is later than all other departures on that day.
 
     @Test
     public void testMissedTransferBecauseOfDelayBackwards() {
