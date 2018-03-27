@@ -258,9 +258,6 @@ class GtfsReader {
                     NavigableSet<Fun.Tuple2<Integer, Integer>> timeNodes = sorted(timelineNodesWithTripId);
                     Iterator<Fun.Tuple2<Integer, Integer>> realtimeTimelineIterator = timeNodes.iterator();
                     NavigableSet<Fun.Tuple2<Integer, Integer>> staticTimelineNodesForRoute = findDepartureTimelineNodesForRoute(stationNode, routeId).collect(Collectors.toCollection(TreeSet::new));
-                    System.out.println("s --");
-                    staticTimelineNodesForRoute.forEach(System.out::println);
-                    System.out.println("d --");
                     realtimeTimelineIterator.forEachRemaining(timelineNode -> {
                         SortedSet<Fun.Tuple2<Integer, Integer>> headSet = staticTimelineNodesForRoute.headSet(timelineNode);
                         if(!headSet.isEmpty()) {
@@ -268,31 +265,26 @@ class GtfsReader {
                             EdgeIteratorState edge = graph.edge(before.b, timelineNode.b,0.0, false);
                             setEdgeType(edge, GtfsStorage.EdgeType.WAIT);
                             edge.setFlags(encoder.setTime(edge.getFlags(), timelineNode.a-before.a));
-                            System.out.println(" "+ before);
                         }
                         SortedSet<Fun.Tuple2<Integer, Integer>> tailSet = staticTimelineNodesForRoute.tailSet(timelineNode);
-                        System.out.println(timelineNode);
                         if (!tailSet.isEmpty()) {
                             Fun.Tuple2<Integer, Integer> after = tailSet.first();
                             EdgeIteratorState edge = graph.edge(timelineNode.b, after.b, 0.0, false);
                             setEdgeType(edge, GtfsStorage.EdgeType.WAIT);
                             edge.setFlags(encoder.setTime(edge.getFlags(), after.a-timelineNode.a));
 
-                            System.out.println(" "+ after);
-                            EdgeIterator ei = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, true, false)).setBaseNode(after.b);
-                            while(ei.next()) {
-                                if (encoder.getEdgeType(ei.getFlags()) == GtfsStorage.EdgeType.TRANSFER) {
-                                    System.out.println("   "+ei+"   @"+Long.toString(after.a-encoder.getTime(ei.getFlags())));
-                                }
-                            }
+//                            System.out.println(" "+ after);
+//                            EdgeIterator ei = graph.getBaseGraph().createEdgeExplorer(new DefaultEdgeFilter(encoder, true, false)).setBaseNode(after.b);
+//                            while(ei.next()) {
+//                                if (encoder.getEdgeType(ei.getFlags()) == GtfsStorage.EdgeType.TRANSFER) {
+//                                    System.out.println("   "+ei+"   @"+Long.toString(after.a-encoder.getTime(ei.getFlags())));
+//                                }
+//                            }
 
                         }
 
-                        // Likely doesn't help because has to be inserted "in order".
                         EdgeIteratorState edge = graph.edge(platformNode, timelineNode.b, 0.0, false);
                         setEdgeType(edge, GtfsStorage.EdgeType.ENTER_TIME_EXPANDED_NETWORK);
-                        System.out.println("furz");
-                        System.out.println(edge);
                         edge.setFlags(encoder.setTime(edge.getFlags(), timelineNode.a));
                         setFeedIdWithTimezone(edge, new GtfsStorage.FeedIdWithTimezone(id, zoneId));
                     });
@@ -315,11 +307,8 @@ class GtfsReader {
                 if (platformNode != -1) {
                     Iterator<Fun.Tuple2<Integer, Integer>> realtimeTimelineIterator = timeNodes.iterator();
                     realtimeTimelineIterator.forEachRemaining(timelineNode -> {
-                        System.out.println("pups");
-                        // Likely doesn't help because has to be inserted "in order".
                         EdgeIteratorState edge = graph.edge(timelineNode.b, platformNode, 0.0, false);
                         setEdgeType(edge, GtfsStorage.EdgeType.LEAVE_TIME_EXPANDED_NETWORK);
-                        System.out.println(edge);
                         edge.setFlags(encoder.setTime(edge.getFlags(), timelineNode.a));
                         setFeedIdWithTimezone(edge, new GtfsStorage.FeedIdWithTimezone(id, zoneId));
                     });
