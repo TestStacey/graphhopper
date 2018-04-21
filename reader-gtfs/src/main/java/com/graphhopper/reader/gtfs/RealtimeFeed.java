@@ -113,7 +113,7 @@ public class RealtimeFeed {
         final LinkedList<VirtualEdgeIteratorState> additionalEdges = new LinkedList<>();
         final Graph overlayGraph = new Graph() {
             int nNodes = 0;
-            int firstEdge = graph.getAllEdges().getMaxId()+1;
+            int firstEdge = graph.getAllEdges().length();
             final NodeAccess nodeAccess = new NodeAccess() {
                 IntIntHashMap additionalNodeFields = new IntIntHashMap();
 
@@ -251,6 +251,7 @@ public class RealtimeFeed {
                 throw new RuntimeException();
             }
         };
+
         Map<GtfsStorage.Validity, Integer> operatingDayPatterns = new HashMap<>(staticGtfs.getOperatingDayPatterns());
         Map<Integer, byte[]> tripDescriptors = new HashMap<>();
         Map<Integer, Integer> stopSequences = new HashMap<>();

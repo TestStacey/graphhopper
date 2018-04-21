@@ -16,19 +16,26 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.http.resources;
+package com.graphhopper.http.health;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
+import com.codahale.metrics.health.HealthCheck;
+import com.graphhopper.storage.GraphHopperStorage;
 
-@Path("/")
-public class RootResource {
+public class GraphHopperStorageHealthCheck extends HealthCheck {
 
-    @GET
-    public Response redirectToWebapp() {
-        return Response.seeOther(UriBuilder.fromPath("maps/").build()).build();
+    private final GraphHopperStorage graphHopperStorage;
+
+    public GraphHopperStorageHealthCheck(GraphHopperStorage graphHopperStorage) {
+        this.graphHopperStorage = graphHopperStorage;
     }
 
+    @Override
+    protected Result check() {
+        boolean valid = graphHopperStorage.getBounds().isValid();
+        if (valid) {
+            return Result.healthy();
+        } else {
+            return Result.unhealthy("GraphHopperStorage has invalid bounds.");
+        }
+    }
 }

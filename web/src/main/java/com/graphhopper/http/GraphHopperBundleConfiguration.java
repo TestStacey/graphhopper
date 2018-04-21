@@ -16,19 +16,14 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.http.resources;
+package com.graphhopper.http;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
+import com.graphhopper.util.CmdArgs;
 
-@Path("/")
-public class RootResource {
+public interface GraphHopperBundleConfiguration {
 
-    @GET
-    public Response redirectToWebapp() {
-        return Response.seeOther(UriBuilder.fromPath("maps/").build()).build();
-    }
+    CmdArgs getGraphHopperConfiguration();
+
+    RealtimeFeedConfiguration gtfsrealtime();
 
 }

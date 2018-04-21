@@ -1,7 +1,7 @@
 graphhopper:
 
   # OpenStreetMap input file
-  datareader.file: core/files/monaco.osm.gz
+  # datareader.file: some.pbf
 
   ##### Vehicles #####
 
@@ -130,11 +130,24 @@ graphhopper:
   # spatial_rules.max_bbox: -180,180,-90,90
 
 
+# Uncomment the following to point /maps to the source directory in the filesystem instead of
+# the Java resource path. Helpful for development of the web client.
+# Assumes that the web module is the working directory.
+#
+# assets:
+#  overrides:
+#    /maps: src/main/resources/assets/
+
 # Dropwizard server configuration
 server:
   applicationConnectors:
   - type: http
     port: 8989
+    # for security reasons bind to localhost
+    bindHost: localhost
+  requestLog:
+      appenders: []
   adminConnectors:
   - type: http
     port: 8990
+    bindHost: localhost
