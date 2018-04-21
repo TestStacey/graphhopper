@@ -16,12 +16,27 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.http;
+package com.graphhopper.http.health;
 
-import com.graphhopper.util.CmdArgs;
+import com.codahale.metrics.health.HealthCheck;
+import com.graphhopper.GraphHopper;
+import com.graphhopper.storage.GraphHopperStorage;
 
-public interface HasGraphHopperConfiguration {
+public class GraphHopperHealthCheck extends HealthCheck {
 
-    CmdArgs graphhopper();
+    private final GraphHopper graphHopper;
 
+    public GraphHopperHealthCheck(GraphHopper graphHopper) {
+        this.graphHopper = graphHopper;
+    }
+
+    @Override
+    protected Result check() {
+        boolean valid = graphHopper.getGraphHopperStorage().getBounds().isValid();
+        if (valid) {
+            return Result.healthy();
+        } else {
+            return Result.unhealthy("GraphHopperStorage has invalid bounds.");
+        }
+    }
 }

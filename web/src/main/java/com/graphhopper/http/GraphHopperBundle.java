@@ -26,6 +26,8 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.GraphHopperAPI;
+import com.graphhopper.http.health.GraphHopperHealthCheck;
+import com.graphhopper.http.health.GraphHopperStorageHealthCheck;
 import com.graphhopper.http.resources.*;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
@@ -52,7 +54,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 
-public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfiguration> {
+public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConfiguration> {
 
     static class TranslationMapFactory implements Factory<TranslationMap> {
 
@@ -134,18 +136,18 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
     }
 
     @Override
-    public void run(HasGraphHopperConfiguration configuration, Environment environment) throws Exception {
-        configuration.graphhopper().merge(CmdArgs.readFromConfigAndMerge(configuration.graphhopper()));
+    public void run(GraphHopperBundleConfiguration configuration, Environment environment) throws Exception {
+        configuration.getGraphHopperConfiguration().merge(CmdArgs.readFromConfigAndMerge(configuration.getGraphHopperConfiguration()));
 
-        if (configuration.graphhopper().has("gtfs.file")) {
+        if (configuration.getGraphHopperConfiguration().has("gtfs.file")) {
             // switch to different API implementation when using Pt
-            runPtGraphHopper(configuration.graphhopper(), environment);
+            runPtGraphHopper(configuration.getGraphHopperConfiguration(), environment);
         } else {
-            runRegularGraphHopper(configuration.graphhopper(), environment);
+            runRegularGraphHopper(configuration.getGraphHopperConfiguration(), environment);
         }
 
         environment.servlets().addFilter("cors", CORSFilter.class).addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), false, "*");
-        environment.servlets().addFilter("ipfilter", new IPFilter(configuration.graphhopper().get("jetty.whiteips", ""), configuration.graphhopper().get("jetty.blackips", ""))).addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), false, "*");
+        environment.servlets().addFilter("ipfilter", new IPFilter(configuration.getGraphHopperConfiguration().get("jetty.whiteips", ""), configuration.getGraphHopperConfiguration().get("jetty.blackips", ""))).addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), false, "*");
 
     }
 
@@ -186,6 +188,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
                 graphHopperStorage.close();
             }
         });
+        environment.healthChecks().register("graphhopper-storage", new GraphHopperStorageHealthCheck(graphHopperStorage));
     }
 
     private void runRegularGraphHopper(CmdArgs configuration, Environment environment) {
@@ -219,7 +222,7 @@ public class GraphHopperBundle implements ConfiguredBundle<HasGraphHopperConfigu
         pathDetailModule.addSerializer(PathDetail.class, new PathDetailSerializer());
         pathDetailModule.addDeserializer(PathDetail.class, new PathDetailDeserializer());
         environment.getObjectMapper().registerModule(pathDetailModule);
-
+        environment.healthChecks().register("graphhopper", new GraphHopperHealthCheck(graphHopperManaged.getGraphHopper()));
     }
 
     public static class PathDetailSerializer extends JsonSerializer<PathDetail> {
