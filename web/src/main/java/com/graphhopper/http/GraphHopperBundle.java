@@ -23,13 +23,24 @@ import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.http.api.JsonContainerResponseFilter;
-import com.graphhopper.http.resources.*;
+import com.graphhopper.http.health.GraphHopperHealthCheck;
+import com.graphhopper.http.health.GraphHopperStorageHealthCheck;
+import com.graphhopper.http.resources.ChangeGraphResource;
+import com.graphhopper.http.resources.I18NResource;
+import com.graphhopper.http.resources.InfoResource;
+import com.graphhopper.http.resources.NearestResource;
+import com.graphhopper.http.resources.RealtimeFeedResource;
+import com.graphhopper.http.resources.RouteResource;
+import com.graphhopper.http.resources.StaticFeedResource;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
@@ -143,9 +154,9 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
 
         if (configuration.getGraphHopperConfiguration().has("gtfs.file")) {
             // switch to different API implementation when using Pt
-            runPtGraphHopper(configuration.getGraphHopperConfiguration(), environment);
+            runPtGraphHopper(configuration, environment);
         } else {
-            runRegularGraphHopper(configuration.getGraphHopperConfiguration(), environment);
+            runRegularGraphHopper(configuration, environment);
         }
 
         environment.servlets().addFilter("cors", CORSFilter.class).addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), false, "*");
@@ -153,25 +164,25 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
 
     }
 
-    private void runPtGraphHopper(HasGraphHopperConfiguration configuration, Environment environment) {
+    private void runPtGraphHopper(GraphHopperBundleConfiguration configuration, Environment environment) {
         final PtFlagEncoder ptFlagEncoder = new PtFlagEncoder();
-        final GHDirectory ghDirectory = GraphHopperGtfs.createGHDirectory(configuration.graphhopper().get("graph.location", "target/tmp"));
+        final GHDirectory ghDirectory = GraphHopperGtfs.createGHDirectory(configuration.getGraphHopperConfiguration().get("graph.location", "target/tmp"));
         final GtfsStorage gtfsStorage = GraphHopperGtfs.createGtfsStorage();
         final EncodingManager encodingManager = new EncodingManager(Arrays.asList(ptFlagEncoder), 8);
         final GraphHopperStorage graphHopperStorage = GraphHopperGtfs.createOrLoad(ghDirectory, encodingManager, ptFlagEncoder, gtfsStorage,
-                configuration.graphhopper().getBool("gtfs.createwalknetwork", false),
-                configuration.graphhopper().has("gtfs.file") ? Arrays.asList(configuration.graphhopper().get("gtfs.file", "").split(",")) : Collections.emptyList(),
-                configuration.graphhopper().has("datareader.file") ? Arrays.asList(configuration.graphhopper().get("datareader.file", "").split(",")) : Collections.emptyList());
+                configuration.getGraphHopperConfiguration().getBool("gtfs.createwalknetwork", false),
+                configuration.getGraphHopperConfiguration().has("gtfs.file") ? Arrays.asList(configuration.getGraphHopperConfiguration().get("gtfs.file", "").split(",")) : Collections.emptyList(),
+                configuration.getGraphHopperConfiguration().has("datareader.file") ? Arrays.asList(configuration.getGraphHopperConfiguration().get("datareader.file", "").split(",")) : Collections.emptyList());
         final TranslationMap translationMap = GraphHopperGtfs.createTranslationMap();
         final LocationIndex locationIndex = GraphHopperGtfs.createOrLoadIndex(ghDirectory, graphHopperStorage, ptFlagEncoder);
-        final RealtimeFeedCache realtimeFeedCache = new RealtimeFeedCache(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime());
+        final RealtimeFeedCache realtimeFeedCache = new RealtimeFeedCache(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().get(0));
 
         environment.jersey().register(new AbstractBinder() {
             @Override
             protected void configure() {
-                bind(configuration.graphhopper()).to(CmdArgs.class);
-                if (configuration.gtfsrealtime().getUrl() != null) {
-                    bind(configuration.gtfsrealtime()).to(RealtimeFeedConfiguration.class);
+                bind(configuration.getGraphHopperConfiguration()).to(CmdArgs.class);
+                if (!configuration.gtfsrealtime().isEmpty()) {
+                    bind(configuration.gtfsrealtime().get(0)).to(RealtimeFeedConfiguration.class);
                     bindFactory(new Factory<RealtimeFeed>() {
                         @Override
                         public RealtimeFeed provide() {
@@ -209,7 +220,7 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
         environment.healthChecks().register("realtime-feed", new HealthCheck() {
             @Override
             protected Result check() throws Exception {
-                GtfsRealtime.FeedMessage feedMessage = configuration.gtfsrealtime().getFeedMessage();
+                configuration.gtfsrealtime().forEach(RealtimeFeedConfiguration::getFeedMessage);
                 return Result.healthy();
             }
         });
@@ -232,13 +243,13 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
         environment.healthChecks().register("graphhopper-storage", new GraphHopperStorageHealthCheck(graphHopperStorage));
     }
 
-    private void runRegularGraphHopper(HasGraphHopperConfiguration configuration, Environment environment) {
-        final GraphHopperManaged graphHopperManaged = new GraphHopperManaged(configuration.graphhopper());
+    private void runRegularGraphHopper(GraphHopperBundleConfiguration configuration, Environment environment) {
+        final GraphHopperManaged graphHopperManaged = new GraphHopperManaged(configuration.getGraphHopperConfiguration());
         environment.lifecycle().manage(graphHopperManaged);
         environment.jersey().register(new AbstractBinder() {
             @Override
             protected void configure() {
-                bind(configuration.graphhopper()).to(CmdArgs.class);
+                bind(configuration.getGraphHopperConfiguration()).to(CmdArgs.class);
                 bind(graphHopperManaged).to(GraphHopperManaged.class);
                 bind(graphHopperManaged.getGraphHopper()).to(GraphHopper.class);
                 bind(graphHopperManaged.getGraphHopper()).to(GraphHopperAPI.class);
@@ -251,7 +262,7 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
             }
         });
 
-        if (configuration.graphhopper().getBool("web.change_graph.enabled", false)) {
+        if (configuration.getGraphHopperConfiguration().getBool("web.change_graph.enabled", false)) {
             environment.jersey().register(ChangeGraphResource.class);
         }
         environment.jersey().register(NearestResource.class);

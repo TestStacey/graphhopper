@@ -26,6 +26,8 @@ import io.dropwizard.bundles.assets.AssetsConfiguration;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
+import java.util.List;
 
 public class GraphHopperServerConfiguration extends Configuration implements GraphHopperBundleConfiguration, AssetsBundleConfiguration {
 
@@ -37,7 +39,8 @@ public class GraphHopperServerConfiguration extends Configuration implements Gra
     @JsonProperty
     private final AssetsConfiguration assets = AssetsConfiguration.builder().build();
 
-    public final RealtimeFeedConfiguration gtfsRealtime = new RealtimeFeedConfiguration();
+    @JsonProperty
+    private final List<RealtimeFeedConfiguration> gtfsRealtime = new ArrayList<>();
 
     public GraphHopperServerConfiguration() {
     }
@@ -52,7 +55,7 @@ public class GraphHopperServerConfiguration extends Configuration implements Gra
         return assets;
     }
 
-    public RealtimeFeedConfiguration gtfsrealtime() {
+    public List<RealtimeFeedConfiguration> gtfsrealtime() {
         return gtfsRealtime;
     }
 }

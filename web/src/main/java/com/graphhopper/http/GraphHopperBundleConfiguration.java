@@ -20,10 +20,12 @@ package com.graphhopper.http;
 
 import com.graphhopper.util.CmdArgs;
 
+import java.util.List;
+
 public interface GraphHopperBundleConfiguration {
 
     CmdArgs getGraphHopperConfiguration();
 
-    RealtimeFeedConfiguration gtfsrealtime();
+    List<RealtimeFeedConfiguration> gtfsrealtime();
 
 }
