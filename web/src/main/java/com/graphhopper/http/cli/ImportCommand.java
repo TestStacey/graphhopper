@@ -41,18 +41,18 @@ public class ImportCommand extends ConfiguredCommand<GraphHopperServerConfigurat
 
     @Override
     protected void run(Bootstrap<GraphHopperServerConfiguration> bootstrap, Namespace namespace, GraphHopperServerConfiguration configuration) throws Exception {
-        if (configuration.graphhopper().has("gtfs.file")) {
+        if (configuration.getGraphHopperConfiguration().has("gtfs.file")) {
             final PtFlagEncoder ptFlagEncoder = new PtFlagEncoder();
-            final GHDirectory ghDirectory = GraphHopperGtfs.createGHDirectory(configuration.graphhopper().get("graph.location", "target/tmp"));
+            final GHDirectory ghDirectory = GraphHopperGtfs.createGHDirectory(configuration.getGraphHopperConfiguration().get("graph.location", "target/tmp"));
             final GtfsStorage gtfsStorage = GraphHopperGtfs.createGtfsStorage();
             final EncodingManager encodingManager = new EncodingManager(Arrays.asList(ptFlagEncoder), 8);
             final GraphHopperStorage graphHopperStorage = GraphHopperGtfs.createOrLoad(ghDirectory, encodingManager, ptFlagEncoder, gtfsStorage,
-                    configuration.graphhopper().getBool("gtfs.createwalknetwork", false),
-                    configuration.graphhopper().has("gtfs.file") ? Arrays.asList(configuration.graphhopper().get("gtfs.file", "").split(",")) : Collections.emptyList(),
-                    configuration.graphhopper().has("datareader.file") ? Arrays.asList(configuration.graphhopper().get("datareader.file", "").split(",")) : Collections.emptyList());
+                    configuration.getGraphHopperConfiguration().getBool("gtfs.createwalknetwork", false),
+                    configuration.getGraphHopperConfiguration().has("gtfs.file") ? Arrays.asList(configuration.getGraphHopperConfiguration().get("gtfs.file", "").split(",")) : Collections.emptyList(),
+                    configuration.getGraphHopperConfiguration().has("datareader.file") ? Arrays.asList(configuration.getGraphHopperConfiguration().get("datareader.file", "").split(",")) : Collections.emptyList());
             graphHopperStorage.close();
         } else {
-            final GraphHopperManaged graphHopper = new GraphHopperManaged(configuration.graphhopper());
+            final GraphHopperManaged graphHopper = new GraphHopperManaged(configuration.getGraphHopperConfiguration());
             graphHopper.start();
             graphHopper.stop();
         }
