@@ -27,7 +27,9 @@ import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 import com.graphhopper.storage.GraphHopperStorage;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -43,9 +45,11 @@ public class RealtimeFeedCache {
             .expireAfterWrite(1, TimeUnit.MINUTES)
             .build(new CacheLoader<String, RealtimeFeed>() {
                         public RealtimeFeed load(String key) {
-                            RealtimeFeedConfiguration configuration = getConfiguration(key);
-                            GtfsRealtime.FeedMessage feedMessage = configuration.getFeedMessage();
-                            RealtimeFeed realtimeFeed = RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, feedMessage, configuration.getFeedId(), configuration.getAgencyId());
+                            Map<String, GtfsRealtime.FeedMessage> feedMessageMap = new HashMap<>();
+                            for (RealtimeFeedConfiguration configuration : configurations) {
+                                feedMessageMap.put(configuration.getFeedId(), configuration.getFeedMessage());
+                            }
+                            RealtimeFeed realtimeFeed = RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, feedMessageMap);
                             return realtimeFeed;
                         }
                     });
@@ -57,9 +61,9 @@ public class RealtimeFeedCache {
         this.configurations = gtfsrealtime;
     }
 
-    public RealtimeFeed getRealtimeFeed(String feedId) {
+    public RealtimeFeed getRealtimeFeed() {
         try {
-            return cache.get(feedId);
+            return cache.get("pups");
         } catch (ExecutionException | RuntimeException e) {
             e.printStackTrace();
             return RealtimeFeed.empty(gtfsStorage);

@@ -183,6 +183,17 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
             @Override
             protected void configure() {
                 bind(configuration.getGraphHopperConfiguration()).to(CmdArgs.class);
+                bindFactory(new Factory<RealtimeFeed>() {
+                    @Override
+                    public RealtimeFeed provide() {
+                        return realtimeFeedCache.getRealtimeFeed();
+                    }
+
+                    @Override
+                    public void dispose(RealtimeFeed instance) {
+
+                    }
+                }).to(RealtimeFeed.class);
                 bind(false).to(Boolean.class).named("hasElevation");
                 bind(locationIndex).to(LocationIndex.class);
                 bind(translationMap).to(TranslationMap.class);

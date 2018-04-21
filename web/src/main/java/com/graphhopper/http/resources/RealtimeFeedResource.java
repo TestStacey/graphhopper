@@ -26,7 +26,6 @@ import com.graphhopper.http.RealtimeFeedConfiguration;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 
-import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -41,7 +40,6 @@ public class RealtimeFeedResource {
     private final RealtimeFeedCache realtimeFeeds;
     private final GtfsStorage staticGtfs;
 
-    @Inject
     public RealtimeFeedResource(RealtimeFeedCache realtimeFeeds, GtfsStorage staticGtfs) {
         this.staticGtfs = staticGtfs;
         this.realtimeFeeds = realtimeFeeds;
@@ -53,8 +51,8 @@ public class RealtimeFeedResource {
     public StreamingOutput dump(@PathParam("feedId") String feedId) {
         return output -> {
             PrintWriter writer = new PrintWriter(output);
-            RealtimeFeed feed = realtimeFeeds.getRealtimeFeed(feedId);
-            TextFormat.print(feed.feedMessage, writer);
+            RealtimeFeed feed = realtimeFeeds.getRealtimeFeed();
+            TextFormat.print(feed.feedMessages.get(feedId), writer);
             writer.flush();
         };
     }
@@ -66,7 +64,7 @@ public class RealtimeFeedResource {
         RealtimeFeedConfiguration configuration = this.realtimeFeeds.getConfiguration(feedId);
         return output -> {
             PrintWriter writer = new PrintWriter(output);
-            GtfsRealtime.FeedMessage realtimeFeed = this.realtimeFeeds.getRealtimeFeed(feedId).feedMessage;
+            GtfsRealtime.FeedMessage realtimeFeed = realtimeFeeds.getRealtimeFeed().feedMessages.get(feedId);
             realtimeFeed.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
