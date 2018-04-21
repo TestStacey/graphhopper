@@ -5,9 +5,11 @@ graphhopper:
 
 gtfsRealtime:
   - url: https://developer.trimet.org/ws/V1/TripUpdate?appId=9D774AC10A570CE1DD635942D
+    feedId: gtfs_0
     agencyId: TRIMET
   - url: http://feed.rvtd.org/googleFeeds/realtime/trip_updates.proto
-    agencyId: RVTD
+    feedId: gtfs_1
+    agencyId: 1739
 
 server:
   minThreads: 1

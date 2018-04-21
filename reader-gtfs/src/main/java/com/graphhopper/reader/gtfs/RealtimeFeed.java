@@ -102,10 +102,8 @@ public class RealtimeFeed {
         return new RealtimeFeed(staticGtfs, staticGtfs.getGtfsFeeds().get("gtfs_0"), null, null, new IntHashSet(), new IntLongHashMap(), new IntLongHashMap(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), staticGtfs.getOperatingDayPatterns());
     }
 
-    public static RealtimeFeed fromProtobuf(Graph graph, GtfsStorage staticGtfs, PtFlagEncoder encoder, GtfsRealtime.FeedMessage feedMessage, String agencyId) {
-        String feedKey = "gtfs_0";
+    public static RealtimeFeed fromProtobuf(Graph graph, GtfsStorage staticGtfs, PtFlagEncoder encoder, GtfsRealtime.FeedMessage feedMessage, String feedKey, String agencyId) {
         GTFSFeed feed = staticGtfs.getGtfsFeeds().get(feedKey);
-        // TODO: Require configuration of feed and agency this realtime feed is for.
         Agency agency = feed.agency.get(agencyId);
         final IntHashSet blockedEdges = new IntHashSet();
         final IntLongHashMap delaysForBoardEdges = new IntLongHashMap();

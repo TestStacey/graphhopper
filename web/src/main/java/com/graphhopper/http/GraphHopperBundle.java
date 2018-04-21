@@ -65,6 +65,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConfiguration> {
 
@@ -175,38 +177,12 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
                 configuration.getGraphHopperConfiguration().has("datareader.file") ? Arrays.asList(configuration.getGraphHopperConfiguration().get("datareader.file", "").split(",")) : Collections.emptyList());
         final TranslationMap translationMap = GraphHopperGtfs.createTranslationMap();
         final LocationIndex locationIndex = GraphHopperGtfs.createOrLoadIndex(ghDirectory, graphHopperStorage, ptFlagEncoder);
-        final RealtimeFeedCache realtimeFeedCache = new RealtimeFeedCache(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime().get(0));
+        RealtimeFeedCache realtimeFeedCache = new RealtimeFeedCache(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime());
 
         environment.jersey().register(new AbstractBinder() {
             @Override
             protected void configure() {
                 bind(configuration.getGraphHopperConfiguration()).to(CmdArgs.class);
-                if (!configuration.gtfsrealtime().isEmpty()) {
-                    bind(configuration.gtfsrealtime().get(0)).to(RealtimeFeedConfiguration.class);
-                    bindFactory(new Factory<RealtimeFeed>() {
-                        @Override
-                        public RealtimeFeed provide() {
-                            return realtimeFeedCache.getRealtimeFeed();
-                        }
-
-                        @Override
-                        public void dispose(RealtimeFeed instance) {
-
-                        }
-                    }).to(RealtimeFeed.class);
-                } else {
-                    bindFactory(new Factory<RealtimeFeed>() {
-                        @Override
-                        public RealtimeFeed provide() {
-                            return RealtimeFeed.empty(gtfsStorage);
-                        }
-
-                        @Override
-                        public void dispose(RealtimeFeed instance) {
-
-                        }
-                    }).to(RealtimeFeed.class);
-                }
                 bind(false).to(Boolean.class).named("hasElevation");
                 bind(locationIndex).to(LocationIndex.class);
                 bind(translationMap).to(TranslationMap.class);
@@ -229,7 +205,7 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
         environment.jersey().register(I18NResource.class);
         environment.jersey().register(InfoResource.class);
         environment.jersey().register(StaticFeedResource.class);
-        environment.jersey().register(RealtimeFeedResource.class);
+        environment.jersey().register(new RealtimeFeedResource(realtimeFeedCache, gtfsStorage));
         environment.lifecycle().manage(new Managed() {
             @Override
             public void start() throws Exception {}

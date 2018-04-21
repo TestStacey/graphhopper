@@ -21,11 +21,13 @@ package com.graphhopper.http;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 import com.graphhopper.storage.GraphHopperStorage;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -34,30 +36,42 @@ public class RealtimeFeedCache {
     private GraphHopperStorage graphHopperStorage;
     private GtfsStorage gtfsStorage;
     private PtFlagEncoder ptFlagEncoder;
-    private RealtimeFeedConfiguration configuration;
+    private List<RealtimeFeedConfiguration> configurations;
 
     private LoadingCache<String, RealtimeFeed> cache = CacheBuilder.newBuilder()
             .maximumSize(1)
             .expireAfterWrite(1, TimeUnit.MINUTES)
             .build(new CacheLoader<String, RealtimeFeed>() {
                         public RealtimeFeed load(String key) {
-                            return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.getFeedMessage(), configuration.getAgencyId());
+                            RealtimeFeedConfiguration configuration = getConfiguration(key);
+                            GtfsRealtime.FeedMessage feedMessage = configuration.getFeedMessage();
+                            RealtimeFeed realtimeFeed = RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, feedMessage, configuration.getFeedId(), configuration.getAgencyId());
+                            return realtimeFeed;
                         }
                     });
 
-    RealtimeFeedCache(GraphHopperStorage graphHopperStorage, GtfsStorage gtfsStorage, PtFlagEncoder ptFlagEncoder, RealtimeFeedConfiguration gtfsrealtime) {
+    RealtimeFeedCache(GraphHopperStorage graphHopperStorage, GtfsStorage gtfsStorage, PtFlagEncoder ptFlagEncoder, List<RealtimeFeedConfiguration> gtfsrealtime) {
         this.graphHopperStorage = graphHopperStorage;
         this.gtfsStorage = gtfsStorage;
         this.ptFlagEncoder = ptFlagEncoder;
-        this.configuration = gtfsrealtime;
+        this.configurations = gtfsrealtime;
     }
 
-    public RealtimeFeed getRealtimeFeed() {
+    public RealtimeFeed getRealtimeFeed(String feedId) {
         try {
-            return cache.get("pups");
+            return cache.get(feedId);
         } catch (ExecutionException | RuntimeException e) {
-            System.out.println(e);
+            e.printStackTrace();
             return RealtimeFeed.empty(gtfsStorage);
         }
+    }
+
+    public RealtimeFeedConfiguration getConfiguration(String feedId) {
+        for (RealtimeFeedConfiguration realtimeFeedConfiguration : configurations) {
+            if (feedId.equals(realtimeFeedConfiguration.getFeedId())) {
+                return realtimeFeedConfiguration;
+            }
+        }
+        return null;
     }
 }

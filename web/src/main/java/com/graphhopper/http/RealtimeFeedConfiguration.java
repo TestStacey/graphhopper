@@ -28,6 +28,7 @@ public class RealtimeFeedConfiguration {
 
     private URL url;
     private String agencyId;
+    private String feedId;
 
     @JsonProperty
     public URL getUrl() {
@@ -47,6 +48,16 @@ public class RealtimeFeedConfiguration {
     @JsonProperty
     public void setAgencyId(String agencyId) {
         this.agencyId = agencyId;
+    }
+
+    @JsonProperty
+    public String getFeedId() {
+        return feedId;
+    }
+
+    @JsonProperty
+    public void setFeedId(String feedId) {
+        this.feedId = feedId;
     }
 
     public GtfsRealtime.FeedMessage getFeedMessage() {
