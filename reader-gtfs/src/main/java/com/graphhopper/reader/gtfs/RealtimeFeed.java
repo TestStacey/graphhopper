@@ -22,8 +22,8 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntIntHashMap;
 import com.carrotsearch.hppc.IntLongHashMap;
 import com.conveyal.gtfs.GTFSFeed;
-import com.conveyal.gtfs.model.Agency;
 import com.conveyal.gtfs.model.Fare;
+import com.conveyal.gtfs.model.Frequency;
 import com.conveyal.gtfs.model.StopTime;
 import com.conveyal.gtfs.model.Trip;
 import com.google.transit.realtime.GtfsRealtime;
@@ -50,6 +50,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -324,7 +325,8 @@ public class RealtimeFeed {
                     .map(GtfsRealtime.FeedEntity::getTripUpdate)
                     .filter(tripUpdate -> tripUpdate.getTrip().getScheduleRelationship() == GtfsRealtime.TripDescriptor.ScheduleRelationship.SCHEDULED)
                     .forEach(tripUpdate -> {
-                        String key = GtfsStorage.tripKey(tripUpdate.getTrip().getTripId(), tripUpdate.getTrip().getStartTime());
+                        Collection<Frequency> frequencies = feed.getFrequencies(tripUpdate.getTrip().getTripId());
+                        String key = GtfsStorage.tripKey(tripUpdate.getTrip(), !frequencies.isEmpty());
                         final int[] boardEdges = staticGtfs.getBoardEdgesForTrip().get(key);
                         final int[] leaveEdges = staticGtfs.getAlightEdgesForTrip().get(key);
                         if (boardEdges == null || leaveEdges == null) {
@@ -379,7 +381,7 @@ public class RealtimeFeed {
                                 })
                                 .collect(Collectors.toList());
                         GtfsReader.TripWithStopTimes tripWithStopTimes = new GtfsReader.TripWithStopTimes(trip, stopTimes, validOnDay, Collections.emptySet(), Collections.emptySet());
-                        gtfsReader.addTrip(timezone, 0, new ArrayList<>(), tripWithStopTimes, tripUpdate.getTrip());
+                        gtfsReader.addTrip(timezone, 0, new ArrayList<>(), tripWithStopTimes, tripUpdate.getTrip(), false);
                     });
             gtfsReader.wireUpAdditionalDepartures(timezone);
         });
