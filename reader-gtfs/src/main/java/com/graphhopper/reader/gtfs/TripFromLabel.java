@@ -328,7 +328,7 @@ class TripFromLabel {
             return Collections.emptyList();
         }
         if (GtfsStorage.EdgeType.ENTER_PT == path.get(1).edge.edgeType) {
-            final GtfsStorage.FeedIdWithTimezone feedIdWithTimezone = gtfsStorage.getTimeZones().get(path.get(1).edge.timeZoneId);
+            final GtfsStorage.FeedIdWithTimezone feedIdWithTimezone = gtfsStorage.getTimeZones().get(path.get(2).edge.timeZoneId);
             List<Trip.Leg> result = new ArrayList<>();
             long boardTime = -1;
             List<Label.Transition> partition = null;
