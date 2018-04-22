@@ -50,23 +50,22 @@ public class StaticFeedResource {
 
     @GET
     @Produces("text/plain")
-    @Path("trips/{trip_id}")
-    public StreamingOutput getTrip(@PathParam("trip_id") String trip_id) throws GTFSFeed.FirstAndLastStopsDoNotHaveTimes {
+    @Path("{feedId}/trips/{trip_id}")
+    public StreamingOutput getTrip(@PathParam("feedId") String feedId, @PathParam("trip_id") String trip_id) throws GTFSFeed.FirstAndLastStopsDoNotHaveTimes {
         return output -> {
             PrintWriter out = new PrintWriter(output);
-            Trip trip = gtfsStorage.getGtfsFeeds().get("gtfs_0").trips.get(trip_id);
-            Iterable<StopTime> interpolatedStopTimesForTrip = getInterpolatedStoptimesForTrip(trip_id);
+            Iterable<StopTime> interpolatedStopTimesForTrip = getInterpolatedStoptimesForTrip(feedId, trip_id);
             for (StopTime stopTime : interpolatedStopTimesForTrip) {
-                Stop stop = gtfsStorage.getGtfsFeeds().get("gtfs_0").stops.get(stopTime.stop_id);
+                Stop stop = gtfsStorage.getGtfsFeeds().get(feedId).stops.get(stopTime.stop_id);
                 out.printf("Stop(%s) %f, %f %s %s\n", stopTime.stop_id, stop.stop_lat, stop.stop_lon, convertToGtfsTime(stopTime.arrival_time), convertToGtfsTime(stopTime.departure_time));
             }
             out.flush();
         };
     }
 
-    public Iterable<StopTime> getInterpolatedStoptimesForTrip(@PathParam("trip_id") String trip_id) {
+    public Iterable<StopTime> getInterpolatedStoptimesForTrip(String feedId, @PathParam("trip_id") String trip_id) {
         try {
-            return gtfsStorage.getGtfsFeeds().get("gtfs_0").getInterpolatedStopTimesForTrip(trip_id);
+            return gtfsStorage.getGtfsFeeds().get(feedId).getInterpolatedStopTimesForTrip(trip_id);
         } catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
             throw new RuntimeException(firstAndLastStopsDoNotHaveTimes);
         }
