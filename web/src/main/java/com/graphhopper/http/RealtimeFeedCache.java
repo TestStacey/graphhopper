@@ -21,6 +21,8 @@ package com.graphhopper.http;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListenableFutureTask;
 import com.google.transit.realtime.GtfsRealtime;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
@@ -30,8 +32,7 @@ import com.graphhopper.storage.GraphHopperStorage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class RealtimeFeedCache {
 
@@ -39,20 +40,31 @@ public class RealtimeFeedCache {
     private GtfsStorage gtfsStorage;
     private PtFlagEncoder ptFlagEncoder;
     private List<RealtimeFeedConfiguration> configurations;
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private LoadingCache<String, RealtimeFeed> cache = CacheBuilder.newBuilder()
             .maximumSize(1)
-            .expireAfterWrite(1, TimeUnit.MINUTES)
+            .refreshAfterWrite(1, TimeUnit.MINUTES)
             .build(new CacheLoader<String, RealtimeFeed>() {
-                        public RealtimeFeed load(String key) {
-                            Map<String, GtfsRealtime.FeedMessage> feedMessageMap = new HashMap<>();
-                            for (RealtimeFeedConfiguration configuration : configurations) {
-                                feedMessageMap.put(configuration.getFeedId(), configuration.getFeedMessage());
-                            }
-                            RealtimeFeed realtimeFeed = RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, feedMessageMap);
-                            return realtimeFeed;
-                        }
-                    });
+                public RealtimeFeed load(String key) {
+                    return fetchFeedsAndCreateGraph();
+                }
+
+                @Override
+                public ListenableFuture<RealtimeFeed> reload(String key, RealtimeFeed oldValue) {
+                    ListenableFutureTask<RealtimeFeed> task = ListenableFutureTask.create(() -> fetchFeedsAndCreateGraph());
+                    executor.execute(task);
+                    return task;
+                }
+            });
+
+    private RealtimeFeed fetchFeedsAndCreateGraph() {
+        Map<String, GtfsRealtime.FeedMessage> feedMessageMap = new HashMap<>();
+        for (RealtimeFeedConfiguration configuration : configurations) {
+            feedMessageMap.put(configuration.getFeedId(), configuration.getFeedMessage());
+        }
+        return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, feedMessageMap);
+    }
 
     RealtimeFeedCache(GraphHopperStorage graphHopperStorage, GtfsStorage gtfsStorage, PtFlagEncoder ptFlagEncoder, List<RealtimeFeedConfiguration> gtfsrealtime) {
         this.graphHopperStorage = graphHopperStorage;
