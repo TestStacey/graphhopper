@@ -37,6 +37,11 @@
     </licenses>
     <dependencies>
         <dependency>
+            <groupId>com.graphhopper</groupId>
+            <artifactId>graphhopper-api</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.carrotsearch</groupId>
             <artifactId>hppc</artifactId>
             <version>0.7.2</version>
@@ -52,25 +57,12 @@
             <groupId>org.apache.xmlgraphics</groupId>
             <artifactId>xmlgraphics-commons</artifactId>
             <version>2.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.vividsolutions</groupId>
-            <artifactId>jts-core</artifactId>
-            <version>1.14.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
-            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -92,14 +84,10 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>javax.ws.rs</groupId>
-            <artifactId>javax.ws.rs-api</artifactId>
-            <version>2.0.1</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId>
-            <version>1.1.0.Final</version>
+            <groupId>com.graphhopper</groupId>
+            <artifactId>graphhopper-web-api</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

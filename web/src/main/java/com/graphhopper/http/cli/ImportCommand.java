@@ -53,7 +53,7 @@ public class ImportCommand extends ConfiguredCommand<GraphHopperServerConfigurat
                     configuration.getGraphHopperConfiguration().has("datareader.file") ? Arrays.asList(configuration.getGraphHopperConfiguration().get("datareader.file", "").split(",")) : Collections.emptyList());
             graphHopperStorage.close();
         } else {
-            final GraphHopperManaged graphHopper = new GraphHopperManaged(configuration.getGraphHopperConfiguration());
+            final GraphHopperManaged graphHopper = new GraphHopperManaged(configuration.getGraphHopperConfiguration(), bootstrap.getObjectMapper());
             graphHopper.start();
             graphHopper.stop();
         }

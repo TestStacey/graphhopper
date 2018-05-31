@@ -519,7 +519,7 @@ public class GraphHopper implements GraphHopperAPI {
      * CmdArgs.readFromConfig("config.properties", "graphhopper.config")
      */
     public GraphHopper init(CmdArgs args) {
-        args = CmdArgs.readFromConfigAndMerge(args, "config", "graphhopper.config");
+        args.merge(CmdArgs.readFromSystemProperties());
         if (args.has("osmreader.osm"))
             throw new IllegalArgumentException("Instead osmreader.osm use datareader.file, for other changes see core/files/changelog.txt");
 
@@ -932,7 +932,7 @@ public class GraphHopper implements GraphHopperAPI {
         if (hintsMap.has(Routing.BLOCK_AREA)) {
             String blockAreaStr = hintsMap.get(Parameters.Routing.BLOCK_AREA, "");
             GraphEdgeIdFinder.BlockArea blockArea = new GraphEdgeIdFinder(graph, locationIndex).
-                    parseBlockArea(blockAreaStr, new DefaultEdgeFilter(encoder), hintsMap.getDouble("block_area.edge_id_max_area", 1000 * 1000));
+                    parseBlockArea(blockAreaStr, DefaultEdgeFilter.allEdges(encoder), hintsMap.getDouble("block_area.edge_id_max_area", 1000 * 1000));
             return new BlockAreaWeighting(weighting, blockArea);
         }
 

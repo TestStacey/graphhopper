@@ -18,7 +18,6 @@
 package com.graphhopper.http;
 
 import com.bedatadriven.jackson.datatype.jts.JtsModule;
-import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.BeanDescription;
@@ -28,23 +27,20 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
-import com.graphhopper.GHResponse;
-import com.graphhopper.http.api.GHResponseSerializer;
-import com.graphhopper.http.api.PathDetailDeserializer;
-import com.graphhopper.http.api.PathDetailSerializer;
 import com.graphhopper.http.cli.ImportCommand;
 import com.graphhopper.http.resources.RootResource;
-import com.graphhopper.util.details.PathDetail;
+import com.graphhopper.jackson.GraphHopperModule;
 import io.dropwizard.Application;
 import io.dropwizard.bundles.assets.ConfiguredAssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
+import javax.servlet.DispatcherType;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class GraphHopperApplication extends Application<GraphHopperServerConfiguration> {
+public final class GraphHopperApplication extends Application<GraphHopperServerConfiguration> {
 
     public static void main(String[] args) throws Exception {
         new GraphHopperApplication().run(args);
@@ -60,33 +56,8 @@ public class GraphHopperApplication extends Application<GraphHopperServerConfigu
     @Override
     public void run(GraphHopperServerConfiguration configuration, Environment environment) throws Exception {
         environment.jersey().register(new GHJerseyViolationExceptionMapper());
-        environment.getObjectMapper().setDateFormat(new ISO8601DateFormat());
-        environment.getObjectMapper().registerModule(new JtsModule());
-        environment.getObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        // Because VirtualEdgeIteratorState has getters which throw Exceptions.
-        // http://stackoverflow.com/questions/35359430/how-to-make-jackson-ignore-properties-if-the-getters-throw-exceptions
-        environment.getObjectMapper().registerModule(new SimpleModule().setSerializerModifier(new BeanSerializerModifier() {
-            @Override
-            public List<BeanPropertyWriter> changeProperties(SerializationConfig config, BeanDescription beanDesc, List<BeanPropertyWriter> beanProperties) {
-                return beanProperties.stream().map(bpw -> new BeanPropertyWriter(bpw) {
-                    @Override
-                    public void serializeAsField(Object bean, JsonGenerator gen, SerializerProvider prov) throws Exception {
-                        try {
-                            super.serializeAsField(bean, gen, prov);
-                        } catch (Exception e) {
-                            // Ignoring expected exception, see above.
-                        }
-                    }
-                }).collect(Collectors.toList());
-            }
-        }));
-
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(PathDetail.class, new PathDetailSerializer());
-        module.addDeserializer(PathDetail.class, new PathDetailDeserializer());
-        module.addSerializer(GHResponse.class, new GHResponseSerializer());
-        environment.getObjectMapper().registerModule(module);
-
         environment.jersey().register(new RootResource());
+        environment.servlets().addFilter("cors", CORSFilter.class).addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), false, "*");
+        environment.servlets().addFilter("ipfilter", new IPFilter(configuration.getGraphHopperConfiguration().get("jetty.whiteips", ""), configuration.getGraphHopperConfiguration().get("jetty.blackips", ""))).addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), false, "*");
     }
 }
