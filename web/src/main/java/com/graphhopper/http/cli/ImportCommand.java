@@ -24,7 +24,9 @@ import com.graphhopper.http.GraphHopperServerConfiguration;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
+import com.graphhopper.routing.util.CarFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.routing.util.FootFlagEncoder;
 import com.graphhopper.storage.GHDirectory;
 import com.graphhopper.storage.GraphHopperStorage;
 import io.dropwizard.cli.ConfiguredCommand;
@@ -46,9 +48,8 @@ public class ImportCommand extends ConfiguredCommand<GraphHopperServerConfigurat
             final PtFlagEncoder ptFlagEncoder = new PtFlagEncoder();
             final GHDirectory ghDirectory = GraphHopperGtfs.createGHDirectory(configuration.getGraphHopperConfiguration().get("graph.location", "target/tmp"));
             final GtfsStorage gtfsStorage = GraphHopperGtfs.createGtfsStorage();
-            final EncodingManager encodingManager = new EncodingManager(Arrays.asList(ptFlagEncoder), 8);
+            final EncodingManager encodingManager = new EncodingManager(Arrays.asList(ptFlagEncoder, new FootFlagEncoder(), new CarFlagEncoder()), 8);
             final GraphHopperStorage graphHopperStorage = GraphHopperGtfs.createOrLoad(ghDirectory, encodingManager, ptFlagEncoder, gtfsStorage,
-                    configuration.getGraphHopperConfiguration().getBool("gtfs.createwalknetwork", false),
                     configuration.getGraphHopperConfiguration().has("gtfs.file") ? Arrays.asList(configuration.getGraphHopperConfiguration().get("gtfs.file", "").split(",")) : Collections.emptyList(),
                     configuration.getGraphHopperConfiguration().has("datareader.file") ? Arrays.asList(configuration.getGraphHopperConfiguration().get("datareader.file", "").split(",")) : Collections.emptyList());
             graphHopperStorage.close();

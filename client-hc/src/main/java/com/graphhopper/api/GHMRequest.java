@@ -16,6 +16,8 @@ public class GHMRequest extends GHRequest {
 
     private List<GHPoint> fromPoints;
     private List<GHPoint> toPoints;
+    private List<String> fromPointHints;
+    private List<String> toPointHints;
     boolean identicalLists = true;
     private final Set<String> outArrays = new HashSet<>(5);
 
@@ -27,6 +29,8 @@ public class GHMRequest extends GHRequest {
         super(0);
         fromPoints = new ArrayList<>(size);
         toPoints = new ArrayList<>(size);
+        fromPointHints = new ArrayList<>(size);
+        toPointHints = new ArrayList<>(size);
     }
 
     /**
@@ -64,7 +68,7 @@ public class GHMRequest extends GHRequest {
     }
 
     /**
-     * This methods adds the places as 'from' and 'to' place to the request.
+     * This methods adds the coordinate as 'from' and 'to' to the request.
      */
     @Override
     public GHMRequest addPoint(GHPoint point) {
@@ -79,10 +83,24 @@ public class GHMRequest extends GHRequest {
         return this;
     }
 
-    public GHMRequest addFromPoints(List<GHPoint> points) {
+    public GHMRequest setFromPoints(List<GHPoint> points) {
         fromPoints = points;
         identicalLists = false;
         return this;
+    }
+
+    public GHRequest addFromPointHint(String pointHint) {
+        this.fromPointHints.add(pointHint);
+        return this;
+    }
+
+    public GHRequest setFromPointHints(List<String> pointHints) {
+        this.fromPointHints = pointHints;
+        return this;
+    }
+
+    public List<String> getFromPointHints() {
+        return fromPointHints;
     }
 
     public GHMRequest addToPoint(GHPoint point) {
@@ -91,9 +109,42 @@ public class GHMRequest extends GHRequest {
         return this;
     }
 
-    public GHMRequest addToPoints(List<GHPoint> points) {
+    public GHMRequest setToPoints(List<GHPoint> points) {
         toPoints = points;
         identicalLists = false;
         return this;
+    }
+
+    public GHRequest addToPointHint(String pointHint) {
+        this.toPointHints.add(pointHint);
+        return this;
+    }
+
+    public GHRequest setToPointHints(List<String> pointHints) {
+        this.toPointHints = pointHints;
+        return this;
+    }
+
+    public List<String> getToPointHints() {
+        return toPointHints;
+    }
+
+    @Override
+    public GHRequest setPointHints(List<String> pointHints) {
+        super.setPointHints(pointHints);
+        this.fromPointHints = pointHints;
+        this.toPointHints = pointHints;
+        return this;
+    }
+
+    @Override
+    public List<String> getPointHints() {
+        throw new IllegalStateException("Use getFromPointHints or getToPointHints");
+    }
+
+    @Override
+    public boolean hasPointHints() {
+        return this.fromPointHints.size() == this.fromPoints.size() && !fromPoints.isEmpty() &&
+                this.toPointHints.size() == this.toPoints.size() && !toPoints.isEmpty();
     }
 }

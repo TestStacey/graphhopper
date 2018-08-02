@@ -16,30 +16,25 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.routing.ch;
+package com.graphhopper.http;
 
-public interface NodeContractor {
-    void initFromGraph();
+import javax.annotation.Priority;
+import javax.ws.rs.Priorities;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.container.PreMatching;
+import javax.ws.rs.core.HttpHeaders;
 
-    void close();
+@PreMatching
+@Priority(Priorities.HEADER_DECORATOR)
+public class TypeGPXFilter implements ContainerRequestFilter {
 
-    /**
-     * Calculates the priority of a node without changing the graph. Lower (!!) priority nodes are contracted first.
-     */
-    float calculatePriority(int node);
+    @Override
+    public void filter(ContainerRequestContext rc) {
+        String maybeType = rc.getUriInfo().getQueryParameters().getFirst("type");
+        if (maybeType != null && maybeType.equals("gpx")) {
+            rc.getHeaders().putSingle(HttpHeaders.ACCEPT, "application/gpx+xml");
+        }
+    }
 
-    /**
-     * Adds the required shortcuts for the given node.
-     */
-    void contractNode(int node);
-
-    long getAddedShortcutsCount();
-
-    String getStatisticsString();
-
-    long getDijkstraCount();
-
-    float getDijkstraSeconds();
-
-    void prepareContraction();
 }

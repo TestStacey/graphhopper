@@ -125,7 +125,7 @@ public class GraphHopperWeb implements GraphHopperAPI {
             JsonNode descriptionNode = path.get("description");
             if (descriptionNode.isArray()) {
                 List<String> description = new ArrayList<>(descriptionNode.size());
-                for (JsonNode descNode: descriptionNode) {
+                for (JsonNode descNode : descriptionNode) {
                     description.add(descNode.asText());
                 }
                 pathWrapper.setDescription(description);
@@ -427,6 +427,10 @@ public class GraphHopperWeb implements GraphHopperAPI {
 
         for (String details : request.getPathDetails()) {
             url += "&" + Parameters.DETAILS.PATH_DETAILS + "=" + details;
+        }
+
+        for (String hint : request.getPointHints()) {
+            url += "&point_hint=" + WebHelper.encodeURL(hint);
         }
 
         if (!key.isEmpty()) {

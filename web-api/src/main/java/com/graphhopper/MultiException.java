@@ -16,30 +16,25 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.routing.ch;
+package com.graphhopper;
 
-public interface NodeContractor {
-    void initFromGraph();
+import java.util.Collections;
+import java.util.List;
 
-    void close();
+public class MultiException extends RuntimeException {
 
-    /**
-     * Calculates the priority of a node without changing the graph. Lower (!!) priority nodes are contracted first.
-     */
-    float calculatePriority(int node);
+    private final List<Throwable> errors;
 
-    /**
-     * Adds the required shortcuts for the given node.
-     */
-    void contractNode(int node);
+    public MultiException(List<Throwable> errors) {
+        this.errors = errors;
+    }
 
-    long getAddedShortcutsCount();
+    public MultiException(Throwable e) {
+        this(Collections.singletonList(e));
+    }
 
-    String getStatisticsString();
+    public List<Throwable> getErrors() {
+        return errors;
+    }
 
-    long getDijkstraCount();
-
-    float getDijkstraSeconds();
-
-    void prepareContraction();
 }
