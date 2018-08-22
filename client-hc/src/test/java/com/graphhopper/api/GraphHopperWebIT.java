@@ -34,9 +34,8 @@ public class GraphHopperWebIT {
 
     @Before
     public void setUp() {
-        String key = System.getProperty("graphhopper.key", KEY);
-        gh.setKey(key);
-        ghMatrix.setKey(key);
+        gh.setKey(KEY);
+        ghMatrix.setKey(KEY);
     }
 
     @Test
@@ -56,7 +55,6 @@ public class GraphHopperWebIT {
         isBetween(240, 270, alt.getAscend());
         isBetween(180, 200, alt.getDescend());
         isBetween(1000, 1500, alt.getRouteWeight());
-
 
         // change vehicle
         res = gh.route(new GHRequest(49.6724, 11.3494, 49.6550, 11.4180).

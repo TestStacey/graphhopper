@@ -215,6 +215,31 @@ public class GraphHopperGtfsIT {
     }
 
     @Test
+    public void testRoute1ProfileOvernight() {
+        final double FROM_LAT = 36.914893, FROM_LON = -116.76821; // NADAV stop
+        final double TO_LAT = 36.914944, TO_LON = -116.761472; // NANAA stop
+        GHRequest ghRequest = new GHRequest(
+                FROM_LAT, FROM_LON,
+                TO_LAT, TO_LON
+        );
+        ghRequest.getHints().put(Parameters.PT.EARLIEST_DEPARTURE_TIME, LocalDateTime.of(2007,1,1,23,0).atZone(zoneId).toInstant());
+        ghRequest.getHints().put(Parameters.PT.PROFILE_QUERY, true);
+        ghRequest.getHints().put(Parameters.PT.IGNORE_TRANSFERS, true);
+        ghRequest.getHints().put(Parameters.PT.LIMIT_SOLUTIONS, 21);
+
+        GHResponse response = graphHopper.route(ghRequest);
+        List<LocalTime> actualDepartureTimes = response.getAll().stream()
+                .map(path -> LocalTime.from(((Trip.PtLeg) path.getLegs().get(0)).getDepartureTime().toInstant().atZone(zoneId)))
+                .collect(Collectors.toList());
+        List<LocalTime> expectedDepartureTimes = Stream.of(
+                "06:44", "07:14", "07:44", "08:14", "08:44", "08:54", "09:04", "09:14", "09:24", "09:34", "09:44", "09:54",
+                "10:04", "10:14", "10:24", "10:34", "10:44", "11:14", "11:44", "12:14", "12:44")
+                .map(LocalTime::parse)
+                .collect(Collectors.toList());
+        assertEquals(expectedDepartureTimes, actualDepartureTimes);
+    }
+
+    @Test
     public void testRoute1ProfileLatestDeparture() {
         final double FROM_LAT = 36.914893, FROM_LON = -116.76821; // NADAV stop
         final double TO_LAT = 36.914944, TO_LON = -116.761472; // NANAA stop
@@ -503,8 +528,8 @@ public class GraphHopperGtfsIT {
         PathWrapper solutionWithTransfer = response.getAll().get(0);
         PathWrapper solutionWithoutTransfer = response.getAll().get(1);
 
-        Assume.assumeTrue("First solution has no transfers",solutionWithTransfer.getNumChanges() == 1);
-        Assume.assumeTrue("Second solution has one transfer", solutionWithoutTransfer.getNumChanges() == 0);
+        Assume.assumeTrue("First solution has one transfer",solutionWithTransfer.getNumChanges() == 1);
+        Assume.assumeTrue("Second solution has no transfers", solutionWithoutTransfer.getNumChanges() == 0);
         Assume.assumeTrue("With transfers is faster than without", solutionWithTransfer.getTime() < solutionWithoutTransfer.getTime());
 
         // If one transfer is worth beta_transfers milliseconds of travel time savings
