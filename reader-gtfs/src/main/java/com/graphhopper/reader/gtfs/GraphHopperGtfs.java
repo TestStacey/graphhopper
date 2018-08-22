@@ -191,6 +191,7 @@ public final class GraphHopperGtfs {
 
             queryGraph.lookup(pointQueryResults); // modifies queryGraph and queryResults!
 
+            PointList startAndEndpoint = pointListFrom(allQueryResults);
             response.addDebugInfo("idLookup:" + stopWatch.stop().getSeconds() + "s");
 
             int startNode;
@@ -469,6 +470,14 @@ public final class GraphHopperGtfs {
                     transferWithTime.time = solutions.get(0).currentTime;
                     return transferWithTime;
                 });
+    }
+
+    private PointList pointListFrom(List<QueryResult> queryResults) {
+        PointList waypoints = new PointList(queryResults.size(), true);
+        for (QueryResult qr : queryResults) {
+            waypoints.add(qr.getSnappedPoint());
+        }
+        return waypoints;
     }
 
 }
