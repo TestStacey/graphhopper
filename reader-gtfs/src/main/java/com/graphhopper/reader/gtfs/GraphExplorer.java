@@ -176,9 +176,16 @@ final class GraphExplorer {
         }
         EdgeIteratorState extraEdge = extraEdges.get(edgeId);
         if (extraEdge != null) {
+            if (extraEdge.getAdjNode() != adjNode) {
+                throw new IllegalStateException();
+            }
             return extraEdge;
         } else {
-            return graph.getEdgeIteratorState(edgeId, adjNode);
+            EdgeIteratorState edge = graph.getEdgeIteratorState(edgeId, adjNode);
+            if (edge.getAdjNode() != adjNode) {
+                throw new IllegalStateException();
+            }
+            return edge;
         }
     }
 
