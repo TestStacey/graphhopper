@@ -42,6 +42,10 @@ import org.mapdb.Fun;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -404,17 +408,28 @@ public class RealtimeFeed {
     }
 
     public Optional<GtfsReader.TripWithStopTimes> getTripUpdate(GTFSFeed staticFeed, GtfsRealtime.TripDescriptor tripDescriptor, Label.Transition boardEdge, Instant boardTime) {
-        logger.trace("getTripUpdate {}", tripDescriptor);
-        if (!isThisRealtimeUpdateAboutThisLineRun(boardEdge.edge.edgeIteratorState, boardTime)) {
+        try {
+            logger.trace("getTripUpdate {}", tripDescriptor);
+            if (!isThisRealtimeUpdateAboutThisLineRun(boardEdge.edge.edgeIteratorState, boardTime)) {
+                return Optional.empty();
+            } else {
+                GtfsRealtime.TripDescriptor normalizedTripDescriptor = normalize(tripDescriptor);
+                return feedMessages.values().stream().flatMap(feedMessage -> feedMessage.getEntityList().stream()
+                        .filter(e -> e.hasTripUpdate())
+                        .map(e -> e.getTripUpdate())
+                        .filter(tu -> normalize(tu.getTrip()).equals(normalizedTripDescriptor))
+                        .map(tu -> toTripWithStopTimes(staticFeed, tu)))
+                        .findFirst();
+            }
+        } catch (RuntimeException e) {
+//            feedMessages.forEach((name, feed) -> {
+//                try (OutputStream s = new FileOutputStream(name+".gtfsdump")) {
+//                    feed.writeTo(s);
+//                } catch (IOException e1) {
+//                    throw new RuntimeException();
+//                }
+//            });
             return Optional.empty();
-        } else {
-            GtfsRealtime.TripDescriptor normalizedTripDescriptor = normalize(tripDescriptor);
-            return feedMessages.values().stream().flatMap(feedMessage -> feedMessage.getEntityList().stream()
-                    .filter(e -> e.hasTripUpdate())
-                    .map(e -> e.getTripUpdate())
-                    .filter(tu -> normalize(tu.getTrip()).equals(normalizedTripDescriptor))
-                    .map(tu -> toTripWithStopTimes(staticFeed, tu)))
-                    .findFirst();
         }
     }
 
@@ -505,6 +520,7 @@ public class RealtimeFeed {
                 stopTimes.add(stopTime);
                 logger.trace("Number of stop times: {}", stopTimes.size());
             } else {
+                // http://localhost:3000/route?point=45.51043713898763%2C-122.68381118774415&point=45.522104713562825%2C-122.6455307006836&weighting=fastest&pt.earliest_departure_time=2018-08-24T16%3A56%3A17Z&arrive_by=false&pt.max_walk_distance_per_leg=1000&pt.limit_solutions=5&locale=en-US&vehicle=pt&elevation=false&use_miles=false&points_encoded=false&pt.profile=true
                 throw new RuntimeException();
             }
         }
