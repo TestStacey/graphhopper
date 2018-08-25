@@ -425,13 +425,13 @@ public class RealtimeFeed {
                         .findFirst();
             }
         } catch (RuntimeException e) {
-//            feedMessages.forEach((name, feed) -> {
-//                try (OutputStream s = new FileOutputStream(name+".gtfsdump")) {
-//                    feed.writeTo(s);
-//                } catch (IOException e1) {
-//                    throw new RuntimeException();
-//                }
-//            });
+            feedMessages.forEach((name, feed) -> {
+                try (OutputStream s = new FileOutputStream(name+".gtfsdump")) {
+                    feed.writeTo(s);
+                } catch (IOException e1) {
+                    throw new RuntimeException();
+                }
+            });
             return Optional.empty();
         }
     }

@@ -44,7 +44,7 @@ public class RealtimeFeedCache {
 
     private LoadingCache<String, RealtimeFeed> cache = CacheBuilder.newBuilder()
             .maximumSize(1)
-            .refreshAfterWrite(3, TimeUnit.SECONDS)
+            .refreshAfterWrite(1, TimeUnit.MINUTES)
             .build(new CacheLoader<String, RealtimeFeed>() {
                 public RealtimeFeed load(String key) {
                     return fetchFeedsAndCreateGraph();

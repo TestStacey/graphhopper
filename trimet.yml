@@ -4,10 +4,10 @@ graphhopper:
   graph.location: trimet
 
 gtfsRealtime:
-  - url: file:///Users/michaelzilske/IdeaProjects/graphhopper/gtfs_0.gtfsdump
+  - url: https://developer.trimet.org/ws/V1/TripUpdate?appId=9D774AC10A570CE1DD635942D
     feedId: gtfs_0
     agencyId: TRIMET
-  - url: file:///Users/michaelzilske/IdeaProjects/graphhopper/gtfs_1.gtfsdump
+  - url: http://feed.rvtd.org/googleFeeds/realtime/trip_updates.proto
     feedId: gtfs_1
     agencyId: 1739
 
