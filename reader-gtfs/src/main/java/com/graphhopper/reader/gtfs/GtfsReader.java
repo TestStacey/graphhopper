@@ -159,7 +159,10 @@ class GtfsReader {
             } else {
                 streetNode = locationQueryResult.getClosestNode();
             }
-            gtfsStorage.getStationNodes().put(stop.stop_id, streetNode);
+            Integer prev = gtfsStorage.getStationNodes().put(stop.stop_id, streetNode);
+            if (prev != null) {
+                throw new RuntimeException("Duplicate stop id: "+stop.stop_id);
+            }
         }
     }
 
