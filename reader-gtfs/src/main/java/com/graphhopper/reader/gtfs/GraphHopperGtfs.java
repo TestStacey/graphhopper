@@ -22,7 +22,10 @@ import com.conveyal.gtfs.GTFSFeed;
 import com.conveyal.gtfs.model.Transfer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.transit.realtime.GtfsRealtime;
-import com.graphhopper.*;
+import com.graphhopper.GHRequest;
+import com.graphhopper.GHResponse;
+import com.graphhopper.PathWrapper;
+import com.graphhopper.Trip;
 import com.graphhopper.http.WebHelper;
 import com.graphhopper.reader.osm.OSMReader;
 import com.graphhopper.routing.QueryGraph;
@@ -31,7 +34,6 @@ import com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.EncodingManager;
-import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.routing.weighting.FastestWeighting;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.*;
@@ -44,10 +46,7 @@ import com.graphhopper.util.shapes.GHPoint;
 
 import javax.inject.Inject;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.UriInfo;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
@@ -58,8 +57,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipFile;
 
+import static com.graphhopper.util.Parameters.PT.EARLIEST_DEPARTURE_TIME;
 import static com.graphhopper.util.Parameters.PT.PROFILE_QUERY;
-import static com.graphhopper.util.Parameters.Routing.*;
+import static com.graphhopper.util.Parameters.Routing.POINT_HINT;
 
 @Path("route")
 public final class GraphHopperGtfs {
@@ -436,28 +436,25 @@ public final class GraphHopperGtfs {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public ObjectNode route(@Context UriInfo uriInfo,
-                            @QueryParam(WAY_POINT_MAX_DISTANCE) @DefaultValue("1") double minPathPrecision,
-                            @QueryParam("point") List<GHPoint> requestPoints,
-                            @QueryParam("type") @DefaultValue("json") String type,
-                            @QueryParam(INSTRUCTIONS) @DefaultValue("true") boolean instructions,
-                            @QueryParam(CALC_POINTS) @DefaultValue("true") boolean calcPoints,
-                            @QueryParam("elevation") @DefaultValue("false") boolean enableElevation,
-                            @QueryParam("points_encoded") @DefaultValue("true") boolean pointsEncoded,
-                            @QueryParam("algorithm") @DefaultValue("") String algoStr,
+    public ObjectNode route(@QueryParam("point") List<GHPoint> requestPoints,
+                            @QueryParam(Parameters.PT.EARLIEST_DEPARTURE_TIME) String departureTimeString,
                             @QueryParam("locale") @DefaultValue("en") String localeStr,
                             @QueryParam(POINT_HINT) List<String> pointHints,
-                            @QueryParam(Parameters.DETAILS.PATH_DETAILS) List<String> pathDetails,
-                            @QueryParam("heading") List<Double> favoredHeadings) {
+                            @QueryParam(Parameters.DETAILS.PATH_DETAILS) List<String> pathDetails) {
+
+        if (departureTimeString == null) {
+            throw new BadRequestException(String.format(Locale.ROOT, "Illegal value for required parameter %s: [%s]", Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString));
+        }
+        try {
+            Instant.parse(departureTimeString);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestException(String.format(Locale.ROOT, "Illegal value for required parameter %s: [%s]", Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString));
+        }
+
         GHRequest request = new GHRequest(requestPoints);
-        initHints(request.getHints(), uriInfo.getQueryParameters());
         request.setLocale(localeStr).
                 setPointHints(pointHints).
-                setPathDetails(pathDetails).
-                getHints().
-                put(CALC_POINTS, calcPoints).
-                put(INSTRUCTIONS, instructions).
-                put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
+                setPathDetails(pathDetails).getHints().put(Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString);
         GHResponse route = new RequestHandler(request).route();
         return WebHelper.jsonObject(route, true, true, false, false, 0.0f);
     }
@@ -465,27 +462,6 @@ public final class GraphHopperGtfs {
     public GHResponse route(GHRequest request) {
         GHResponse route = new RequestHandler(request).route();
         return route;
-    }
-
-    private static void initHints(HintsMap m, MultivaluedMap<String, String> parameterMap) {
-        for (Map.Entry<String, List<String>> e : parameterMap.entrySet()) {
-            if (e.getValue().size() == 1) {
-                m.put(e.getKey(), e.getValue().get(0));
-            } else {
-                // Do nothing.
-                // TODO: this is dangerous: I can only silently swallow
-                // the forbidden multiparameter. If I comment-in the line below,
-                // I get an exception, because "point" regularly occurs
-                // multiple times.
-                // I think either unknown parameters (hints) should be allowed
-                // to be multiparameters, too, or we shouldn't use them for
-                // known parameters either, _or_ known parameters
-                // must be filtered before they come to this code point,
-                // _or_ we stop passing unknown parameters alltogether..
-                //
-                // throw new WebApplicationException(String.format("This query parameter (hint) is not allowed to occur multiple times: %s", e.getKey()));
-            }
-        }
     }
 
     public GHResponse routeStreaming(GHRequest request, Consumer<? super Label> action) {

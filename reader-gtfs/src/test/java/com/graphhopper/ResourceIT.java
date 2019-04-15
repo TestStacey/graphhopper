@@ -16,12 +16,10 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.http;import com.fasterxml.jackson.core.type.TypeReference;
+package com.graphhopper;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.graphhopper.GHResponse;
-import com.graphhopper.Trip;
-import com.graphhopper.http.GHPointConverterProvider;
+import com.graphhopper.gtfs.ws.LocationConverterProvider;
 import com.graphhopper.jackson.Jackson;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
@@ -33,22 +31,19 @@ import com.graphhopper.storage.GHDirectory;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.util.Helper;
-import io.dropwizard.testing.ConfigOverride;
-import io.dropwizard.testing.junit.DropwizardAppRule;
+import com.graphhopper.util.Parameters;
 import io.dropwizard.testing.junit.ResourceTestRule;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import javax.ws.rs.core.Response;
-
 import java.io.File;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class ResourceIT {
 
@@ -77,7 +72,7 @@ public class ResourceIT {
 
     @ClassRule
     public static final ResourceTestRule resources = ResourceTestRule.builder()
-            .addProvider(new GHPointConverterProvider())
+            .addProvider(new LocationConverterProvider())
             .setMapper(Jackson.newObjectMapper())
             .addResource(graphHopper)
             .build();
@@ -92,15 +87,18 @@ public class ResourceIT {
 
     @Test
     public void testPointPointQuery() throws Exception {
-        final Response response = resources.target("/route?point=52.5141,13.4963&point=52.5137,13.4355&locale=en-US&vehicle=pt&weighting=fastest&elevation=false&pt.earliest_departure_time=2017-08-28T08%3A46%3A46.649Z&use_miles=false&points_encoded=false&pt.max_walk_distance_per_leg=1000&pt.max_transfer_distance_per_leg=0&pt.profile=true&pt.limit_solutions=5").request().buildGet().invoke();
-        assertEquals(200, response.getStatus());
-        JsonNode json = response.readEntity(JsonNode.class);
-        JsonNode path2 = json.get("paths").get(2);
-        JsonNode path3 = json.get("paths").get(3);
-        path2.get("legs").get(path2.get("legs").size()-1).get("edges").forEach(n -> System.out.println(n.get("adjNode").asLong()));
-        System.out.println("---");
-        path3.get("legs").get(path3.get("legs").size()-1).get("edges").forEach(n -> System.out.println(n.get("adjNode").asLong()));
 
+        System.out.println(LocalDateTime.of(2007, 1, 1, 0, 0, 0).atZone(zoneId).toInstant());
+        final Response response = resources.target("/route")
+                .queryParam("point","36.914893,-116.76821") // NADAV stop
+                .queryParam("point","36.914944,-116.761472") //NANAA stop
+                .queryParam(Parameters.PT.EARLIEST_DEPARTURE_TIME, "2007-01-01T08:00:00Z")
+                .request().buildGet().invoke();
+        System.out.println(response);
+
+        assertEquals(200, response.getStatus());
+        GHResponse json = response.readEntity(GHResponse.class);
+        System.out.println(json);
     }
 
     @Test
