@@ -81,6 +81,7 @@ public class IsochroneResource {
         queryGraph.lookup(Collections.singletonList(qr));
 
         HintsMap hintsMap = new HintsMap();
+        RouteResource.initHints(hintsMap, uriInfo.getQueryParameters());
 
         Weighting weighting = graphHopper.createWeighting(hintsMap, encoder, graph);
         Isochrone isochrone = new Isochrone(queryGraph, weighting, reverseFlow);

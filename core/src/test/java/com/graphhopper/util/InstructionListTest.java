@@ -229,8 +229,6 @@ public class InstructionListTest {
     @Test
     public void testEmptyList() {
         Graph g = new GraphBuilder(carManager).create();
-        g.edge(0, 0);
-        g.edge(1, 1);
         Path p = new Dijkstra(g, new ShortestWeighting(carEncoder), tMode).calcPath(0, 1);
         InstructionList il = p.calcInstructions(roundaboutEnc, usTR);
         assertEquals(0, il.size());

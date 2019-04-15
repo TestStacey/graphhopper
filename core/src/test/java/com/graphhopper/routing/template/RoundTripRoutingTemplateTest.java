@@ -77,16 +77,14 @@ public class RoundTripRoutingTemplateTest {
         int numPoints = 2;
         double roundTripDistance = 670000;
 
-        List<GHPoint> points = Collections.singletonList(start);
-        List<Double> favoredHeadings = Collections.singletonList(heading);
         GHRequest ghRequest =
-                new GHRequest(points, favoredHeadings);
+                new GHRequest(Collections.singletonList(start), Collections.singletonList(heading));
         ghRequest.getHints().put(Parameters.Algorithms.RoundTrip.POINTS, numPoints);
         ghRequest.getHints().put(Parameters.Algorithms.RoundTrip.DISTANCE, roundTripDistance);
         LocationIndex locationIndex = new LocationIndexTree(g, new RAMDirectory()).prepareIndex();
         RoundTripRoutingTemplate routingTemplate =
                 new RoundTripRoutingTemplate(ghRequest, new GHResponse(), locationIndex, em, 1);
-        List<QueryResult> stagePoints = routingTemplate.lookup(points, carFE);
+        List<QueryResult> stagePoints = routingTemplate.lookup(ghRequest.getPoints(), carFE);
         assertEquals(3, stagePoints.size());
         assertEquals(0, stagePoints.get(0).getClosestNode());
         assertEquals(6, stagePoints.get(1).getClosestNode());

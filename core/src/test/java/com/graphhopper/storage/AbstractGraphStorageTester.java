@@ -450,6 +450,7 @@ public abstract class AbstractGraphStorageTester {
     public void testCheckFirstNode() {
         graph = createGHStorage();
 
+        assertEquals(0, count(carAllExplorer.setBaseNode(1)));
         graph.edge(0, 1, 12, true);
         assertEquals(1, count(carAllExplorer.setBaseNode(1)));
     }
