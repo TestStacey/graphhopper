@@ -31,7 +31,7 @@ public class Request {
     private Instant earliestDepartureTime;
     private int maxVisitedNodes = 1_000_000;
     private boolean profileQuery;
-    private boolean ignoreTransfers;
+    private Boolean ignoreTransfers;
     private double betaTransfers = 0.0;
     private double betaWalkTime = 1.0;
     private Integer limitSolutions;
@@ -66,11 +66,11 @@ public class Request {
         this.profileQuery = profileQuery;
     }
 
-    public boolean getIgnoreTransfers() {
+    public Boolean getIgnoreTransfers() {
         return ignoreTransfers;
     }
 
-    public void setIgnoreTransfers(boolean ignoreTransfers) {
+    public void setIgnoreTransfers(Boolean ignoreTransfers) {
         this.ignoreTransfers = ignoreTransfers;
     }
 
