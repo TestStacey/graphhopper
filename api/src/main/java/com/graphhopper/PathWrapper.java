@@ -23,7 +23,6 @@ import com.graphhopper.util.details.PathDetail;
 import com.graphhopper.util.shapes.BBox;
 
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.util.*;
 
 /**
@@ -322,14 +321,6 @@ public class PathWrapper {
 
     public BigDecimal getFare() {
         return fare;
-    }
-
-    public String getFareAsString() {
-        if (fare != null) {
-            return NumberFormat.getCurrencyInstance(Locale.ROOT).format(fare);
-        } else {
-            return null;
-        }
     }
 
     public boolean isImpossible() {
