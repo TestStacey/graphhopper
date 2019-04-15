@@ -434,10 +434,6 @@ public final class GraphHopperGtfs {
         return locationIndex;
     }
 
-    public boolean load(String graphHopperFolder) {
-        throw new IllegalStateException("We are always loaded, or we wouldn't exist.");
-    }
-
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public ObjectNode route(@Context UriInfo uriInfo,
