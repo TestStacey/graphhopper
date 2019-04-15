@@ -1,26 +1,13 @@
 package com.graphhopper;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.graphhopper.util.InstructionList;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
 
 import java.util.Date;
 import java.util.List;
 
 public class Trip {
-    @JsonTypeInfo(
-            use = JsonTypeInfo.Id.NAME,
-            include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
-            property = "type"
-    )
-    @JsonSubTypes({
-            @JsonSubTypes.Type(value = WalkLeg.class, name = "walk"),
-            @JsonSubTypes.Type(value = PtLeg.class, name = "pt") }
-    )
     public static abstract class Leg {
         public final String type;
         public final String departureLocation;
@@ -85,8 +72,7 @@ public class Trip {
         private final Date departureTime;
         private final Date arrivalTime;
 
-        @JsonCreator
-        public WalkLeg(@JsonProperty("departureLocation") String departureLocation, @JsonProperty("departureTime") Date departureTime, @JsonProperty("geometry") Geometry geometry, @JsonProperty("distance") double distance, @JsonProperty("instructions") InstructionList instructions, @JsonProperty("arrivalTime") Date arrivalTime) {
+        public WalkLeg(String departureLocation, Date departureTime, Geometry geometry, double distance, InstructionList instructions, Date arrivalTime) {
             super("walk", departureLocation, geometry, distance);
             this.instructions = instructions;
             this.departureTime = departureTime;
@@ -112,18 +98,6 @@ public class Trip {
         public final List<Stop> stops;
         public final String trip_id;
         public final String route_id;
-
-        @JsonCreator
-        public PtLeg(@JsonProperty("stops") List<Stop> stops, String headsign, @JsonProperty("geometry") Geometry geometry, @JsonProperty("distance") double distance, @JsonProperty("feed_id") String feedId, @JsonProperty("trip_id") String tripId, @JsonProperty("route_id") String routeId, @JsonProperty("isInSameVehicleAsPrevious") boolean isInSameVehicleAsPrevious, @JsonProperty("travelTime") long travelTime) {
-            super("pt", stops.get(0).stop_name, geometry, distance);
-            this.feed_id = feedId;
-            this.isInSameVehicleAsPrevious = isInSameVehicleAsPrevious;
-            this.trip_id = tripId;
-            this.route_id = routeId;
-            this.trip_headsign = headsign;
-            this.travelTime = travelTime;
-            this.stops = stops;
-        }
 
         public PtLeg(String feedId, boolean isInSameVehicleAsPrevious, String tripId, String routeId, String headsign, List<Stop> stops, double distance, long travelTime, Geometry geometry) {
             super("pt", stops.get(0).stop_name, geometry, distance);

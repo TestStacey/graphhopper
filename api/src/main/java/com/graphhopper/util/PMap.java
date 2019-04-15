@@ -17,8 +17,6 @@
  */
 package com.graphhopper.util;
 
-import com.fasterxml.jackson.annotation.JsonValue;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,7 +34,7 @@ public class PMap {
     }
 
     public PMap(int capacity) {
-        this(new HashMap<String, String>(capacity));
+        this(new HashMap<>(capacity));
     }
 
     public PMap(Map<String, String> map) {
@@ -130,6 +128,17 @@ public class PMap {
         return _default;
     }
 
+    public float getFloat(String key, float _default) {
+        String str = get(key);
+        if (!Helper.isEmpty(str)) {
+            try {
+                return Float.parseFloat(str);
+            } catch (Exception ex) {
+            }
+        }
+        return _default;
+    }
+
     public String get(String key, String _default) {
         String str = get(key);
         if (Helper.isEmpty(str))
@@ -153,7 +162,6 @@ public class PMap {
     /**
      * This method copies the underlying structure into a new Map object
      */
-    @JsonValue
     public Map<String, String> toMap() {
         return new HashMap<>(map);
     }

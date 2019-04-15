@@ -18,13 +18,15 @@
 package com.graphhopper.jackson;
 
 import com.bedatadriven.jackson.datatype.jts.JtsModule;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.*;
 
 public class Jackson {
     public static ObjectMapper newObjectMapper() {
-        ObjectMapper objectMapper = io.dropwizard.jackson.Jackson.newObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new GraphHopperModule());
         objectMapper.registerModule(new JtsModule());
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         return objectMapper;
     }
 }

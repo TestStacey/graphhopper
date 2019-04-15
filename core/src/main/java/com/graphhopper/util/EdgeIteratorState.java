@@ -17,24 +17,59 @@
  */
 package com.graphhopper.util;
 
-import com.graphhopper.routing.util.FlagEncoder;
+import com.graphhopper.routing.profiles.*;
+import com.graphhopper.storage.IntsRef;
 
 /**
  * This interface represents an edge and is one possible state of an EdgeIterator.
- * <p>
  *
  * @author Peter Karich
  * @see EdgeIterator
  * @see EdgeExplorer
  */
 public interface EdgeIteratorState {
-    int K_UNFAVORED_EDGE = -1;
+    BooleanEncodedValue UNFAVORED_EDGE = new SimpleBooleanEncodedValue("unfavored");
+    /**
+     * This method can be used to fetch the internal reverse state of an edge.
+     */
+    BooleanEncodedValue REVERSE_STATE = new BooleanEncodedValue() {
+        @Override
+        public int init(InitializerConfig init) {
+            throw new IllegalStateException("Cannot happen for this BooleanEncodedValue");
+        }
+
+        @Override
+        public String getName() {
+            return "reverse";
+        }
+
+        @Override
+        public boolean getBool(boolean reverse, IntsRef ref) {
+            return reverse;
+        }
+
+        @Override
+        public void setBool(boolean reverse, IntsRef ref, boolean value) {
+            throw new IllegalStateException("reverse state cannot be modified");
+        }
+    };
 
     /**
      * @return the edge id of the current edge. Do not make any assumptions about the concrete
      * values, except that for an implementation it is recommended that they'll be contiguous.
      */
     int getEdge();
+
+    /**
+     * @return the edge id of the first original edge of the current edge. This is needed for shortcuts
+     * in edge-based contraction hierarchies and otherwise simply returns the id of the current edge.
+     */
+    int getOrigEdgeFirst();
+
+    /**
+     * @see #getOrigEdgeFirst()
+     */
+    int getOrigEdgeLast();
 
     /**
      * Returns the node used to instantiate the EdgeIterator. Example: "EdgeIterator iter =
@@ -54,7 +89,7 @@ public interface EdgeIteratorState {
     int getAdjNode();
 
     /**
-     * For roadnetwork data like OSM a way is nearly always a curve not just a straight line. These
+     * For road network data like OSM a way is nearly always a curve not just a straight line. These
      * nodes are called pillar nodes and are between tower nodes (which are used for routing), they
      * are necessary to have a more exact geometry. See the docs for more information
      * (docs/core/low-level-api.md#what-are-pillar-and-tower-nodes). Updates to the returned list
@@ -81,9 +116,16 @@ public interface EdgeIteratorState {
 
     EdgeIteratorState setDistance(double dist);
 
-    long getFlags();
+    /**
+     * Returns edge properties stored in direction of the raw database layout. So do not use it directly, instead
+     * use the appropriate set/get methods with its EncodedValue object.
+     */
+    IntsRef getFlags();
 
-    EdgeIteratorState setFlags(long flags);
+    /**
+     * Stores the specified edgeFlags down to the DataAccess
+     */
+    EdgeIteratorState setFlags(IntsRef edgeFlags);
 
     /**
      * @return the additional field value for this edge
@@ -95,24 +137,37 @@ public interface EdgeIteratorState {
      */
     EdgeIteratorState setAdditionalField(int value);
 
-    /**
-     * @see FlagEncoder#isForward(long) and #472
-     */
-    boolean isForward(FlagEncoder encoder);
+    boolean get(BooleanEncodedValue property);
 
-    /**
-     * @see FlagEncoder#isBackward(long) and #472
-     */
-    boolean isBackward(FlagEncoder encoder);
+    EdgeIteratorState set(BooleanEncodedValue property, boolean value);
 
-    /**
-     * Get additional boolean information of the edge.
-     * <p>
-     *
-     * @param key      direction or vehicle dependent integer key
-     * @param _default default value if key is not found
-     */
-    boolean getBool(int key, boolean _default);
+    boolean getReverse(BooleanEncodedValue property);
+
+    EdgeIteratorState setReverse(BooleanEncodedValue property, boolean value);
+
+    int get(IntEncodedValue property);
+
+    EdgeIteratorState set(IntEncodedValue property, int value);
+
+    int getReverse(IntEncodedValue property);
+
+    EdgeIteratorState setReverse(IntEncodedValue property, int value);
+
+    double get(DecimalEncodedValue property);
+
+    EdgeIteratorState set(DecimalEncodedValue property, double value);
+
+    double getReverse(DecimalEncodedValue property);
+
+    EdgeIteratorState setReverse(DecimalEncodedValue property, double value);
+
+    <T extends Enum> T get(EnumEncodedValue<T> property);
+
+    <T extends Enum> EdgeIteratorState set(EnumEncodedValue<T> property, T value);
+
+    <T extends Enum> T getReverse(EnumEncodedValue<T> property);
+
+    <T extends Enum> EdgeIteratorState setReverse(EnumEncodedValue<T> property, T value);
 
     String getName();
 
@@ -120,19 +175,17 @@ public interface EdgeIteratorState {
 
     /**
      * Clones this EdgeIteratorState.
-     * <p>
      *
      * @param reverse if true a detached edgeState with reversed properties is created where base
      *                and adjacent nodes, flags and wayGeometry are in reversed order. See #162 for more details
-     *                about why we need the new reverse parameter.
+     *                about why we need the reverse parameter.
      */
     EdgeIteratorState detach(boolean reverse);
 
     /**
-     * Copies the properties of this edge into the specified edge. Does not change nodes!
-     * <p>
+     * Copies the properties of the specified edge into this edge. Does not change nodes!
      *
      * @return the specified edge e
      */
-    EdgeIteratorState copyPropertiesTo(EdgeIteratorState e);
+    EdgeIteratorState copyPropertiesFrom(EdgeIteratorState e);
 }

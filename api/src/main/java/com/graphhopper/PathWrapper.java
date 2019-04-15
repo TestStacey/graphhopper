@@ -17,9 +17,6 @@
  */
 package com.graphhopper;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.graphhopper.util.InstructionList;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.details.PathDetail;
@@ -57,7 +54,6 @@ public class PathWrapper {
      * @return the description of this route alternative to make it meaningful for the user e.g. it
      * displays one or two main roads of the route.
      */
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public List<String> getDescription() {
         if (description == null)
             return Collections.emptyList();
@@ -80,7 +76,6 @@ public class PathWrapper {
         return this;
     }
 
-    @JsonIgnore
     public String getDebugInfo() {
         return debugInfo;
     }
@@ -106,7 +101,6 @@ public class PathWrapper {
     /**
      * This method returns the input points snapped to the road network.
      */
-    @JsonProperty("snapped_waypoints")
     public PointList getWaypoints() {
         check("getWaypoints");
         return waypointList;
@@ -193,7 +187,6 @@ public class PathWrapper {
      * only if you know what you are doing, e.g. only to compare routes gained with the same query
      * parameters like vehicle.
      */
-    @JsonProperty("weight")
     public double getRouteWeight() {
         check("getRouteWeight");
         return routeWeight;
@@ -207,7 +200,6 @@ public class PathWrapper {
     /**
      * Calculates the 2D bounding box of this route
      */
-    @JsonProperty("bbox")
     public BBox calcBBox2D() {
         check("calcRouteBBox");
         BBox bounds = BBox.createInverse(false);
@@ -280,7 +272,6 @@ public class PathWrapper {
         pathDetails.addAll(otherDetails);
     }
 
-    @JsonProperty("details")
     public Map<String, List<PathDetail>> getPathDetails() {
         return this.pathDetails;
     }
@@ -299,7 +290,6 @@ public class PathWrapper {
         return !errors.isEmpty();
     }
 
-    @JsonIgnore
     public List<Throwable> getErrors() {
         return errors;
     }
@@ -318,7 +308,6 @@ public class PathWrapper {
         this.numChanges = numChanges;
     }
 
-    @JsonProperty("transfers")
     public int getNumChanges() {
         return numChanges;
     }
@@ -331,12 +320,10 @@ public class PathWrapper {
         this.fare = fare;
     }
 
-    @JsonIgnore
     public BigDecimal getFare() {
         return fare;
     }
 
-    @JsonProperty("fare")
     public String getFareAsString() {
         if (fare != null) {
             return NumberFormat.getCurrencyInstance(Locale.ROOT).format(fare);

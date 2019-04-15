@@ -19,16 +19,12 @@ package com.graphhopper;
 
 import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.util.Helper;
-import com.graphhopper.util.Parameters;
 import com.graphhopper.util.shapes.GHPoint;
 
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
-import java.util.*;
-
-import static com.graphhopper.util.Parameters.Routing.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * GraphHopper request wrapper to simplify requesting GraphHopper.
@@ -37,11 +33,11 @@ import static com.graphhopper.util.Parameters.Routing.*;
  * @author ratrun
  */
 public class GHRequest {
-    private final List<GHLocation> points = new ArrayList<>();
+    private final List<GHPoint> points;
     private final HintsMap hints = new HintsMap();
     // List of favored start (1st element) and arrival heading (all other).
     // Headings are north based azimuth (clockwise) in (0, 360) or NaN for equal preference
-    private final List<Double> favoredHeadings = new ArrayList<>();
+    private final List<Double> favoredHeadings;
     private List<String> pointHints = new ArrayList<>();
     private List<String> pathDetails = new ArrayList<>();
     private String algo = "";
@@ -53,6 +49,8 @@ public class GHRequest {
     }
 
     public GHRequest(int size) {
+        points = new ArrayList<>(size);
+        favoredHeadings = new ArrayList<>(size);
         possibleToAdd = true;
     }
 
@@ -84,9 +82,11 @@ public class GHRequest {
         if (endPlace == null)
             throw new IllegalStateException("'to' cannot be null");
 
-        points.add(new GHPointLocation(startPlace));
-        points.add(new GHPointLocation(endPlace));
+        points = new ArrayList<>(2);
+        points.add(startPlace);
+        points.add(endPlace);
 
+        favoredHeadings = new ArrayList<>(2);
         validateAzimuthValue(startHeading);
         favoredHeadings.add(startHeading);
         validateAzimuthValue(endHeading);
@@ -113,67 +113,9 @@ public class GHRequest {
         for (Double heading : favoredHeadings) {
             validateAzimuthValue(heading);
         }
-        for (GHPoint point : points) {
-            this.points.add(new GHPointLocation(point));
-        }
-        this.favoredHeadings.addAll(favoredHeadings);
+        this.points = points;
+        this.favoredHeadings = favoredHeadings;
     }
-
-    public GHRequest(
-            @Context UriInfo uriInfo,
-            @QueryParam("point") List<GHLocation> points,
-            @QueryParam("heading") List<Double> favoredHeadings,
-            @QueryParam("vehicle") @DefaultValue("car") String vehicleStr,
-            @QueryParam("weighting") @DefaultValue("fastest") String weighting,
-            @QueryParam("algorithm") @DefaultValue("") String algoStr,
-            @QueryParam("locale") @DefaultValue("en") String localeStr,
-            @QueryParam(CALC_POINTS) @DefaultValue("true") boolean calcPoints,
-            @QueryParam(INSTRUCTIONS) @DefaultValue("true") boolean instructions,
-            @QueryParam(WAY_POINT_MAX_DISTANCE) @DefaultValue("1") double minPathPrecision,
-            @QueryParam(Parameters.Routing.POINT_HINT) List<String> pointHints,
-            @QueryParam(Parameters.DETAILS.PATH_DETAILS) List<String> pathDetails) {
-        if (favoredHeadings != null && points != null) {
-            if (favoredHeadings.size() == 0) {
-                favoredHeadings = new ArrayList<>(Collections.nCopies(points.size(), Double.NaN));
-            } else if (favoredHeadings.size() == 1 && points.size() > 0) {
-                // if only one favored heading is specified take as start heading
-                final Double startHeading = favoredHeadings.get(0);
-                favoredHeadings = new ArrayList<>(Collections.nCopies(points.size(), Double.NaN));
-                favoredHeadings.set(0, startHeading);
-            }
-            this.points.addAll(points);
-            this.favoredHeadings.addAll(favoredHeadings);
-        }
-        for (Map.Entry<String, List<String>> e : uriInfo.getQueryParameters().entrySet()) {
-            if (e.getValue().size() == 1) {
-                hints.put(e.getKey(), e.getValue().get(0));
-            } else {
-                // Do nothing.
-                // TODO: this is dangerous: I can only silently swallow
-                // the forbidden multiparameter. If I comment-in the line below,
-                // I get an exception, because "point" regularly occurs
-                // multiple times.
-                // I think either unknown parameters (hints) should be allowed
-                // to be multiparameters, too, or we shouldn't use them for
-                // known parameters either, _or_ known parameters
-                // must be filtered before they come to this code point,
-                // _or_ we stop passing unknown parameters alltogether..
-                //
-                // throw new WebApplicationException(String.format("This query parameter (hint) is not allowed to occur multiple times: %s", e.getKey()));
-            }
-        }
-        setVehicle(vehicleStr);
-        setWeighting(weighting);
-        setAlgorithm(algoStr);
-        setLocale(localeStr);
-        setPointHints(pointHints);
-        setPathDetails(pathDetails);
-        hints.
-            put(CALC_POINTS, calcPoints).
-            put(INSTRUCTIONS, instructions).
-            put(WAY_POINT_MAX_DISTANCE, minPathPrecision);
-    }
-
 
     /**
      * Set routing request
@@ -200,7 +142,7 @@ public class GHRequest {
             throw new IllegalStateException("Please call empty constructor if you intent to use "
                     + "more than two places via addPoint method.");
 
-        points.add(new GHPointLocation(point));
+        points.add(point);
         validateAzimuthValue(favoredHeading);
         favoredHeadings.add(favoredHeading);
         return this;
@@ -214,12 +156,6 @@ public class GHRequest {
      */
     public GHRequest addPoint(GHPoint point) {
         addPoint(point, Double.NaN);
-        return this;
-    }
-
-    public GHRequest addPoint(GHLocation point) {
-        points.add(point);
-        favoredHeadings.add(Double.NaN);
         return this;
     }
 
@@ -246,7 +182,7 @@ public class GHRequest {
             throw new IllegalArgumentException("Heading " + heading + " must be in range (0,360) or NaN");
     }
 
-    public List<GHLocation> getPoints() {
+    public List<GHPoint> getPoints() {
         return points;
     }
 
@@ -330,7 +266,7 @@ public class GHRequest {
     @Override
     public String toString() {
         String res = "";
-        for (GHLocation point : points) {
+        for (GHPoint point : points) {
             if (res.isEmpty()) {
                 res = point.toString();
             } else {
@@ -347,9 +283,5 @@ public class GHRequest {
             res += " (Hints:" + hints + ")";
 
         return res;
-    }
-
-    public List<Double> getFavoredHeadings() {
-        return favoredHeadings;
     }
 }

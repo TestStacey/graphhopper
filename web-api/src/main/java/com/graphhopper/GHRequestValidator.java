@@ -41,11 +41,11 @@ public class GHRequestValidator
                     .addConstraintViolation();
             return false;
         }
-        if (ghRequest.getPoints().size() != ghRequest.getFavoredHeadings().size()) {
-            context.buildConstraintViolationWithTemplate("The number of 'heading' parameters must be <= 1 or equal to the number of points (${validatedValue.points.size()})")
-                    .addConstraintViolation();
-            return false;
-        }
+//        if (ghRequest.getPoints().size() != ghRequest.getFavoredHeadings().size()) {
+//            context.buildConstraintViolationWithTemplate("The number of 'heading' parameters must be <= 1 or equal to the number of points (${validatedValue.points.size()})")
+//                    .addConstraintViolation();
+//            return false;
+//        }
         if (ghRequest.getPointHints().size() > 0 && ghRequest.getPointHints().size() != ghRequest.getPoints().size()) {
             context.buildConstraintViolationWithTemplate("If you pass " + POINT_HINT + ", you need to pass a hint for every point, empty hints will be ignored")
                     .addConstraintViolation();

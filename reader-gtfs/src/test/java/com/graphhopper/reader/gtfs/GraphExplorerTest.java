@@ -52,7 +52,7 @@ public class GraphExplorerTest {
     public GraphExplorerTest() {
         pt = new PtFlagEncoder();
         foot = new FootFlagEncoder();
-        encodingManager = new EncodingManager(Arrays.asList(pt, foot), 8);
+        encodingManager = EncodingManager.create(Arrays.asList(pt, foot), 8);
     }
 
     @Test
@@ -73,8 +73,8 @@ public class GraphExplorerTest {
         GraphHopperStorage graph = new GraphHopperStorage(new RAMDirectory("wurst"), encodingManager, false, new GraphExtension.NoOpExtension());
         graph.create(0);
         EdgeIteratorState d = graph.edge(4, 5);
-        d.setFlags(pt.setAccess(d.getFlags(), true, false));
-        d.setFlags(foot.setAccess(d.getFlags(), true, false));
+        d.set(pt.getAccessEnc(), true);
+        d.set(foot.getAccessEnc(), true);
 
         GtfsStorage gtfsStorage = mock(GtfsStorage.class);
         RealtimeFeed realtimeFeed = mock(RealtimeFeed.class);
@@ -95,14 +95,14 @@ public class GraphExplorerTest {
         GtfsStorage gtfsStorage = mock(GtfsStorage.class);
         RealtimeFeed realtimeFeed = mock(RealtimeFeed.class);
         List<VirtualEdgeIteratorState> extraEdges = new ArrayList<>();
-        VirtualEdgeIteratorState e = new VirtualEdgeIteratorState(0, 0, 0, 1, 0.0, 0L, "", new PointList());
-        e.setFlags(foot.setAccess(e.getFlags(), true, false));
+        VirtualEdgeIteratorState e = new VirtualEdgeIteratorState(0, 0, 0, 1, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        e.set(foot.getAccessEnc(), true);
         extraEdges.add(e);
-        VirtualEdgeIteratorState f = new VirtualEdgeIteratorState(1, 1, 1, 2, 0.0, 0L, "", new PointList());
-        f.setFlags(foot.setAccess(f.getFlags(), true, false));
+        VirtualEdgeIteratorState f = new VirtualEdgeIteratorState(1, 1, 1, 2, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        f.set(foot.getAccessEnc(), true);
         extraEdges.add(f);
-        VirtualEdgeIteratorState g = new VirtualEdgeIteratorState(2, 2, 1, 3, 0.0, 0L, "", new PointList());
-        g.setFlags(foot.setAccess(g.getFlags(), true, false));
+        VirtualEdgeIteratorState g = new VirtualEdgeIteratorState(2, 2, 1, 3, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        g.set(foot.getAccessEnc(), true);
         extraEdges.add(g);
 
         QueryGraph queryGraph = new QueryGraph(graph);
@@ -112,7 +112,6 @@ public class GraphExplorerTest {
                 contains(e.toString()));
         assertThat(() -> testee.exploreEdgesAround(new Label(0, -1, 1, 0, 0, 0.0, 0L, 0, 0, false, null)).map(Object::toString).iterator(),
                 contains(f.toString(), g.toString()));
-
     }
 
     @Test
@@ -120,25 +119,25 @@ public class GraphExplorerTest {
         GraphHopperStorage graph = new GraphHopperStorage(new RAMDirectory("wurst"), encodingManager, false, new GraphExtension.NoOpExtension());
         graph.create(0);
         EdgeIteratorState d = graph.edge(4, 5);
-        d.setFlags(pt.setAccess(d.getFlags(), true, false));
-        d.setFlags(foot.setAccess(d.getFlags(), true, false));
+        d.set(pt.getAccessEnc(), true);
+        d.set(foot.getAccessEnc(), true);
 
         int edgeId = graph.getAllEdges().length();
 
         GtfsStorage gtfsStorage = mock(GtfsStorage.class);
         RealtimeFeed realtimeFeed = mock(RealtimeFeed.class);
         List<VirtualEdgeIteratorState> extraEdges = new ArrayList<>();
-        VirtualEdgeIteratorState e = new VirtualEdgeIteratorState(-1, edgeId++, 0, 1, 0.0, 0L, "", new PointList());
-        e.setFlags(foot.setAccess(e.getFlags(), true, false));
+        VirtualEdgeIteratorState e = new VirtualEdgeIteratorState(-1, edgeId++, 0, 1, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        e.set(foot.getAccessEnc(), true);
         extraEdges.add(e);
-        VirtualEdgeIteratorState f = new VirtualEdgeIteratorState(-1, edgeId++, 1, 2, 0.0, 0L, "", new PointList());
-        f.setFlags(foot.setAccess(f.getFlags(), true, false));
+        VirtualEdgeIteratorState f = new VirtualEdgeIteratorState(-1, edgeId++, 1, 2, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        f.set(foot.getAccessEnc(), true);
         extraEdges.add(f);
-        VirtualEdgeIteratorState g = new VirtualEdgeIteratorState(-1, edgeId++, 1, 3, 0.0, 0L, "", new PointList());
-        g.setFlags(foot.setAccess(g.getFlags(), true, false));
+        VirtualEdgeIteratorState g = new VirtualEdgeIteratorState(-1, edgeId++, 1, 3, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        g.set(foot.getAccessEnc(), true);
         extraEdges.add(g);
-        VirtualEdgeIteratorState h = new VirtualEdgeIteratorState(-1, edgeId++, 4, 7, 0.0, 0L, "", new PointList());
-        h.setFlags(foot.setAccess(h.getFlags(), true, false));
+        VirtualEdgeIteratorState h = new VirtualEdgeIteratorState(-1, edgeId++, 4, 7, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        h.set(foot.getAccessEnc(), true);
         extraEdges.add(h);
 
         QueryGraph queryGraph = new QueryGraph(graph);
@@ -157,13 +156,13 @@ public class GraphExplorerTest {
         GraphHopperStorage graph = new GraphHopperStorage(new RAMDirectory("wurst"), encodingManager, false, new GraphExtension.NoOpExtension());
         graph.create(0);
         EdgeIteratorState c = graph.edge(4, 3);
-        c.setFlags(pt.setAccess(c.getFlags(), true, false));
-        c.setFlags(foot.setAccess(c.getFlags(), true, false));
+        c.set(pt.getAccessEnc(), true);
+        c.set(foot.getAccessEnc(), true);
         PointList cp = new PointList();
         c.setWayGeometry(cp);
         EdgeIteratorState d = graph.edge(4, 5);
-        d.setFlags(pt.setAccess(d.getFlags(), true, false));
-        d.setFlags(foot.setAccess(d.getFlags(), true, false));
+        d.set(pt.getAccessEnc(), true);
+        d.set(foot.getAccessEnc(), true);
         PointList dp = new PointList();
         d.setWayGeometry(dp);
         graph.getNodeAccess().setNode(3, 3.0, 3.0);
@@ -176,17 +175,17 @@ public class GraphExplorerTest {
         GtfsStorage gtfsStorage = mock(GtfsStorage.class);
         RealtimeFeed realtimeFeed = mock(RealtimeFeed.class);
         List<VirtualEdgeIteratorState> extraEdges = new ArrayList<>();
-        VirtualEdgeIteratorState e = new VirtualEdgeIteratorState(-1, edgeId++, 0, 1, 0.0, 0L, "", new PointList());
-        e.setFlags(foot.setAccess(e.getFlags(), true, false));
+        VirtualEdgeIteratorState e = new VirtualEdgeIteratorState(-1, edgeId++, 0, 1, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        e.set(foot.getAccessEnc(), true);
         extraEdges.add(e);
-        VirtualEdgeIteratorState f = new VirtualEdgeIteratorState(-1, edgeId++, 1, 2, 0.0, 0L, "", new PointList());
-        f.setFlags(foot.setAccess(f.getFlags(), true, false));
+        VirtualEdgeIteratorState f = new VirtualEdgeIteratorState(-1, edgeId++, 1, 2, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        f.set(foot.getAccessEnc(), true);
         extraEdges.add(f);
-        VirtualEdgeIteratorState g = new VirtualEdgeIteratorState(-1, edgeId++, 1, 3, 0.0, 0L, "", new PointList());
-        g.setFlags(foot.setAccess(g.getFlags(), true, false));
+        VirtualEdgeIteratorState g = new VirtualEdgeIteratorState(-1, edgeId++, 1, 3, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        g.set(foot.getAccessEnc(), true);
         extraEdges.add(g);
-        VirtualEdgeIteratorState h = new VirtualEdgeIteratorState(-1, edgeId++, 4, 7, 0.0, 0L, "", new PointList());
-        h.setFlags(foot.setAccess(h.getFlags(), true, false));
+        VirtualEdgeIteratorState h = new VirtualEdgeIteratorState(-1, edgeId++, 4, 7, 0.0, encodingManager.createEdgeFlags(), "", new PointList(), false);
+        h.set(foot.getAccessEnc(), true);
         extraEdges.add(h);
 
         WrapperGraph wrapperGraph = new WrapperGraph(graph, extraEdges);

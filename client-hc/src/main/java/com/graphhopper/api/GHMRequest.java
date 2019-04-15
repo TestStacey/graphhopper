@@ -1,6 +1,5 @@
 package com.graphhopper.api;
 
-import com.graphhopper.GHLocation;
 import com.graphhopper.GHRequest;
 import com.graphhopper.util.shapes.GHPoint;
 
@@ -55,8 +54,8 @@ public class GHMRequest extends GHRequest {
     }
 
     @Override
-    public List<GHLocation> getPoints() {
-        throw new IllegalStateException("use getFromPlaces or getToPlaces");
+    public List<GHPoint> getPoints() {
+        throw new IllegalStateException("use getFromPoints or getToPoints");
     }
 
     public List<GHPoint> getFromPoints() {

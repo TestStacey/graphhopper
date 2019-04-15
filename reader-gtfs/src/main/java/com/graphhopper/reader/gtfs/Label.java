@@ -17,7 +17,6 @@
  */
 package com.graphhopper.reader.gtfs;
 
-import com.graphhopper.storage.Graph;
 import com.graphhopper.util.EdgeIteratorState;
 
 import java.time.Instant;
@@ -142,7 +141,8 @@ public class Label {
     }
 
     private static EdgeLabel getEdgeLabel(EdgeIteratorState edgeIteratorState, PtFlagEncoder flagEncoder) {
-        return new EdgeLabel(edgeIteratorState, flagEncoder.getEdgeType(edgeIteratorState.getFlags()), flagEncoder.getValidityId(edgeIteratorState.getFlags()), flagEncoder.getTransfers(edgeIteratorState.getFlags()), edgeIteratorState.getDistance());
+        return new EdgeLabel(edgeIteratorState, edgeIteratorState.get(flagEncoder.getTypeEnc()), edgeIteratorState.get(flagEncoder.getValidityIdEnc()),
+                edgeIteratorState.get(flagEncoder.getTransfersEnc()), edgeIteratorState.getDistance());
     }
 
 }

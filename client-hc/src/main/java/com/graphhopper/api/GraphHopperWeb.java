@@ -1,9 +1,9 @@
 /*
- *  Licensed to GraphHopper and Peter Karich under one or more contributor
+ *  Licensed to GraphHopper GmbH under one or more contributor
  *  license agreements. See the NOTICE file distributed with this work for
  *  additional information regarding copyright ownership.
  *
- *  GraphHopper licenses this file to you under the Apache License,
+ *  GraphHopper GmbH licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except in
  *  compliance with the License. You may obtain a copy of the License at
  *
@@ -20,7 +20,10 @@ package com.graphhopper.api;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.graphhopper.*;
+import com.graphhopper.GHRequest;
+import com.graphhopper.GHResponse;
+import com.graphhopper.GraphHopperAPI;
+import com.graphhopper.PathWrapper;
 import com.graphhopper.http.WebHelper;
 import com.graphhopper.jackson.Jackson;
 import com.graphhopper.util.*;
@@ -348,11 +351,11 @@ public class GraphHopperWeb implements GraphHopperAPI {
 
     @Override
     public GHResponse route(GHRequest request) {
+        ResponseBody rspBody = null;
         try {
             Request okRequest = createRequest(request);
-            ResponseBody rspBody = getClientForRequest(request).newCall(okRequest).execute().body();
+            rspBody = getClientForRequest(request).newCall(okRequest).execute().body();
             JsonNode json = objectMapper.reader().readTree(rspBody.byteStream());
-            rspBody.close();
 
             GHResponse res = new GHResponse();
             res.addErrors(readErrors(json));
@@ -373,6 +376,8 @@ public class GraphHopperWeb implements GraphHopperAPI {
 
         } catch (Exception ex) {
             throw new RuntimeException("Problem while fetching path " + request.getPoints() + ": " + ex.getMessage(), ex);
+        } finally {
+            Helper.close(rspBody);
         }
     }
 
@@ -402,8 +407,7 @@ public class GraphHopperWeb implements GraphHopperAPI {
         boolean tmpElevation = request.getHints().getBool("elevation", elevation);
 
         String places = "";
-        for (GHLocation l : request.getPoints()) {
-            GHPoint p = ((GHPointLocation) l).ghPoint;
+        for (GHPoint p : request.getPoints()) {
             places += "point=" + round6(p.lat) + "," + round6(p.lon) + "&";
         }
 

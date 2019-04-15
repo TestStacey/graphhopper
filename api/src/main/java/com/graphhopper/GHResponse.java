@@ -17,10 +17,6 @@
  */
 package com.graphhopper;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.graphhopper.util.PMap;
 
 import java.util.ArrayList;
@@ -33,21 +29,9 @@ import java.util.List;
  * @author Peter Karich
  */
 public class GHResponse {
-
-    public static class Info {
-        private final List<String> copyrights;
-        private final int took;
-
-        public Info(List<String> copyrights, int took) {
-            this.copyrights = copyrights;
-            this.took = took;
-        }
-    }
-
     private final List<Throwable> errors = new ArrayList<>(4);
     private final PMap hintsMap = new PMap();
     private final List<PathWrapper> pathWrappers = new ArrayList<>(5);
-    private Info info;
     private String debugInfo = "";
 
     public GHResponse() {
@@ -60,7 +44,6 @@ public class GHResponse {
     /**
      * Returns the best path.
      */
-    @JsonIgnore
     public PathWrapper getBest() {
         if (pathWrappers.isEmpty())
             throw new RuntimeException("Cannot fetch best response if list is empty");
@@ -71,7 +54,6 @@ public class GHResponse {
     /**
      * This method returns the best path as well as all alternatives.
      */
-    @JsonProperty("paths")
     public List<PathWrapper> getAll() {
         return pathWrappers;
     }
@@ -79,7 +61,6 @@ public class GHResponse {
     /**
      * This method returns true if there are alternative paths available besides the best.
      */
-    @JsonIgnore
     public boolean hasAlternatives() {
         return pathWrappers.size() > 1;
     }
@@ -94,23 +75,21 @@ public class GHResponse {
         this.debugInfo += debugInfo;
     }
 
-    @JsonIgnore
     public String getDebugInfo() {
-        StringBuilder str = new StringBuilder(debugInfo);
+        String str = debugInfo;
         for (PathWrapper ar : pathWrappers) {
-            if (str.length() > 0)
-                str.append("; ");
+            if (!str.isEmpty())
+                str += "; ";
 
-            str.append(ar.getDebugInfo());
+            str += ar.getDebugInfo();
         }
-        return str.toString();
+        return str;
     }
 
     /**
      * This method returns true if one of the paths has an error or if the response itself is
      * erroneous.
      */
-    @JsonIgnore
     public boolean hasErrors() {
         if (!errors.isEmpty())
             return true;
@@ -126,9 +105,9 @@ public class GHResponse {
     /**
      * This method returns all the explicitly added errors and the errors of all paths.
      */
-    @JsonIgnore
     public List<Throwable> getErrors() {
-        List<Throwable> list = new ArrayList<>(errors);
+        List<Throwable> list = new ArrayList<>();
+        list.addAll(errors);
         for (PathWrapper ar : pathWrappers) {
             list.addAll(ar.getErrors());
         }
@@ -147,30 +126,21 @@ public class GHResponse {
 
     @Override
     public String toString() {
-        StringBuilder str = new StringBuilder();
+        String str = "";
         for (PathWrapper a : pathWrappers) {
-            str.append("; ").append(a.toString());
+            str += "; " + a.toString();
         }
 
         if (pathWrappers.isEmpty())
-            str = new StringBuilder("no paths");
+            str = "no paths";
 
         if (!errors.isEmpty())
-            str.append(", main errors: ").append(errors.toString());
+            str += ", main errors: " + errors.toString();
 
-        return str.toString();
+        return str;
     }
 
     public PMap getHints() {
         return hintsMap;
     }
-
-    public Info getInfo() {
-        return info;
-    }
-
-    public void setInfo(Info info) {
-        this.info = info;
-    }
-
 }

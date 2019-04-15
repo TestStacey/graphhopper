@@ -17,12 +17,11 @@
  */
 package com.graphhopper.util;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.graphhopper.util.shapes.GHPoint;
 import com.graphhopper.util.shapes.GHPoint3D;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -137,7 +136,7 @@ public class PointList implements Iterable<GHPoint3D>, PointAccess {
         }
 
         @Override
-        public GHPoint3D toGHPoint(int index) {
+        public GHPoint3D get(int index) {
             throw new UnsupportedOperationException("cannot access EMPTY PointList");
         }
 
@@ -427,11 +426,6 @@ public class PointList implements Iterable<GHPoint3D>, PointAccess {
         return Math.round(value * 100) / 100d;
     }
 
-    @JsonValue
-    public LineString toLineString() {
-        return toLineString(false);
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (obj == null)
@@ -577,7 +571,7 @@ public class PointList implements Iterable<GHPoint3D>, PointAccess {
         }
     }
 
-    public GHPoint3D toGHPoint(int index) {
+    public GHPoint3D get(int index) {
         return new GHPoint3D(getLatitude(index), getLongitude(index), getElevation(index));
     }
 
@@ -600,7 +594,7 @@ public class PointList implements Iterable<GHPoint3D>, PointAccess {
                 if (counter >= getSize())
                     throw new NoSuchElementException();
 
-                GHPoint3D point = PointList.this.toGHPoint(counter);
+                GHPoint3D point = PointList.this.get(counter);
                 counter++;
                 return point;
             }
