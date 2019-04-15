@@ -19,7 +19,7 @@
 package com.graphhopper.gtfs.ws;
 
 import com.graphhopper.MultiException;
-import com.graphhopper.util.shapes.GHPoint;
+import com.graphhopper.reader.gtfs.GHLocation;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -32,12 +32,12 @@ public class LocationConverterProvider implements ParamConverterProvider {
 
     @Override
     public <T> ParamConverter<T> getConverter(Class<T> rawType, Type genericType, Annotation[] annotations) {
-        if (rawType.equals(GHPoint.class)) {
+        if (rawType.equals(GHLocation.class)) {
             return new ParamConverter<T>() {
                 @Override
                 public T fromString(String value) {
                     try {
-                        return (T) GHPoint.fromString(value);
+                        return (T) GHLocation.fromString(value);
                     } catch (IllegalArgumentException ex) {
                         throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                                 .entity(new MultiException(ex))

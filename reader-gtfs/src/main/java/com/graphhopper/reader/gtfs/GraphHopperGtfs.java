@@ -22,7 +22,6 @@ import com.conveyal.gtfs.GTFSFeed;
 import com.conveyal.gtfs.model.Transfer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.transit.realtime.GtfsRealtime;
-import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.Trip;
@@ -57,8 +56,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipFile;
 
-import static com.graphhopper.util.Parameters.PT.EARLIEST_DEPARTURE_TIME;
-import static com.graphhopper.util.Parameters.PT.PROFILE_QUERY;
 import static com.graphhopper.util.Parameters.Routing.POINT_HINT;
 
 @Path("route")
@@ -126,29 +123,24 @@ public final class GraphHopperGtfs {
         private GraphExplorer graphExplorer;
         private int visitedNodes;
 
-        RequestHandler(GHRequest request) {
-            maxVisitedNodesForRequest = request.getHints().getInt(Parameters.Routing.MAX_VISITED_NODES, 1_000_000);
-            profileQuery = request.getHints().getBool(PROFILE_QUERY, false);
-            ignoreTransfers = request.getHints().getBool(Parameters.PT.IGNORE_TRANSFERS, profileQuery);
-            betaTransfers = request.getHints().getDouble("beta_transfers", 0.0);
-            betaWalkTime = request.getHints().getDouble("beta_walk_time", 1.0);
-            limitSolutions = request.getHints().getInt(Parameters.PT.LIMIT_SOLUTIONS, profileQuery ? 5 : ignoreTransfers ? 1 : Integer.MAX_VALUE);
-            final String departureTimeString = request.getHints().get(Parameters.PT.EARLIEST_DEPARTURE_TIME, "");
-            try {
-                initialTime = Instant.parse(departureTimeString);
-            } catch (DateTimeParseException e) {
-                throw new IllegalArgumentException(String.format(Locale.ROOT, "Illegal value for required parameter %s: [%s]", Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString));
-            }
-            arriveBy = request.getHints().getBool(Parameters.PT.ARRIVE_BY, false);
-            walkSpeedKmH = request.getHints().getDouble(Parameters.PT.WALK_SPEED, 5.0);
-            blockedRouteTypes = request.getHints().getInt(Parameters.PT.BLOCKED_ROUTE_TYPES, 0);
+        RequestHandler(Request request) {
+            maxVisitedNodesForRequest = request.getMaxVisitedNodes();
+            profileQuery = request.isProfileQuery();
+            ignoreTransfers = request.getIgnoreTransfers();
+            betaTransfers = request.getBetaTransfers();
+            betaWalkTime = request.getBetaWalkTime();
+            limitSolutions = Optional.ofNullable(request.getLimitSolutions()).orElse(request.isProfileQuery() ? 5 : request.getIgnoreTransfers() ? 1 : Integer.MAX_VALUE);
+            initialTime = request.getEarliestDepartureTime();
+            arriveBy = request.isArriveBy();
+            walkSpeedKmH = request.getWalkSpeedKmH();
+            blockedRouteTypes = request.getBlockedRouteTypes();
             translation = translationMap.getWithFallBack(request.getLocale());
             if (request.getPoints().size() != 2) {
                 throw new IllegalArgumentException("Exactly 2 points have to be specified, but was:" + request.getPoints().size());
             }
-            enter = new GHPointLocation(request.getPoints().get(0));
-            exit = new GHPointLocation(request.getPoints().get(1));
-            maxWalkDistancePerLeg = request.getHints().getDouble(Parameters.PT.MAX_WALK_DISTANCE_PER_LEG, Integer.MAX_VALUE);
+            enter = request.getPoints().get(0);
+            exit = request.getPoints().get(1);
+            maxWalkDistancePerLeg = request.getMaxWalkDistancePerLeg();
         }
 
         GHResponse route() {
@@ -436,36 +428,36 @@ public final class GraphHopperGtfs {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public ObjectNode route(@QueryParam("point") List<GHPoint> requestPoints,
+    public ObjectNode route(@QueryParam("point") List<GHLocation> requestPoints,
                             @QueryParam(Parameters.PT.EARLIEST_DEPARTURE_TIME) String departureTimeString,
-                            @QueryParam("locale") @DefaultValue("en") String localeStr,
-                            @QueryParam(POINT_HINT) List<String> pointHints,
-                            @QueryParam(Parameters.DETAILS.PATH_DETAILS) List<String> pathDetails) {
+                            @QueryParam("locale") String localeStr,
+                            @QueryParam(Parameters.PT.IGNORE_TRANSFERS) Boolean ignoreTransfers,
+                            @QueryParam(Parameters.PT.PROFILE_QUERY) Boolean profileQuery,
+                            @QueryParam(Parameters.PT.LIMIT_SOLUTIONS) Integer limitSolutions) {
 
         if (departureTimeString == null) {
             throw new BadRequestException(String.format(Locale.ROOT, "Illegal value for required parameter %s: [%s]", Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString));
         }
+        Instant departureTime;
         try {
-            Instant.parse(departureTimeString);
+            departureTime = Instant.parse(departureTimeString);
         } catch (DateTimeParseException e) {
             throw new BadRequestException(String.format(Locale.ROOT, "Illegal value for required parameter %s: [%s]", Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString));
         }
 
-        GHRequest request = new GHRequest(requestPoints);
-        request.setLocale(localeStr).
-                setPointHints(pointHints).
-                setPathDetails(pathDetails).getHints().put(Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString);
+        Request request = new Request(requestPoints, departureTime);
+        Optional.ofNullable(profileQuery).ifPresent(request::setProfileQuery);
+        Optional.ofNullable(ignoreTransfers).ifPresent(request::setIgnoreTransfers);
+        Optional.ofNullable(localeStr).ifPresent(s -> request.setLocale(Helper.getLocale(s)));
+        Optional.ofNullable(limitSolutions).ifPresent(request::setLimitSolutions);
+
         GHResponse route = new RequestHandler(request).route();
         return WebHelper.jsonObject(route, true, true, false, false, 0.0f);
     }
 
-    public GHResponse route(GHRequest request) {
+    public GHResponse route(Request request) {
         GHResponse route = new RequestHandler(request).route();
         return route;
-    }
-
-    public GHResponse routeStreaming(GHRequest request, Consumer<? super Label> action) {
-        return new RequestHandler(request).route(action);
     }
 
     private class TransferWithTime {
