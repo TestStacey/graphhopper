@@ -115,7 +115,7 @@ public class WrapperGraph implements Graph {
             public int length() {
                 return IntStream.concat(
                         IntStream.of(mainGraph.getAllEdges().length() - 1),
-                        StreamSupport.stream(extraEdges.values().spliterator(), false).mapToInt(cursor -> cursor.index))
+                        StreamSupport.stream(extraEdges.values().spliterator(), false).mapToInt(cursor -> cursor.value.getEdge()))
                         .max().getAsInt() + 1;
             }
 
