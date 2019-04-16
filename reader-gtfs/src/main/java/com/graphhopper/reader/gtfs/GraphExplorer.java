@@ -86,12 +86,13 @@ public final class GraphExplorer {
 
     Stream<EdgeIteratorState> exploreEdgesAround(Label label) {
         final List<VirtualEdgeIteratorState> extraEdges = reverse ? extraEdgesByDestination.get(label.adjNode) : extraEdgesBySource.get(label.adjNode);
-        Graph mainGraph = ((QueryGraph) graph).mainGraph;
-        Graph baseGraph = mainGraph.getBaseGraph();
-        int baseGraphNodes = baseGraph.getNodes();
+        Graph realtimeGraph = ((QueryGraph) graph).mainGraph;
+        Graph staticGraph = realtimeGraph.getBaseGraph();
+        int staticGraphNodes = staticGraph.getNodes();
         int queryGraphNodes = graph.getNodes();
+        int realtimeGraphNodes = realtimeGraph.getNodes();
         return Stream.concat(
-                (label.adjNode < baseGraphNodes || label.adjNode >= ((QueryGraph) graph).mainNodes && label.adjNode < queryGraphNodes) ? mainEdgesAround(label) : Stream.empty(),
+                (label.adjNode < staticGraphNodes || label.adjNode >= realtimeGraphNodes && label.adjNode < queryGraphNodes) ? mainEdgesAround(label) : Stream.empty(),
                 extraEdges.stream()).filter(new EdgeIteratorStatePredicate(label));
     }
 

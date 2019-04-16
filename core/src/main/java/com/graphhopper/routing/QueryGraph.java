@@ -53,7 +53,7 @@ public class QueryGraph implements Graph {
     private static final AngleCalc AC = Helper.ANGLE_CALC;
     public final Graph mainGraph;
     private final NodeAccess mainNodeAccess;
-    public final int mainNodes;
+    private final int mainNodes;
     private final int mainEdges;
     private final QueryGraph baseGraph;
     private final GraphExtension wrappedExtension;
