@@ -105,7 +105,12 @@ public class WrapperGraph implements Graph {
 
     @Override
     public EdgeIteratorState getEdgeIteratorState(int edgeId, int adjNode) {
-        return mainGraph.getEdgeIteratorState(edgeId, adjNode);
+        EdgeIteratorState edgeIteratorState = extraEdges.get(edgeId);
+        if (edgeIteratorState != null) {
+            return edgeIteratorState;
+        } else {
+            return mainGraph.getEdgeIteratorState(edgeId, adjNode);
+        }
     }
 
     @Override
