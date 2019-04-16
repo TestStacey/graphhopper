@@ -71,28 +71,16 @@ public final class GraphExplorer {
         this.gtfsStorage = gtfsStorage;
         this.realtimeFeed = realtimeFeed;
         this.reverse = reverse;
-        extraEdges.forEach(e -> this.extraEdges.put(e.getEdge(), e));
-        for (VirtualEdgeIteratorState extraEdge : extraEdges) {
-            if (extraEdge == null) {
-                throw new RuntimeException();
-            }
-            extraEdgesBySource.put(extraEdge.getBaseNode(), extraEdge);
-            extraEdgesByDestination.put(extraEdge.getAdjNode(), new VirtualEdgeIteratorState(extraEdge.getOriginalEdgeKey(), extraEdge.getEdge(), extraEdge.getAdjNode(),
-                    extraEdge.getBaseNode(), extraEdge.getDistance(), extraEdge.getFlags(), extraEdge.getName(), extraEdge.fetchWayGeometry(3), false));
-        }
         this.walkOnly = walkOnly;
         this.walkSpeedKmH = walkSpeedKmh;
     }
 
     Stream<EdgeIteratorState> exploreEdgesAround(Label label) {
-        final List<VirtualEdgeIteratorState> extraEdges = reverse ? extraEdgesByDestination.get(label.adjNode) : extraEdgesBySource.get(label.adjNode);
         Graph realtimeGraph = ((QueryGraph) graph).mainGraph;
         Graph staticGraph = realtimeGraph.getBaseGraph();
         int staticGraphNodes = staticGraph.getNodes();
         int realtimeGraphNodes = realtimeGraph.getNodes();
-        return Stream.concat(
-                label.adjNode < staticGraphNodes || label.adjNode >= realtimeGraphNodes ? mainEdgesAround(label) : Stream.empty(),
-                extraEdges.stream()).filter(new EdgeIteratorStatePredicate(label));
+        return mainEdgesAround(label).filter(new EdgeIteratorStatePredicate(label));
     }
 
     private Stream<EdgeIteratorState> mainEdgesAround(Label label) {
