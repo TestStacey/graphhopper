@@ -77,7 +77,7 @@ public class WrapperGraph implements Graph {
 
     @Override
     public EdgeIteratorState edge(int a, int b) {
-        return baseGraph.getEdgeIteratorState(a, b);
+        throw new RuntimeException();
     }
 
     @Override
