@@ -17,6 +17,7 @@
  */
 package com.graphhopper.reader.gtfs;
 
+import com.graphhopper.storage.Graph;
 import com.graphhopper.util.EdgeIteratorState;
 
 import java.time.Instant;
@@ -98,7 +99,7 @@ public class Label {
         return adjNode + " " + Instant.ofEpochMilli(currentTime) + " " + nTransfers + " " + nWalkDistanceConstraintViolations + " " +  (departureTime != null ? Instant.ofEpochMilli(departureTime) : "");
     }
 
-    static Iterable<Transition> reverseEdges(Label leaf, GraphExplorer graph, PtFlagEncoder flagEncoder, boolean reverseEdgeFlags) {
+    static Iterable<Transition> reverseEdges(Label leaf, Graph graph, PtFlagEncoder flagEncoder, boolean reverseEdgeFlags) {
         return new Iterable<Transition>() {
             @Override
             public Iterator<Transition> iterator() {
