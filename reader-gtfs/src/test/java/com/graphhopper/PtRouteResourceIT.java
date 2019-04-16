@@ -41,10 +41,11 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-public class ResourceIT {
+public class PtRouteResourceIT {
 
-    private static final String GRAPH_LOC = "target/ResourceIT";
+    private static final String GRAPH_LOC = "target/PtRouteResourceIT";
     private static GraphHopperGtfs graphHopper;
 
     static {
@@ -78,7 +79,7 @@ public class ResourceIT {
                 .request().buildGet().invoke();
         assertEquals(200, response.getStatus());
         GHResponse ghResponse = response.readEntity(GHResponse.class);
-        System.out.println(ghResponse);
+        assertFalse(ghResponse.hasErrors());
     }
 
     @Test
@@ -89,7 +90,8 @@ public class ResourceIT {
                 .queryParam(Parameters.PT.EARLIEST_DEPARTURE_TIME, "2007-01-01T08:00:00Z")
                 .request().buildGet().invoke();
         assertEquals(200, response.getStatus());
-        GHResponse json = response.readEntity(GHResponse.class);
+        GHResponse ghResponse = response.readEntity(GHResponse.class);
+        assertFalse(ghResponse.hasErrors());
     }
 
 }

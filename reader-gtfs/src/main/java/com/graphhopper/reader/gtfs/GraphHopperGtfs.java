@@ -154,7 +154,6 @@ public final class GraphHopperGtfs {
 
         GHResponse route(Consumer<? super Label> action) {
             StopWatch stopWatch = new StopWatch().start();
-
             ArrayList<QueryResult> pointQueryResults = new ArrayList<>();
             ArrayList<QueryResult> allQueryResults = new ArrayList<>();
             PointList points = new PointList(2, false);
@@ -184,10 +183,7 @@ public final class GraphHopperGtfs {
                 allQueryResults.add(station);
                 points.add(graphHopperStorage.getNodeAccess().getLat(node), graphHopperStorage.getNodeAccess().getLon(node));
             }
-
             queryGraph.lookup(pointQueryResults); // modifies queryGraph and queryResults!
-
-            PointList startAndEndpoint = pointListFrom(allQueryResults);
             response.addDebugInfo("idLookup:" + stopWatch.stop().getSeconds() + "s");
 
             int startNode;
@@ -200,7 +196,7 @@ public final class GraphHopperGtfs {
                 destNode = allQueryResults.get(1).getClosestNode();
             }
             List<List<Label.Transition>> solutions = findPaths(startNode, destNode);
-            parseSolutionsAndAddToResponse(solutions, startAndEndpoint);
+            parseSolutionsAndAddToResponse(solutions, points);
             return response;
         }
 
@@ -505,14 +501,6 @@ public final class GraphHopperGtfs {
                     transferWithTime.time = solution.currentTime;
                     return transferWithTime;
                 });
-    }
-
-    private PointList pointListFrom(List<QueryResult> queryResults) {
-        PointList waypoints = new PointList(queryResults.size(), true);
-        for (QueryResult qr : queryResults) {
-            waypoints.add(qr.getSnappedPoint());
-        }
-        return waypoints;
     }
 
 }
