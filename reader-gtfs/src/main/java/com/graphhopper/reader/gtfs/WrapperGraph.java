@@ -333,8 +333,6 @@ public class WrapperGraph implements Graph {
                             current = iterator.next();
                             if (filter.accept(current)) {
                                 return true;
-                            } else {
-                                return false;
                             }
                         }
                         return false;
