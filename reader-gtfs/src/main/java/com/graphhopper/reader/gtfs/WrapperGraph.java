@@ -38,6 +38,7 @@ import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.BBox;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -60,7 +61,7 @@ public class WrapperGraph implements Graph {
             }
             extraEdgesBySource.put(extraEdge.getBaseNode(), extraEdge);
             extraEdgesByDestination.put(extraEdge.getAdjNode(), new VirtualEdgeIteratorState(extraEdge.getOriginalEdgeKey(), extraEdge.getEdge(), extraEdge.getAdjNode(),
-                    extraEdge.getBaseNode(), extraEdge.getDistance(), extraEdge.getFlags(), extraEdge.getName(), extraEdge.fetchWayGeometry(3), false));
+                    extraEdge.getBaseNode(), extraEdge.getDistance(), extraEdge.getFlags(), extraEdge.getName(), extraEdge.fetchWayGeometry(3), true));
         }
     }
 
@@ -302,8 +303,9 @@ public class WrapperGraph implements Graph {
         return new EdgeExplorer() {
             @Override
             public EdgeIterator setBaseNode(int baseNode) {
-                boolean reverse = false;
-                final List<VirtualEdgeIteratorState> extraEdges = reverse ? extraEdgesByDestination.get(baseNode) : extraEdgesBySource.get(baseNode);
+                final List<VirtualEdgeIteratorState> extraEdges = new ArrayList<>();
+                extraEdges.addAll(extraEdgesBySource.get(baseNode));
+                extraEdges.addAll(extraEdgesByDestination.get(baseNode));
                 Iterator<VirtualEdgeIteratorState> iterator = extraEdges.iterator();
                 return new EdgeIterator() {
 
@@ -327,12 +329,15 @@ public class WrapperGraph implements Graph {
                                 baseGraphEdgeIterator = null;
                             }
                         }
-                        if (iterator.hasNext()) {
+                        while(iterator.hasNext()) {
                             current = iterator.next();
-                            return true;
-                        } else {
-                            return false;
+                            if (filter.accept(current)) {
+                                return true;
+                            } else {
+                                return false;
+                            }
                         }
+                        return false;
                     }
 
                     @Override
