@@ -29,8 +29,6 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static com.graphhopper.reader.gtfs.Label.reverseEdges;
-
 /**
  * Implements a Multi-Criteria Label Setting (MLS) path finding algorithm
  * with the criteria earliest arrival time and number of transfers.
