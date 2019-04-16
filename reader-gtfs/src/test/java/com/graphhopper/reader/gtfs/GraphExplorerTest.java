@@ -32,6 +32,7 @@ import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PointList;
 import org.junit.Test;
 
+import java.sql.Wrapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,19 +54,6 @@ public class GraphExplorerTest {
         pt = new PtFlagEncoder();
         foot = new FootFlagEncoder();
         encodingManager = EncodingManager.create(Arrays.asList(pt, foot), 8);
-    }
-
-    @Test
-    public void testEverythingEmpty() {
-        GraphHopperStorage graph = new GraphHopperStorage(new RAMDirectory("wurst"), encodingManager, false, new GraphExtension.NoOpExtension());
-        GtfsStorage gtfsStorage = mock(GtfsStorage.class);
-        RealtimeFeed realtimeFeed = mock(RealtimeFeed.class);
-        List<VirtualEdgeIteratorState> extraEdges = new ArrayList<>();
-        QueryGraph queryGraph = new QueryGraph(graph);
-        queryGraph.lookup(Collections.emptyList());
-        GraphExplorer testee = new GraphExplorer(queryGraph, new FastestWeighting(foot), pt, gtfsStorage, realtimeFeed, false, extraEdges, false, 5.0);
-        assertThat((Iterable<EdgeIteratorState>) () -> testee.exploreEdgesAround(new Label(0, 0, 0, 0, 0, 0.0, 0L, 0, 0, false, null)).iterator(),
-                emptyIterable());
     }
 
     @Test
@@ -105,7 +93,8 @@ public class GraphExplorerTest {
         g.set(foot.getAccessEnc(), true);
         extraEdges.add(g);
 
-        QueryGraph queryGraph = new QueryGraph(graph);
+        WrapperGraph wrapperGraph = new WrapperGraph(graph, extraEdges);
+        QueryGraph queryGraph = new QueryGraph(wrapperGraph);
         queryGraph.lookup(Collections.emptyList());
         GraphExplorer testee = new GraphExplorer(queryGraph, new FastestWeighting(foot), pt, gtfsStorage, realtimeFeed, false, extraEdges, false, 5.0);
         assertThat(() -> testee.exploreEdgesAround(new Label(0, -1, 0, 0, 0, 0.0, 0L, 0, 0, false, null)).map(Object::toString).iterator(),
@@ -140,7 +129,8 @@ public class GraphExplorerTest {
         h.set(foot.getAccessEnc(), true);
         extraEdges.add(h);
 
-        QueryGraph queryGraph = new QueryGraph(graph);
+        WrapperGraph wrapperGraph = new WrapperGraph(graph, extraEdges);
+        QueryGraph queryGraph = new QueryGraph(wrapperGraph);
         queryGraph.lookup(Collections.emptyList());
         GraphExplorer testee = new GraphExplorer(queryGraph, new FastestWeighting(foot), pt, gtfsStorage, realtimeFeed, false, extraEdges, false, 5.0);
         assertThat(() -> testee.exploreEdgesAround(new Label(0, -1, 0, 0, 0, 0.0, 0L, 0, 0, false, null)).map(Object::toString).iterator(),

@@ -89,10 +89,9 @@ public final class GraphExplorer {
         Graph realtimeGraph = ((QueryGraph) graph).mainGraph;
         Graph staticGraph = realtimeGraph.getBaseGraph();
         int staticGraphNodes = staticGraph.getNodes();
-        int queryGraphNodes = graph.getNodes();
         int realtimeGraphNodes = realtimeGraph.getNodes();
         return Stream.concat(
-                (label.adjNode < staticGraphNodes || label.adjNode >= realtimeGraphNodes && label.adjNode < queryGraphNodes) ? mainEdgesAround(label) : Stream.empty(),
+                label.adjNode < staticGraphNodes || label.adjNode >= realtimeGraphNodes ? mainEdgesAround(label) : Stream.empty(),
                 extraEdges.stream()).filter(new EdgeIteratorStatePredicate(label));
     }
 
