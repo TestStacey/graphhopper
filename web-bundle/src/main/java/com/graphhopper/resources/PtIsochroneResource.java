@@ -22,7 +22,6 @@ import com.graphhopper.isochrone.algorithm.ContourBuilder;
 import com.graphhopper.json.geo.JsonFeature;
 import com.graphhopper.reader.gtfs.*;
 import com.graphhopper.routing.QueryGraph;
-import com.graphhopper.routing.util.AllEdgesIterator;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.EncodingManager;
@@ -31,11 +30,9 @@ import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.NodeAccess;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.storage.index.QueryResult;
-import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.Parameters;
 import com.graphhopper.util.shapes.GHPoint;
 import org.locationtech.jts.geom.*;
-import org.locationtech.jts.index.strtree.STRtree;
 import org.locationtech.jts.triangulate.ConformingDelaunayTriangulator;
 import org.locationtech.jts.triangulate.ConstraintVertex;
 import org.locationtech.jts.triangulate.DelaunayTriangulationBuilder;
@@ -114,7 +111,7 @@ public class PtIsochroneResource {
         }
 
         PtFlagEncoder ptFlagEncoder = (PtFlagEncoder) encodingManager.getEncoder("pt");
-        GraphExplorer graphExplorer = new GraphExplorer(queryGraph, new FastestWeighting(encodingManager.getEncoder("foot")), ptFlagEncoder, gtfsStorage, RealtimeFeed.empty(gtfsStorage), reverseFlow, Collections.emptyList(), false, 5.0);
+        GraphExplorer graphExplorer = new GraphExplorer(queryGraph, new FastestWeighting(encodingManager.getEncoder("foot")), ptFlagEncoder, gtfsStorage, RealtimeFeed.empty(gtfsStorage), reverseFlow, false, 5.0);
         MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, ptFlagEncoder, reverseFlow, Double.MAX_VALUE, false, false, false, 1000000, Collections.emptyList());
 
         Map<Coordinate, Double> z1 = new HashMap<>();

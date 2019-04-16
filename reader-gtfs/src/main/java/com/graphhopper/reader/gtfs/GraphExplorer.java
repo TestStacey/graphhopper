@@ -48,16 +48,13 @@ public final class GraphExplorer {
     private final GtfsStorage gtfsStorage;
     private final RealtimeFeed realtimeFeed;
     private final boolean reverse;
-    private final IntObjectMap<EdgeIteratorState> extraEdges = new IntObjectHashMap<>();
-    private final ArrayListMultimap<Integer, VirtualEdgeIteratorState> extraEdgesBySource = ArrayListMultimap.create();
-    private final ArrayListMultimap<Integer, VirtualEdgeIteratorState> extraEdgesByDestination = ArrayListMultimap.create();
     private final Graph graph;
     private final Weighting accessEgressWeighting;
     private final boolean walkOnly;
     private double walkSpeedKmH;
 
 
-    public GraphExplorer(Graph graph, Weighting accessEgressWeighting, PtFlagEncoder flagEncoder, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed, boolean reverse, List<VirtualEdgeIteratorState> extraEdges, boolean walkOnly, double walkSpeedKmh) {
+    public GraphExplorer(Graph graph, Weighting accessEgressWeighting, PtFlagEncoder flagEncoder, GtfsStorage gtfsStorage, RealtimeFeed realtimeFeed, boolean reverse, boolean walkOnly, double walkSpeedKmh) {
         this.graph = graph;
         this.accessEgressWeighting = accessEgressWeighting;
         DefaultEdgeFilter accessEgressIn = DefaultEdgeFilter.inEdges(accessEgressWeighting.getFlagEncoder());
@@ -76,10 +73,6 @@ public final class GraphExplorer {
     }
 
     Stream<EdgeIteratorState> exploreEdgesAround(Label label) {
-        Graph realtimeGraph = ((QueryGraph) graph).mainGraph;
-        Graph staticGraph = realtimeGraph.getBaseGraph();
-        int staticGraphNodes = staticGraph.getNodes();
-        int realtimeGraphNodes = realtimeGraph.getNodes();
         return mainEdgesAround(label).filter(new EdgeIteratorStatePredicate(label));
     }
 
@@ -187,22 +180,11 @@ public final class GraphExplorer {
     }
 
     EdgeIteratorState getEdgeIteratorState(int edgeId, int adjNode) {
-        if (edgeId == -1) {
-            throw new RuntimeException();
+        EdgeIteratorState edge = graph.getEdgeIteratorState(edgeId, adjNode);
+        if (edge.getAdjNode() != adjNode) {
+            throw new IllegalStateException();
         }
-        EdgeIteratorState extraEdge = extraEdges.get(edgeId);
-        if (extraEdge != null) {
-            if (extraEdge.getAdjNode() != adjNode) {
-                throw new IllegalStateException();
-            }
-            return extraEdge;
-        } else {
-            EdgeIteratorState edge = graph.getEdgeIteratorState(edgeId, adjNode);
-            if (edge.getAdjNode() != adjNode) {
-                throw new IllegalStateException();
-            }
-            return edge;
-        }
+        return edge;
     }
 
     NodeAccess getNodeAccess() {
