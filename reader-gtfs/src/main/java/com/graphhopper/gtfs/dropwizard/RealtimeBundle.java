@@ -18,7 +18,6 @@
 
 package com.graphhopper.gtfs.dropwizard;
 
-import com.graphhopper.gtfs.resources.RealtimeFeedResource;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.client.HttpClientBuilder;
@@ -48,7 +47,6 @@ public class RealtimeBundle implements ConfiguredBundle<RealtimeBundleConfigurat
                 bindFactory(RealtimeFeedLoadingCache.class, Singleton.class).to(RealtimeFeed.class);
             }
         });
-        environment.jersey().register(RealtimeFeedResource.class);
     }
 
 }

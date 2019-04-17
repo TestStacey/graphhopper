@@ -244,7 +244,6 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
             }
             context.proceed();
         });
-        environment.jersey().register(StaticFeedResource.class);
         environment.lifecycle().manage(new Managed() {
             @Override
             public void start() throws Exception {
