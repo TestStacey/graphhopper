@@ -16,16 +16,15 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.resources;
+package com.graphhopper.gtfs.resources;
 
 import com.conveyal.gtfs.model.Trip;
 import com.google.protobuf.TextFormat;
 import com.google.transit.realtime.GtfsRealtime;
-import com.graphhopper.http.RealtimeFeedCache;
-import com.graphhopper.http.RealtimeFeedConfiguration;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -37,12 +36,13 @@ import java.io.PrintWriter;
 @Path("realtime-feed")
 public class RealtimeFeedResource {
 
-    private final RealtimeFeedCache realtimeFeeds;
+    private final RealtimeFeed realtimeFeed;
     private final GtfsStorage staticGtfs;
 
-    public RealtimeFeedResource(RealtimeFeedCache realtimeFeeds, GtfsStorage staticGtfs) {
+    @Inject
+    public RealtimeFeedResource(RealtimeFeed realtimeFeed, GtfsStorage staticGtfs) {
         this.staticGtfs = staticGtfs;
-        this.realtimeFeeds = realtimeFeeds;
+        this.realtimeFeed = realtimeFeed;
     }
 
     @GET
@@ -51,8 +51,7 @@ public class RealtimeFeedResource {
     public StreamingOutput dump(@PathParam("feedId") String feedId) {
         return output -> {
             PrintWriter writer = new PrintWriter(output);
-            RealtimeFeed feed = realtimeFeeds.getRealtimeFeed();
-            TextFormat.print(feed.feedMessages.get(feedId), writer);
+            TextFormat.print(realtimeFeed.feedMessages.get(feedId), writer);
             writer.flush();
         };
     }
@@ -61,16 +60,15 @@ public class RealtimeFeedResource {
     @Path("{feedId}/report")
     @Produces("text/plain")
     public StreamingOutput report(@PathParam("feedId") String feedId) {
-        RealtimeFeedConfiguration configuration = this.realtimeFeeds.getConfiguration(feedId);
         return output -> {
             PrintWriter writer = new PrintWriter(output);
-            GtfsRealtime.FeedMessage realtimeFeed = realtimeFeeds.getRealtimeFeed().feedMessages.get(feedId);
-            realtimeFeed.getEntityList().stream()
+            GtfsRealtime.FeedMessage feedMessage = realtimeFeed.feedMessages.get(feedId);
+            feedMessage.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
                 .forEach(tripUpdate -> {
                     if (tripUpdate.getTrip().getScheduleRelationship() != GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED) {
-                        Trip trip = staticGtfs.getGtfsFeeds().get(configuration.getFeedId()).trips.get(tripUpdate.getTrip().getTripId());
+                        Trip trip = staticGtfs.getGtfsFeeds().get(feedId).trips.get(tripUpdate.getTrip().getTripId());
                         if (trip == null) {
                             writer.println("Not found:");
                             try {
@@ -83,14 +81,14 @@ public class RealtimeFeedResource {
                 });
             writer.flush();
 
-            realtimeFeed.getEntityList().stream()
+            feedMessage.getEntityList().stream()
                 .filter(GtfsRealtime.FeedEntity::hasTripUpdate)
                 .map(GtfsRealtime.FeedEntity::getTripUpdate)
                 .filter(tripUpdate -> tripUpdate.getTrip().getScheduleRelationship() != GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED)
                 .map(tripUpdate -> tripUpdate.getTrip().getTripId())
-                .map(tripId -> staticGtfs.getGtfsFeeds().get(configuration.getFeedId()).trips.get(tripId))
+                .map(tripId -> staticGtfs.getGtfsFeeds().get(feedId).trips.get(tripId))
                 .map(trip -> trip.route_id)
-                .map(routeId -> staticGtfs.getGtfsFeeds().get(configuration.getFeedId()).routes.get(routeId))
+                .map(routeId -> staticGtfs.getGtfsFeeds().get(feedId).routes.get(routeId))
                 .map(route -> route.agency_id)
                 .distinct()
                 .forEach(agency_id -> writer.println(agency_id));

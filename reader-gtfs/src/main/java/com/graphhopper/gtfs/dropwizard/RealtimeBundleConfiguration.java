@@ -16,12 +16,12 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.http;
+package com.graphhopper.gtfs.dropwizard;
 
-import com.graphhopper.util.CmdArgs;
+import java.util.List;
 
-public interface GraphHopperBundleConfiguration {
+public interface RealtimeBundleConfiguration {
 
-    CmdArgs getGraphHopperConfiguration();
+    List<RealtimeFeedConfiguration> gtfsrealtime();
 
 }

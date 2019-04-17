@@ -19,13 +19,11 @@
 package com.graphhopper.http;
 
 import com.bedatadriven.jackson.datatype.jts.JtsModule;
-import com.codahale.metrics.health.HealthCheck;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.SerializationConfig;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
@@ -39,7 +37,6 @@ import com.graphhopper.jackson.GraphHopperModule;
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
-import com.graphhopper.reader.gtfs.RealtimeFeed;
 import com.graphhopper.resources.*;
 import com.graphhopper.routing.util.CarFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
@@ -49,7 +46,6 @@ import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.util.CmdArgs;
 import com.graphhopper.util.TranslationMap;
-import com.graphhopper.util.details.PathDetail;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
@@ -59,7 +55,6 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import javax.inject.Inject;
 import javax.ws.rs.ext.WriterInterceptor;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -219,22 +214,10 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
                 configuration.getGraphHopperConfiguration().has("datareader.file") ? Arrays.asList(configuration.getGraphHopperConfiguration().get("datareader.file", "").split(",")) : Collections.emptyList());
         final TranslationMap translationMap = GraphHopperGtfs.createTranslationMap();
         final LocationIndex locationIndex = GraphHopperGtfs.createOrLoadIndex(ghDirectory, graphHopperStorage);
-        RealtimeFeedCache realtimeFeedCache = new RealtimeFeedCache(graphHopperStorage, gtfsStorage, ptFlagEncoder, configuration.gtfsrealtime());
         environment.jersey().register(new AbstractBinder() {
             @Override
             protected void configure() {
                 bind(configuration.getGraphHopperConfiguration()).to(CmdArgs.class);
-                bindFactory(new Factory<RealtimeFeed>() {
-                    @Override
-                    public RealtimeFeed provide() {
-                        return realtimeFeedCache.getRealtimeFeed();
-                    }
-
-                    @Override
-                    public void dispose(RealtimeFeed instance) {
-
-                    }
-                }).to(RealtimeFeed.class);
                 bind(false).to(Boolean.class).named("hasElevation");
                 bind(locationIndex).to(LocationIndex.class);
                 bind(translationMap).to(TranslationMap.class);
@@ -243,13 +226,6 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
                 bind(graphHopperStorage).to(GraphHopperStorage.class);
                 bind(gtfsStorage).to(GtfsStorage.class);
                 bindFactory(RasterHullBuilderFactory.class).to(DelaunayTriangulationIsolineBuilder.class);
-            }
-        });
-        environment.healthChecks().register("realtime-feed", new HealthCheck() {
-            @Override
-            protected Result check() throws Exception {
-                configuration.gtfsrealtime().forEach(RealtimeFeedConfiguration::getFeedMessage);
-                return Result.healthy();
             }
         });
         environment.jersey().register(NearestResource.class);
@@ -269,7 +245,6 @@ public class GraphHopperBundle implements ConfiguredBundle<GraphHopperBundleConf
             context.proceed();
         });
         environment.jersey().register(StaticFeedResource.class);
-        environment.jersey().register(new RealtimeFeedResource(realtimeFeedCache, gtfsStorage));
         environment.lifecycle().manage(new Managed() {
             @Override
             public void start() throws Exception {

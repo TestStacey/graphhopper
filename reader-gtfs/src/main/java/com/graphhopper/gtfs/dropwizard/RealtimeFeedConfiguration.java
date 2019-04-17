@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.http;
+package com.graphhopper.gtfs.dropwizard;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.transit.realtime.GtfsRealtime;

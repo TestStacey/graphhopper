@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package com.graphhopper.http;
+package com.graphhopper.gtfs.dropwizard;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -28,18 +28,23 @@ import com.graphhopper.reader.gtfs.GtfsStorage;
 import com.graphhopper.reader.gtfs.PtFlagEncoder;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 import com.graphhopper.storage.GraphHopperStorage;
+import org.glassfish.hk2.api.Factory;
 
+import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-public class RealtimeFeedCache {
+public class RealtimeFeedCache implements Factory<RealtimeFeed> {
 
     private GraphHopperStorage graphHopperStorage;
     private GtfsStorage gtfsStorage;
     private PtFlagEncoder ptFlagEncoder;
-    private List<RealtimeFeedConfiguration> configurations;
+    private RealtimeBundleConfiguration bundleConfiguration;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private LoadingCache<String, RealtimeFeed> cache = CacheBuilder.newBuilder()
@@ -60,20 +65,22 @@ public class RealtimeFeedCache {
 
     private RealtimeFeed fetchFeedsAndCreateGraph() {
         Map<String, GtfsRealtime.FeedMessage> feedMessageMap = new HashMap<>();
-        for (RealtimeFeedConfiguration configuration : configurations) {
+        for (RealtimeFeedConfiguration configuration : bundleConfiguration.gtfsrealtime()) {
             feedMessageMap.put(configuration.getFeedId(), configuration.getFeedMessage());
         }
         return RealtimeFeed.fromProtobuf(graphHopperStorage, gtfsStorage, ptFlagEncoder, feedMessageMap);
     }
 
-    RealtimeFeedCache(GraphHopperStorage graphHopperStorage, GtfsStorage gtfsStorage, PtFlagEncoder ptFlagEncoder, List<RealtimeFeedConfiguration> gtfsrealtime) {
+    @Inject
+    RealtimeFeedCache(GraphHopperStorage graphHopperStorage, GtfsStorage gtfsStorage, PtFlagEncoder ptFlagEncoder, RealtimeBundleConfiguration bundleConfiguration) {
         this.graphHopperStorage = graphHopperStorage;
         this.gtfsStorage = gtfsStorage;
         this.ptFlagEncoder = ptFlagEncoder;
-        this.configurations = gtfsrealtime;
+        this.bundleConfiguration = bundleConfiguration;
     }
 
-    public RealtimeFeed getRealtimeFeed() {
+    @Override
+    public RealtimeFeed provide() {
         try {
             return cache.get("pups");
         } catch (ExecutionException | RuntimeException e) {
@@ -82,8 +89,13 @@ public class RealtimeFeedCache {
         }
     }
 
+    @Override
+    public void dispose(RealtimeFeed instance) {
+
+    }
+
     public RealtimeFeedConfiguration getConfiguration(String feedId) {
-        for (RealtimeFeedConfiguration realtimeFeedConfiguration : configurations) {
+        for (RealtimeFeedConfiguration realtimeFeedConfiguration : bundleConfiguration.gtfsrealtime()) {
             if (feedId.equals(realtimeFeedConfiguration.getFeedId())) {
                 return realtimeFeedConfiguration;
             }
