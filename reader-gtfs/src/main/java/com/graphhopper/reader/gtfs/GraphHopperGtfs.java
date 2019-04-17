@@ -51,7 +51,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipFile;
@@ -142,15 +141,6 @@ public final class GraphHopperGtfs {
         }
 
         GHResponse route() {
-            return route(new Consumer<Label>() {
-                @Override
-                public void accept(Label label) {
-
-                }
-            });
-        }
-
-        GHResponse route(Consumer<? super Label> action) {
             StopWatch stopWatch = new StopWatch().start();
             ArrayList<QueryResult> pointQueryResults = new ArrayList<>();
             ArrayList<QueryResult> allQueryResults = new ArrayList<>();
@@ -450,8 +440,7 @@ public final class GraphHopperGtfs {
     }
 
     public GHResponse route(Request request) {
-        GHResponse route = new RequestHandler(request).route();
-        return route;
+        return new RequestHandler(request).route();
     }
 
     private class TransferWithTime {
