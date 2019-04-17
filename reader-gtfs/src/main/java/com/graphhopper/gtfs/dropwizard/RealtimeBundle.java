@@ -18,13 +18,16 @@
 
 package com.graphhopper.gtfs.dropwizard;
 
-import com.codahale.metrics.health.HealthCheck;
 import com.graphhopper.gtfs.resources.RealtimeFeedResource;
 import com.graphhopper.reader.gtfs.RealtimeFeed;
 import io.dropwizard.ConfiguredBundle;
+import io.dropwizard.client.HttpClientBuilder;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import org.apache.http.client.HttpClient;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+
+import javax.inject.Singleton;
 
 public class RealtimeBundle implements ConfiguredBundle<RealtimeBundleConfiguration> {
 
@@ -34,18 +37,15 @@ public class RealtimeBundle implements ConfiguredBundle<RealtimeBundleConfigurat
 
     @Override
     public void run(RealtimeBundleConfiguration configuration, Environment environment) {
+        final HttpClient httpClient = new HttpClientBuilder(environment)
+                .using(configuration.gtfsrealtime().getHttpClientConfiguration())
+                .build("gtfs-realtime-feed-loader");
         environment.jersey().register(new AbstractBinder() {
             @Override
             protected void configure() {
+                bind(httpClient).to(HttpClient.class);
                 bind(configuration).to(RealtimeBundleConfiguration.class);
-                bindFactory(RealtimeFeedCache.class).to(RealtimeFeed.class);
-            }
-        });
-        environment.healthChecks().register("realtime-feed", new HealthCheck() {
-            @Override
-            protected Result check() throws Exception {
-                configuration.gtfsrealtime().forEach(RealtimeFeedConfiguration::getFeedMessage);
-                return Result.healthy();
+                bindFactory(RealtimeFeedLoadingCache.class, Singleton.class).to(RealtimeFeed.class);
             }
         });
         environment.jersey().register(RealtimeFeedResource.class);

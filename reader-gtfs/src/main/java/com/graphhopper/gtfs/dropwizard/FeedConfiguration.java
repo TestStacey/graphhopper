@@ -24,7 +24,7 @@ import com.google.transit.realtime.GtfsRealtime;
 import java.io.IOException;
 import java.net.URL;
 
-public class RealtimeFeedConfiguration {
+public class FeedConfiguration {
 
     private URL url;
     private String agencyId;
@@ -58,14 +58,6 @@ public class RealtimeFeedConfiguration {
     @JsonProperty
     public void setFeedId(String feedId) {
         this.feedId = feedId;
-    }
-
-    public GtfsRealtime.FeedMessage getFeedMessage() {
-        try {
-            return GtfsRealtime.FeedMessage.parseFrom(url.openStream());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
 }

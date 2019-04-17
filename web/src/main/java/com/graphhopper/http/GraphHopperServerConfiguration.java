@@ -20,7 +20,8 @@ package com.graphhopper.http;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.graphhopper.gtfs.dropwizard.RealtimeBundleConfiguration;
-import com.graphhopper.gtfs.dropwizard.RealtimeFeedConfiguration;
+import com.graphhopper.gtfs.dropwizard.FeedConfiguration;
+import com.graphhopper.gtfs.dropwizard.RealtimeConfiguration;
 import com.graphhopper.util.CmdArgs;
 import io.dropwizard.Configuration;
 import io.dropwizard.bundles.assets.AssetsBundleConfiguration;
@@ -42,7 +43,7 @@ public class GraphHopperServerConfiguration extends Configuration implements Gra
     private final AssetsConfiguration assets = AssetsConfiguration.builder().build();
 
     @JsonProperty
-    private final List<RealtimeFeedConfiguration> gtfsRealtime = new ArrayList<>();
+    private final RealtimeConfiguration gtfsRealtime = new RealtimeConfiguration();
 
     public GraphHopperServerConfiguration() {
     }
@@ -58,7 +59,7 @@ public class GraphHopperServerConfiguration extends Configuration implements Gra
     }
 
     @Override
-    public List<RealtimeFeedConfiguration> gtfsrealtime() {
+    public RealtimeConfiguration gtfsrealtime() {
         return gtfsRealtime;
     }
 }

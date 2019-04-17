@@ -18,10 +18,32 @@
 
 package com.graphhopper.gtfs.dropwizard;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.transit.realtime.GtfsRealtime;
+import io.dropwizard.client.HttpClientConfiguration;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
-public interface RealtimeBundleConfiguration {
+public class RealtimeConfiguration {
 
-    RealtimeConfiguration gtfsrealtime();
+    @Valid
+    @NotNull
+    @JsonProperty
+    private HttpClientConfiguration httpClient = new HttpClientConfiguration();
 
+    @JsonProperty
+    private List<FeedConfiguration> feeds = new ArrayList<>();
+
+    public List<FeedConfiguration> getFeeds() {
+        return feeds;
+    }
+
+    public HttpClientConfiguration getHttpClientConfiguration() {
+        return httpClient;
+    }
 }
