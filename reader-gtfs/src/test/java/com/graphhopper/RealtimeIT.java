@@ -106,7 +106,7 @@ public class RealtimeIT {
                 .setStopSequence(3)
                 .setScheduleRelationship(SKIPPED);
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
 
         PathWrapper possibleAlternative = response.getAll().stream().filter(a -> !a.isImpossible()).findFirst().get();
         assertFalse(((Trip.PtLeg) possibleAlternative.getLegs().get(0)).stops.get(0).departureCancelled);
@@ -144,7 +144,7 @@ public class RealtimeIT {
                 .setStopSequence(3)
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(3600).build());
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(2, response.getAll().size());
 
         PathWrapper best = response.getBest();
@@ -186,7 +186,7 @@ public class RealtimeIT {
                 .setStopSequence(3)
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(120).build());
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
 
         assertEquals("I am two minutes late for my bus, but the bus is two minutes late, too, so I catch it!", time(0, 5), response.getBest().getTime(), 0.1);
     }
@@ -217,7 +217,7 @@ public class RealtimeIT {
                 .setStopSequence(4)
                 .setScheduleRelationship(SKIPPED);
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(3, response.getAll().size());
 
         assertEquals("I have to continue to STAGECOACH and then go back one stop with the 07:00 bus.", time(0, 21), response.getBest().getTime(), 0.1);
@@ -253,7 +253,7 @@ public class RealtimeIT {
                 .setStopSequence(5)
                 .setScheduleRelationship(SKIPPED);
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(2, response.getAll().size());
 
         assertEquals("The 6:44 bus will not call at STAGECOACH, so I will be 30 min late at the airport.", time(1, 6), response.getBest().getTime(), 0.1);
@@ -313,7 +313,7 @@ public class RealtimeIT {
 
         }
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(1, response.getAll().size());
 
         assertEquals("Luckily, there is an extra service directly from my stop to the airport, at 6:45, taking 30 minutes", time(0, 31), response.getBest().getTime(), 0.1);
@@ -361,7 +361,7 @@ public class RealtimeIT {
                 .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setTime(LocalDateTime.of(2007,1,1,7,15).atZone(zoneId).toEpochSecond()));
 
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(1, response.getAll().size());
 
         assertEquals("There is an extra trip at 6:45 tomorrow, but that doesn't concern me today.", time(1, 5), response.getBest().getTime(), 0.1);
@@ -395,7 +395,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(0).build());
 
-        GHResponse responseWithRealtimeUpdate = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse responseWithRealtimeUpdate = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(1, responseWithRealtimeUpdate.getAll().size());
 
         Trip.PtLeg responseWithRealtimeUpdateBest = (Trip.PtLeg) responseWithRealtimeUpdate.getBest().getLegs().get(0);
@@ -434,7 +434,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(180).build());
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(1, response.getAll().size());
 
         assertEquals("My line run is 3 minutes late.", time(0, 8), response.getBest().getLegs().get(response.getBest().getLegs().size() - 1).getArrivalTime().toInstant().toEpochMilli() - initialTime.toEpochMilli(), 0.1);
@@ -470,7 +470,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(180).build());
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(1, response.getAll().size());
 
         Trip.PtLeg ptLeg = ((Trip.PtLeg) response.getBest().getLegs().get(0));
@@ -502,7 +502,7 @@ public class RealtimeIT {
                 .setStopSequence(2)
                 .setScheduleRelationship(SKIPPED);
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals("I can still use the AB1 trip", "AB1", (((Trip.PtLeg) response.getBest().getLegs().get(0)).trip_id));
         assertEquals("It takes", time(1,20), response.getBest().getTime());
     }
@@ -528,7 +528,7 @@ public class RealtimeIT {
                 TO_LAT, TO_LON
         );
         ghRequest.setEarliestDepartureTime(LocalDateTime.of(2007,1,1,0,0).atZone(zoneId).toInstant());
-        GHResponse route = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse route = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
 
         assertFalse(route.hasErrors());
         assertTrue(route.getAll().get(route.getAll().size()-1).isImpossible());
@@ -566,7 +566,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(300).build());
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
         assertEquals(2, response.getAll().size());
 
         assertEquals("The 6:44 bus will be late at STAGECOACH, so I will be 30 min late at the airport.", time(1, 6), response.getBest().getTime(), 0.1);
@@ -619,7 +619,7 @@ public class RealtimeIT {
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setTime(LocalDateTime.of(2007,1,1,6,46).atZone(zoneId).toEpochSecond()))
                 .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setTime(LocalDateTime.of(2007,1,1,6,46).atZone(zoneId).toEpochSecond()));
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
 //        assertEquals(2, response.getAll().size());
 
         assertEquals("The 6:44 bus will be late at STAGECOACH, but I won't be late because there's an extra trip.", time(0, 36), response.getBest().getTime(), 0.1);
@@ -667,7 +667,7 @@ public class RealtimeIT {
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setTime(LocalDateTime.of(2007,1,1,7,20).atZone(zoneId).toEpochSecond()))
                 .setDeparture(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setTime(LocalDateTime.of(2007,1,1,7,20).atZone(zoneId).toEpochSecond()));
 
-        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId).route(ghRequest);
+        GHResponse response = graphHopperFactory.createWith(feedMessageBuilder.build()).route(ghRequest);
 //        assertEquals(2, response.getAll().size());
 
         assertEquals("The 6:44 bus will be late at STAGECOACH, but I won't be late because there's an extra trip.", time(0, 36), response.getBest().getTime(), 0.1);
@@ -701,7 +701,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(300).build());
 
-        GraphHopperGtfs graphHopper = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId);
+        GraphHopperGtfs graphHopper = graphHopperFactory.createWith(feedMessageBuilder.build());
         GHResponse response = graphHopper.route(ghRequest);
         assertEquals(2, response.getAll().size());
 
@@ -743,7 +743,7 @@ public class RealtimeIT {
                 .setScheduleRelationship(SCHEDULED)
                 .setArrival(GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder().setDelay(300).build());
 
-        GraphHopperGtfs graphHopper = graphHopperFactory.createWith(feedMessageBuilder.build(), agencyId);
+        GraphHopperGtfs graphHopper = graphHopperFactory.createWith(feedMessageBuilder.build());
         GHResponse route = graphHopper.route(ghRequest);
 
         assertFalse(route.hasErrors());
