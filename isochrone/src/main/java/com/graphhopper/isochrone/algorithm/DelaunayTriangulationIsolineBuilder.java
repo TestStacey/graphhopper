@@ -37,7 +37,7 @@ public class DelaunayTriangulationIsolineBuilder {
      * @return a list of polygons wrapping the specified points
      */
     @SuppressWarnings("unchecked")
-    public List<LinearRing> calcList(List<List<Coordinate>> pointLists, int maxIsolines) {
+    public List<LinearRing> calcIsochrones(List<List<Coordinate>> pointLists, int maxIsolines) {
 
         if (maxIsolines > pointLists.size()) {
             throw new IllegalStateException("maxIsolines can only be smaller or equals to pointsList");

@@ -17,7 +17,6 @@ import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.shapes.GHPoint;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.LinearRing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +116,7 @@ public class IsochroneResource {
             counter++;
         }
         ArrayList<JsonFeature> features = new ArrayList<>();
-        List<LinearRing> polygonShells = delaunayTriangulationIsolineBuilder.calcList(buckets, buckets.size() - 1);
+        List<LinearRing> polygonShells = delaunayTriangulationIsolineBuilder.calcIsochrones(buckets, buckets.size() - 1);
         for (LinearRing polygonShell : polygonShells) {
             JsonFeature feature = new JsonFeature();
             HashMap<String, Object> properties = new HashMap<>();

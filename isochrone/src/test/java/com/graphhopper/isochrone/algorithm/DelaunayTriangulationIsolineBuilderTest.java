@@ -26,7 +26,7 @@ public class DelaunayTriangulationIsolineBuilderTest {
         list.add(new Coordinate(0.001, 0.002));
         list.add(new Coordinate(0.000, 0.002));
 
-        List<LinearRing> res = instance.calcList(listOfList, listOfList.size());
+        List<LinearRing> res = instance.calcIsochrones(listOfList, listOfList.size());
         LinearRing geometry = res.get(0);
         Assert.assertEquals(9, geometry.getCoordinates().length);
     }
