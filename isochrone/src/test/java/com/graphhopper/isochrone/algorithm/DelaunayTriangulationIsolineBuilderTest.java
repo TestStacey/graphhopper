@@ -5,6 +5,7 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.LinearRing;
 
 /**
  *
@@ -25,8 +26,8 @@ public class DelaunayTriangulationIsolineBuilderTest {
         list.add(new Coordinate(0.001, 0.002));
         list.add(new Coordinate(0.000, 0.002));
 
-        List<Coordinate[]> res = instance.calcList(listOfList, listOfList.size());
-        Coordinate[] geometry = res.get(0);
-        Assert.assertEquals(9, geometry.length);
+        List<LinearRing> res = instance.calcList(listOfList, listOfList.size());
+        LinearRing geometry = res.get(0);
+        Assert.assertEquals(9, geometry.getCoordinates().length);
     }
 }

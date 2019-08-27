@@ -37,7 +37,7 @@ public class DelaunayTriangulationIsolineBuilder {
      * @return a list of polygons wrapping the specified points
      */
     @SuppressWarnings("unchecked")
-    public List<Coordinate[]> calcList(List<List<Coordinate>> pointLists, int maxIsolines) {
+    public List<LinearRing> calcList(List<List<Coordinate>> pointLists, int maxIsolines) {
 
         if (maxIsolines > pointLists.size()) {
             throw new IllegalStateException("maxIsolines can only be smaller or equals to pointsList");
@@ -48,7 +48,7 @@ public class DelaunayTriangulationIsolineBuilder {
             List<Coordinate> level = pointLists.get(i);
             for (Coordinate coord : level) {
                 ConstraintVertex site = new ConstraintVertex(coord);
-                site.setZ((double) i);
+                site.setZ(i);
                 sites.add(site);
             }
         }
@@ -61,7 +61,7 @@ public class DelaunayTriangulationIsolineBuilder {
                 vertex.setZ(Double.MAX_VALUE);
             }
         }
-        ArrayList<Coordinate[]> polygonShells = new ArrayList<>();
+        ArrayList<LinearRing> polygonShells = new ArrayList<>();
         ContourBuilder contourBuilder = new ContourBuilder(tin);
         // ignore the last isoline as it forms just the convex hull
         for (int i = 0; i < maxIsolines; i++) {
@@ -78,7 +78,7 @@ public class DelaunayTriangulationIsolineBuilder {
             if (maxPolygon == null) {
                 throw new IllegalStateException("no maximum polygon was found?");
             } else {
-                polygonShells.add(maxPolygon.getExteriorRing().getCoordinates());
+                polygonShells.add((LinearRing) maxPolygon.getExteriorRing());
             }
         }
         return polygonShells;
