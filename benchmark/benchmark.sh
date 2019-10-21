@@ -39,7 +39,7 @@ measurement.clean=true \
 measurement.summaryfile=${RESULTS_DIR}summary_small.dat \
 measurement.repeats=1 \
 measurement.run_slow_routing=true \
-prepare.ch.weightings=fastest \
+"prepare.ch.weightings=fastest|u_turn_costs=40" \
 prepare.lm.weightings=no \
 "graph.flag_encoders=car|turn_costs=true" \
 prepare.ch.edge_based=edge_and_node \
@@ -57,7 +57,7 @@ measurement.clean=true \
 measurement.summaryfile=${RESULTS_DIR}summary_big.dat \
 measurement.repeats=1 \
 measurement.run_slow_routing=false \
-"prepare.ch.weightings=fastest|u_turn_costs=40" \
+prepare.ch.weightings=fastest \
 prepare.lm.weightings=fastest \
 graph.flag_encoders=car \
 prepare.ch.edge_based=off \
