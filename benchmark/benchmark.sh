@@ -57,7 +57,7 @@ measurement.clean=true \
 measurement.summaryfile=${RESULTS_DIR}summary_big.dat \
 measurement.repeats=1 \
 measurement.run_slow_routing=false \
-prepare.ch.weightings=fastest \
+prepare.ch.weightings=fastest|u_turn_costs=40 \
 prepare.lm.weightings=fastest \
 graph.flag_encoders=car \
 prepare.ch.edge_based=off \
