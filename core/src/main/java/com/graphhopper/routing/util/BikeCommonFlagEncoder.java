@@ -28,6 +28,7 @@ import com.graphhopper.util.Translation;
 
 import java.util.*;
 
+import static com.graphhopper.routing.util.EncodingManager.getKey;
 import static com.graphhopper.routing.util.PriorityCode.*;
 
 /**
@@ -44,7 +45,7 @@ abstract public class BikeCommonFlagEncoder extends AbstractFlagEncoder {
      */
     public static final int K_UNPAVED = 100;
     protected static final int PUSHING_SECTION_SPEED = 4;
-    // Pushing section heighways are parts where you need to get off your bike and push it (German: Schiebestrecke)
+    // Pushing section highways are parts where you need to get off your bike and push it (German: Schiebestrecke)
     protected final HashSet<String> pushingSectionsHighways = new HashSet<>();
     protected final HashSet<String> oppositeLanes = new HashSet<>();
     protected final Set<String> preferHighwayTags = new HashSet<>();
@@ -213,10 +214,10 @@ abstract public class BikeCommonFlagEncoder extends AbstractFlagEncoder {
     public void createEncodedValues(List<EncodedValue> registerNewEncodedValue, String prefix, int index) {
         // first two bits are reserved for route handling in superclass
         super.createEncodedValues(registerNewEncodedValue, prefix, index);
-        registerNewEncodedValue.add(speedEncoder = new FactorizedDecimalEncodedValue(prefix + "average_speed", speedBits, speedFactor, speedTwoDirections));
-        registerNewEncodedValue.add(unpavedEncoder = new SimpleBooleanEncodedValue(prefix + "paved", false));
-        registerNewEncodedValue.add(wayTypeEncoder = new SimpleIntEncodedValue(prefix + "waytype", 2, false));
-        registerNewEncodedValue.add(priorityWayEncoder = new FactorizedDecimalEncodedValue(prefix + "priority", 3, PriorityCode.getFactor(1), false));
+        registerNewEncodedValue.add(speedEncoder = new UnsignedDecimalEncodedValue(getKey(prefix, "average_speed"), speedBits, speedFactor, speedTwoDirections));
+        registerNewEncodedValue.add(unpavedEncoder = new SimpleBooleanEncodedValue(getKey(prefix, "paved"), false));
+        registerNewEncodedValue.add(wayTypeEncoder = new UnsignedIntEncodedValue(getKey(prefix, "waytype"), 2, false));
+        registerNewEncodedValue.add(priorityWayEncoder = new UnsignedDecimalEncodedValue(getKey(prefix, "priority"), 3, PriorityCode.getFactor(1), false));
     }
 
     @Override

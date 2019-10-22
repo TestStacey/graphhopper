@@ -23,7 +23,9 @@ import com.graphhopper.GraphHopperAPI;
 import com.graphhopper.MultiException;
 import com.graphhopper.http.WebHelper;
 import com.graphhopper.routing.util.HintsMap;
-import com.graphhopper.util.*;
+import com.graphhopper.util.Constants;
+import com.graphhopper.util.InstructionList;
+import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.gpx.GpxFromInstructions;
 import com.graphhopper.util.shapes.GHPoint;
 import org.slf4j.Logger;
@@ -40,6 +42,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static com.graphhopper.util.Parameters.Details.PATH_DETAILS;
 import static com.graphhopper.util.Parameters.Routing.*;
 
 /**
@@ -80,8 +83,10 @@ public class RouteResource {
             @QueryParam("weighting") @DefaultValue("fastest") String weighting,
             @QueryParam("algorithm") @DefaultValue("") String algoStr,
             @QueryParam("locale") @DefaultValue("en") String localeStr,
-            @QueryParam(Parameters.Routing.POINT_HINT) List<String> pointHints,
-            @QueryParam(Parameters.DETAILS.PATH_DETAILS) List<String> pathDetails,
+            @QueryParam(POINT_HINT) List<String> pointHints,
+            @QueryParam(CURBSIDE) List<String> curbSides,
+            @QueryParam(SNAP_PREVENTION) List<String> snapPreventions,
+            @QueryParam(PATH_DETAILS) List<String> pathDetails,
             @QueryParam("heading") List<Double> favoredHeadings,
             @QueryParam("gpx.route") @DefaultValue("true") boolean withRoute /* default to false for the route part in next API version, see #437 */,
             @QueryParam("gpx.track") @DefaultValue("true") boolean withTrack,
@@ -101,7 +106,9 @@ public class RouteResource {
             throw new IllegalArgumentException("The number of 'heading' parameters must be <= 1 "
                     + "or equal to the number of points (" + requestPoints.size() + ")");
         if (pointHints.size() > 0 && pointHints.size() != requestPoints.size())
-            throw new IllegalArgumentException("If you pass " + POINT_HINT + ", you need to pass a hint for every point, empty hints will be ignored");
+            throw new IllegalArgumentException("If you pass " + POINT_HINT + ", you need to pass exactly one hint for every point, empty hints will be ignored");
+        if (curbSides.size() > 0 && curbSides.size() != requestPoints.size())
+            throw new IllegalArgumentException("If you pass " + CURBSIDE + ", you need to pass exactly one curbside for every point, empty curbsides will be ignored");
 
         GHRequest request;
         if (favoredHeadings.size() > 0) {
@@ -118,11 +125,15 @@ public class RouteResource {
         }
 
         initHints(request.getHints(), uriInfo.getQueryParameters());
+        translateTurnCostsParamToEdgeBased(request, uriInfo.getQueryParameters());
+        enableEdgeBasedIfThereAreCurbSides(curbSides, request);
         request.setVehicle(vehicleStr).
                 setWeighting(weighting).
                 setAlgorithm(algoStr).
                 setLocale(localeStr).
                 setPointHints(pointHints).
+                setCurbSides(curbSides).
+                setSnapPreventions(snapPreventions).
                 setPathDetails(pathDetails).
                 getHints().
                 put(CALC_POINTS, calcPoints).
@@ -155,6 +166,26 @@ public class RouteResource {
                     Response.ok(WebHelper.jsonObject(ghResponse, instructions, calcPoints, enableElevation, pointsEncoded, took)).
                             header("X-GH-Took", "" + Math.round(took * 1000)).
                             build();
+        }
+    }
+
+    private void enableEdgeBasedIfThereAreCurbSides(List<String> curbSides, GHRequest request) {
+        if (!curbSides.isEmpty()) {
+            if (!request.getHints().getBool(EDGE_BASED, true)) {
+                throw new IllegalArgumentException("Disabling '" + EDGE_BASED + "' when using '" + CURBSIDE + "' is not allowed");
+            } else {
+                request.getHints().put(EDGE_BASED, true);
+            }
+        }
+    }
+
+    private void translateTurnCostsParamToEdgeBased(GHRequest request, MultivaluedMap<String, String> queryParams) {
+        if (queryParams.containsKey(TURN_COSTS)) {
+            List<String> turnCosts = queryParams.get(TURN_COSTS);
+            if (turnCosts.size() != 1) {
+                throw new IllegalArgumentException("You may only specify the turn_costs parameter once");
+            }
+            request.getHints().put(EDGE_BASED, turnCosts.get(0));
         }
     }
 

@@ -22,6 +22,7 @@ import com.carrotsearch.hppc.procedures.IntObjectProcedure;
 import com.graphhopper.coll.GHIntObjectHashMap;
 import com.graphhopper.routing.AbstractRoutingAlgorithm;
 import com.graphhopper.routing.Path;
+import com.graphhopper.routing.PathExtractor;
 import com.graphhopper.routing.util.TraversalMode;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.Graph;
@@ -29,6 +30,7 @@ import com.graphhopper.storage.NodeAccess;
 import com.graphhopper.storage.SPTEntry;
 import com.graphhopper.util.EdgeExplorer;
 import com.graphhopper.util.EdgeIterator;
+import com.graphhopper.util.shapes.GHPoint;
 import org.locationtech.jts.geom.Coordinate;
 
 import java.util.*;
@@ -101,6 +103,53 @@ public class Isochrone extends AbstractRoutingAlgorithm {
         exploreType = DISTANCE;
         this.limit = limit;
         this.finishLimit = limit + Math.max(limit * 0.14, 2_000);
+    }
+
+    public static class IsoLabelWithCoordinates {
+        public final int nodeId;
+        public int edgeId, prevEdgeId, prevNodeId;
+        public int timeMillis, prevTimeMillis;
+        public int distance, prevDistance;
+        public GHPoint coordinate, prevCoordinate;
+
+        public IsoLabelWithCoordinates(int nodeId) {
+            this.nodeId = nodeId;
+        }
+    }
+
+    public interface Callback {
+        void add(IsoLabelWithCoordinates label);
+    }
+
+    public void search(int from, final Callback callback) {
+        searchInternal(from);
+
+        final NodeAccess na = graph.getNodeAccess();
+        fromMap.forEach(new IntObjectProcedure<IsoLabel>() {
+
+            @Override
+            public void apply(int nodeId, IsoLabel label) {
+                double lat = na.getLatitude(nodeId);
+                double lon = na.getLongitude(nodeId);
+                IsoLabelWithCoordinates isoLabelWC = new IsoLabelWithCoordinates(nodeId);
+                isoLabelWC.coordinate = new GHPoint(lat, lon);
+                isoLabelWC.timeMillis = Math.round(label.time);
+                isoLabelWC.distance = (int) Math.round(label.distance);
+                isoLabelWC.edgeId = label.edge;
+                if (label.parent != null) {
+                    IsoLabel prevLabel = (IsoLabel) label.parent;
+                    nodeId = prevLabel.adjNode;
+                    double prevLat = na.getLatitude(nodeId);
+                    double prevLon = na.getLongitude(nodeId);
+                    isoLabelWC.prevNodeId = nodeId;
+                    isoLabelWC.prevEdgeId = prevLabel.edge;
+                    isoLabelWC.prevCoordinate = new GHPoint(prevLat, prevLon);
+                    isoLabelWC.prevDistance = (int) Math.round(prevLabel.distance);
+                    isoLabelWC.prevTimeMillis = Math.round(prevLabel.time);
+                }
+                callback.add(isoLabelWC);
+            }
+        });
     }
 
     public List<List<Coordinate>> searchGPS(int from, final int bucketCount) {
@@ -190,10 +239,6 @@ public class Isochrone extends AbstractRoutingAlgorithm {
                 if (!accept(iter, currEdge.edge)) {
                     continue;
                 }
-                // minor speed up
-                if (currEdge.edge == iter.getEdge()) {
-                    continue;
-                }
 
                 double tmpWeight = weighting.calcWeight(iter, reverseFlow, currEdge.edge) + currEdge.weight;
                 if (Double.isInfinite(tmpWeight))
@@ -247,7 +292,7 @@ public class Isochrone extends AbstractRoutingAlgorithm {
         if (currEdge == null || !finished()) {
             return createEmptyPath();
         }
-        return new Path(graph, weighting).setSPTEntry(currEdge).extract();
+        return PathExtractor.extractPath(graph, weighting, currEdge);
     }
 
     @Override

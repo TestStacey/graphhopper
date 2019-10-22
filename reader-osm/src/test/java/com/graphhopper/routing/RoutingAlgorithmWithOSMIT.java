@@ -556,7 +556,7 @@ public class RoutingAlgorithmWithOSMIT {
                     setCHEnabled(withCH).
                     setDataReaderFile(osmFile).
                     setGraphHopperLocation(graphFile).
-                    setEncodingManager(new EncodingManager.Builder(8).addAll(new DefaultFlagEncoderFactory(), importVehicles).build());
+                    setEncodingManager(new EncodingManager.Builder().addAll(new DefaultFlagEncoderFactory(), importVehicles).build());
 
             if (osmFile.contains("krautsand"))
                 hopper.setMinNetworkSize(0, 0);
@@ -569,7 +569,7 @@ public class RoutingAlgorithmWithOSMIT {
 
             if (withCH)
                 hopper.getCHFactoryDecorator().
-                        addWeighting(weightStr).
+                        addCHProfileAsString(weightStr).
                         setEnabled(true).
                         setEdgeBasedCHMode(CHAlgoFactoryDecorator.EdgeBasedCHMode.EDGE_OR_NODE).
                         setDisablingAllowed(true);
@@ -580,7 +580,7 @@ public class RoutingAlgorithmWithOSMIT {
             hopper.importOrLoad();
 
             TraversalMode tMode = importVehicles.contains("turn_costs=true")
-                    ? TraversalMode.EDGE_BASED_2DIR : TraversalMode.NODE_BASED;
+                    ? TraversalMode.EDGE_BASED : TraversalMode.NODE_BASED;
             FlagEncoder encoder = hopper.getEncodingManager().getEncoder(vehicle);
             HintsMap hints = new HintsMap().setWeighting(weightStr).setVehicle(vehicle);
 

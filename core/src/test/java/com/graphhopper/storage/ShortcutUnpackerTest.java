@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static com.graphhopper.routing.weighting.TurnWeighting.INFINITE_U_TURN_COSTS;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
@@ -35,7 +36,7 @@ public class ShortcutUnpackerTest {
     public static Object[] params() {
         return new Object[]{
                 TraversalMode.NODE_BASED,
-                TraversalMode.EDGE_BASED_2DIR
+                TraversalMode.EDGE_BASED
         };
     }
 
@@ -49,8 +50,8 @@ public class ShortcutUnpackerTest {
         encoder = new MotorcycleFlagEncoder(5, 5, 10);
         EncodingManager encodingManager = EncodingManager.create(encoder);
         weighting = new FastestWeighting(encoder);
-        graph = new GraphBuilder(encodingManager).setCHGraph(weighting).setEdgeBasedCH(edgeBased).create();
-        chGraph = graph.getGraph(CHGraph.class, weighting);
+        graph = new GraphBuilder(encodingManager).setCHProfiles(new CHProfile(weighting, edgeBased, INFINITE_U_TURN_COSTS)).create();
+        chGraph = graph.getCHGraph();
         if (edgeBased) {
             turnCostExtension = (TurnCostExtension) graph.getExtension();
         }
@@ -259,7 +260,7 @@ public class ShortcutUnpackerTest {
             // unpack the shortcut 0->6, traverse original edges in 'forward' order (from node 0 to 6)
             TurnWeightingVisitor visitor = new TurnWeightingVisitor();
             new ShortcutUnpacker(chGraph, visitor, edgeBased).visitOriginalEdgesFwd(10, 6, false, PREV_EDGE);
-            assertEquals("wrong weight", 6 * 0.06, visitor.weight, 1.e-3);
+            assertEquals("wrong weight", 6 * 0.06 + 17, visitor.weight, 1.e-3);
             assertEquals("wrong time", (6 * 60 + 17000), visitor.time);
         }
 
@@ -267,7 +268,7 @@ public class ShortcutUnpackerTest {
             // unpack the shortcut 0->6, traverse original edges in 'backward' order (from node 6 to 0)
             TurnWeightingVisitor visitor = new TurnWeightingVisitor();
             new ShortcutUnpacker(chGraph, visitor, edgeBased).visitOriginalEdgesFwd(10, 6, true, PREV_EDGE);
-            assertEquals("wrong weight", 6 * 0.06, visitor.weight, 1.e-3);
+            assertEquals("wrong weight", 6 * 0.06 + 17, visitor.weight, 1.e-3);
             assertEquals("wrong time", (6 * 60 + 17000), visitor.time);
         }
 
@@ -275,7 +276,7 @@ public class ShortcutUnpackerTest {
             // unpack the shortcut 6<-0, traverse original edges in 'forward' order (from node 6 to 0)
             TurnWeightingVisitor visitor = new TurnWeightingVisitor();
             new ShortcutUnpacker(chGraph, visitor, edgeBased).visitOriginalEdgesBwd(10, 0, false, NEXT_EDGE);
-            assertEquals("wrong weight", 6 * 0.06, visitor.weight, 1.e-3);
+            assertEquals("wrong weight", 6 * 0.06 + 21, visitor.weight, 1.e-3);
             assertEquals("wrong time", (6 * 60 + 21000), visitor.time);
         }
 
@@ -283,7 +284,7 @@ public class ShortcutUnpackerTest {
             // unpack the shortcut 6<-0, traverse original edges in 'backward' order (from node 0 to 6)
             TurnWeightingVisitor visitor = new TurnWeightingVisitor();
             new ShortcutUnpacker(chGraph, visitor, edgeBased).visitOriginalEdgesBwd(10, 0, true, NEXT_EDGE);
-            assertEquals("wrong weight", 6 * 0.06, visitor.weight, 1.e-3);
+            assertEquals("wrong weight", 6 * 0.06 + 21, visitor.weight, 1.e-3);
             assertEquals("wrong time", (6 * 60 + 21000), visitor.time);
         }
     }
@@ -295,11 +296,10 @@ public class ShortcutUnpackerTest {
     private void shortcut(int baseNode, int adjNode, int skip1, int skip2, int origFirst, int origLast) {
         // shortcut weight/distance is not important for us here
         double weight = 1;
-        double distance = 1;
         if (edgeBased) {
-            chGraph.shortcutEdgeBased(baseNode, adjNode, PrepareEncoder.getScFwdDir(), weight, distance, skip1, skip2, origFirst, origLast);
+            chGraph.shortcutEdgeBased(baseNode, adjNode, PrepareEncoder.getScFwdDir(), weight, skip1, skip2, origFirst, origLast);
         } else {
-            chGraph.shortcut(baseNode, adjNode, PrepareEncoder.getScFwdDir(), weight, distance, skip1, skip2);
+            chGraph.shortcut(baseNode, adjNode, PrepareEncoder.getScFwdDir(), weight, skip1, skip2);
         }
     }
 
@@ -332,7 +332,7 @@ public class ShortcutUnpackerTest {
         @Override
         public void visit(EdgeIteratorState edge, boolean reverse, int prevOrNextEdgeId) {
             time += turnWeighting.calcMillis(edge, reverse, prevOrNextEdgeId);
-            weight += weighting.calcWeight(edge, reverse, prevOrNextEdgeId);
+            weight += turnWeighting.calcWeight(edge, reverse, prevOrNextEdgeId);
         }
     }
 }

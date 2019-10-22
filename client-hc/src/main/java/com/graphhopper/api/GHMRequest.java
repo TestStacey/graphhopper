@@ -1,5 +1,6 @@
 package com.graphhopper.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.graphhopper.GHRequest;
 import com.graphhopper.util.shapes.GHPoint;
 
@@ -17,8 +18,12 @@ public class GHMRequest extends GHRequest {
     private List<GHPoint> toPoints;
     private List<String> fromPointHints;
     private List<String> toPointHints;
+    private List<String> fromCurbSides;
+    private List<String> toCurbSides;
+    private int called = 0;
     boolean identicalLists = true;
     private final Set<String> outArrays = new HashSet<>(5);
+    private boolean failFast = true;
 
     public GHMRequest() {
         this(10);
@@ -30,6 +35,8 @@ public class GHMRequest extends GHRequest {
         toPoints = new ArrayList<>(size);
         fromPointHints = new ArrayList<>(size);
         toPointHints = new ArrayList<>(size);
+        fromCurbSides = new ArrayList<>(size);
+        toCurbSides = new ArrayList<>(size);
     }
 
     /**
@@ -102,6 +109,20 @@ public class GHMRequest extends GHRequest {
         return fromPointHints;
     }
 
+    public GHMRequest addFromCurbSide(String curbSide) {
+        fromCurbSides.add(curbSide);
+        return this;
+    }
+
+    public GHMRequest setFromCurbSides(List<String> curbSides) {
+        fromCurbSides = curbSides;
+        return this;
+    }
+
+    public List<String> getFromCurbSides() {
+        return fromCurbSides;
+    }
+
     public GHMRequest addToPoint(GHPoint point) {
         toPoints.add(point);
         identicalLists = false;
@@ -128,9 +149,22 @@ public class GHMRequest extends GHRequest {
         return toPointHints;
     }
 
+    public GHMRequest addToCurbSide(String curbSide) {
+        toCurbSides.add(curbSide);
+        return this;
+    }
+
+    public GHMRequest setToCurbSides(List<String> curbSides) {
+        toCurbSides = curbSides;
+        return this;
+    }
+
+    public List<String> getToCurbSides() {
+        return toCurbSides;
+    }
+
     @Override
     public GHRequest setPointHints(List<String> pointHints) {
-        super.setPointHints(pointHints);
         this.fromPointHints = pointHints;
         this.toPointHints = pointHints;
         return this;
@@ -145,5 +179,64 @@ public class GHMRequest extends GHRequest {
     public boolean hasPointHints() {
         return this.fromPointHints.size() == this.fromPoints.size() && !fromPoints.isEmpty() &&
                 this.toPointHints.size() == this.toPoints.size() && !toPoints.isEmpty();
+    }
+
+    @Override
+    public GHRequest setCurbSides(List<String> curbSides) {
+        fromCurbSides = curbSides;
+        toCurbSides = curbSides;
+        return this;
+    }
+
+    @Override
+    public List<String> getCurbSides() {
+        throw new IllegalStateException("Use getFromCurbSides or getToCurbSides");
+    }
+
+    @Override
+    public boolean hasCurbSides() {
+        return fromCurbSides.size() == fromPoints.size() && !fromPoints.isEmpty() &&
+                toCurbSides.size() == toPoints.size() && !toPoints.isEmpty();
+    }
+
+    /**
+     * @param failFast if false the matrix calculation will be continued even when some points are not connected
+     */
+    @JsonProperty("fail_fast")
+    public void setFailFast(boolean failFast) {
+        this.failFast = failFast;
+    }
+
+    public boolean getFailFast() {
+        return failFast;
+    }
+
+    /**
+     * This method makes it more likely that hasPointHints returns true as often point hints are added although the
+     * strings are empty. But because they could be used as placeholder we do not know earlier if they are meaningless.
+     */
+    void compactPointHints() {
+        if (called > 0)
+            throw new IllegalStateException("cannot call more than once");
+        called++;
+        boolean clear = true;
+        for (String hint : toPointHints) {
+            if (!hint.isEmpty()) {
+                clear = false;
+                break;
+            }
+        }
+        if (clear)
+            toPointHints.clear();
+
+        clear = true;
+        for (String hint : fromPointHints) {
+            if (!hint.isEmpty()) {
+                clear = false;
+                break;
+            }
+        }
+        if (clear)
+            fromPointHints.clear();
     }
 }

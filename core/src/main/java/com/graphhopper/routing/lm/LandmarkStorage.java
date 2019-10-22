@@ -57,7 +57,7 @@ public class LandmarkStorage implements Storable<LandmarkStorage> {
     private static final Logger LOGGER = LoggerFactory.getLogger(LandmarkStorage.class);
     // This value is used to identify nodes where no subnetwork is associated
     private static final int UNSET_SUBNETWORK = -1;
-    // This value should only be used if subnetwork is too small to be explicitely stored
+    // This value should only be used if subnetwork is too small to be explicitly stored
     private static final int UNCLEAR_SUBNETWORK = 0;
     // one node has an associated landmark information ('one landmark row'): the forward and backward weight
     private long LM_ROW_LENGTH;
@@ -106,7 +106,7 @@ public class LandmarkStorage implements Storable<LandmarkStorage> {
         // Edge based is not really necessary because when adding turn costs while routing we can still
         // use the node based traversal as this is a smaller weight approximation and will still produce correct results
         this.traversalMode = TraversalMode.NODE_BASED;
-        final String name = AbstractWeighting.weightingToFileName(weighting, false);
+        final String name = AbstractWeighting.weightingToFileName(weighting);
         this.landmarkWeightDA = dir.find("landmarks_" + name);
 
         this.landmarks = landmarks;
@@ -502,6 +502,11 @@ public class LandmarkStorage implements Storable<LandmarkStorage> {
         if (delta == DELTA_INF)
             return Integer.MAX_VALUE;
         // throw new IllegalStateException("Do not call getToWeight for wrong landmark[" + landmarkIndex + "]=" + landmarkIDs[landmarkIndex] + " and node " + node);
+
+        // If delta is 'maxed out' (minned out, really), we can only return 0, since we can't give a better
+        // under-approximation of the weight, since it can be arbitrarily smaller than 'from'.
+        if (delta == DELTA_MIN)
+            return 0;
 
         //the right bits of "res" store the backward value
         int from = res & FROM_WEIGHT_INF;

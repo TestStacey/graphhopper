@@ -21,11 +21,13 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.graphhopper.coll.GHBitSet;
 import com.graphhopper.coll.GHBitSetImpl;
 import com.graphhopper.coll.GHIntArrayList;
+import com.graphhopper.coll.GHTBitSet;
 import com.graphhopper.routing.profiles.BooleanEncodedValue;
 import com.graphhopper.routing.profiles.DecimalEncodedValue;
 import com.graphhopper.routing.profiles.EnumEncodedValue;
 import com.graphhopper.routing.profiles.IntEncodedValue;
 import com.graphhopper.routing.util.*;
+import com.graphhopper.routing.util.parsers.*;
 import com.graphhopper.storage.*;
 import com.graphhopper.util.shapes.BBox;
 import org.slf4j.Logger;
@@ -33,6 +35,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.graphhopper.util.Helper.DIST_EARTH;
 
 /**
  * A helper class to avoid cluttering the Graph interface with all the common methods. Most of the
@@ -206,7 +210,8 @@ public class GHUtility {
             double bwdSpeed = 10 + random.nextDouble() * 120;
             if (randomSpeedEnc != null) {
                 edge.set(randomSpeedEnc, fwdSpeed);
-                edge.setReverse(randomSpeedEnc, bwdSpeed);
+                if (randomSpeedEnc.isStoreTwoDirections())
+                    edge.setReverse(randomSpeedEnc, bwdSpeed);
             }
             numEdges++;
         }
@@ -257,6 +262,11 @@ public class GHUtility {
     public static void printInfo(final Graph g, int startNode, final int counts, final EdgeFilter filter) {
         new BreadthFirstSearch() {
             int counter = 0;
+
+            @Override
+            protected GHBitSet createBitSet() {
+                return new GHTBitSet();
+            }
 
             @Override
             protected boolean goFurther(int nodeId) {
@@ -398,7 +408,7 @@ public class GHUtility {
         Directory outdir = guessDirectory(store);
         boolean is3D = store.getNodeAccess().is3D();
 
-        return new GraphHopperStorage(store.getNodeBasedCHWeightings(), store.getEdgeBasedCHWeightings(), outdir, store.getEncodingManager(),
+        return new GraphHopperStorage(store.getCHProfiles(), outdir, store.getEncodingManager(),
                 is3D, store.getExtension()).
                 create(store.getNodes());
     }
@@ -412,6 +422,11 @@ public class GHUtility {
     }
 
     public static EdgeIteratorState createMockedEdgeIteratorState(final double distance, final IntsRef flags) {
+        return createMockedEdgeIteratorState(distance, flags, 0, 1, 2, 3, 4);
+    }
+
+    public static EdgeIteratorState createMockedEdgeIteratorState(final double distance, final IntsRef flags,
+                                                                  final int base, final int adj, final int edge, final int origFirst, final int origLast) {
         return new GHUtility.DisabledEdgeIterator() {
             @Override
             public double getDistance() {
@@ -441,6 +456,46 @@ public class GHUtility {
             @Override
             public double getReverse(DecimalEncodedValue property) {
                 return property.getDecimal(true, flags);
+            }
+
+            @Override
+            public <T extends Enum> T get(EnumEncodedValue<T> property) {
+                return property.getEnum(false, flags);
+            }
+
+            @Override
+            public <T extends Enum> T getReverse(EnumEncodedValue<T> property) {
+                return property.getEnum(true, flags);
+            }
+
+            @Override
+            public int getEdge() {
+                return edge;
+            }
+
+            @Override
+            public int getBaseNode() {
+                return base;
+            }
+
+            @Override
+            public int getAdjNode() {
+                return adj;
+            }
+
+            @Override
+            public PointList fetchWayGeometry(int type) {
+                return Helper.createPointList(0, 2, 6, 4);
+            }
+
+            @Override
+            public int getOrigEdgeFirst() {
+                return origFirst;
+            }
+
+            @Override
+            public int getOrigEdgeLast() {
+                return origLast;
             }
         };
     }
@@ -491,15 +546,6 @@ public class GHUtility {
         return edgeKey / 2;
     }
 
-    /**
-     * Returns the edge key for a given edge id and adjacent node. This is needed in a few places where
-     * the base node is not known.
-     */
-    public static int getEdgeKey(Graph graph, int edgeId, int node, boolean reverse) {
-        EdgeIteratorState edgeIteratorState = graph.getEdgeIteratorState(edgeId, node);
-        return GHUtility.createEdgeKey(edgeIteratorState.getBaseNode(), edgeIteratorState.getAdjNode(), edgeId, reverse);
-    }
-
     public static IntsRef setProperties(IntsRef edgeFlags, FlagEncoder encoder, double averageSpeed, boolean fwd, boolean bwd) {
         if (averageSpeed < 0.0001 && (fwd || bwd))
             throw new IllegalStateException("Zero speed is only allowed if edge will get inaccessible. Otherwise Weighting can produce inconsistent results");
@@ -541,9 +587,25 @@ public class GHUtility {
         edge.set(accessEnc, fwd).setReverse(accessEnc, bwd);
         if (fwd)
             edge.set(avSpeedEnc, averageSpeed);
-        if (bwd)
+        if (bwd && avSpeedEnc.isStoreTwoDirections())
             edge.setReverse(avSpeedEnc, averageSpeed);
         return edge;
+    }
+
+    public static EncodingManager.Builder addDefaultEncodedValues(EncodingManager.Builder builder) {
+        return builder.add(new OSMRoadClassParser()).add(new OSMRoadClassLinkParser()).
+                add(new OSMRoadEnvironmentParser()).add(new OSMMaxSpeedParser()).add(new OSMRoadAccessParser()).
+                add(new OSMSurfaceParser());
+    }
+
+    public static void updateDistancesFor(Graph g, int node, double lat, double lon) {
+        NodeAccess na = g.getNodeAccess();
+        na.setNode(node, lat, lon);
+        EdgeIterator iter = g.createEdgeExplorer().setBaseNode(node);
+        while (iter.next()) {
+            iter.setDistance(iter.fetchWayGeometry(3).calcDistance(DIST_EARTH));
+            // System.out.println(node + "->" + adj + ": " + iter.getDistance());
+        }
     }
 
     /**

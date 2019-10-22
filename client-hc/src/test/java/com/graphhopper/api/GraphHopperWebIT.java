@@ -64,6 +64,8 @@ public class GraphHopperWebIT {
         alt = res.getBest();
         assertFalse("errors:" + res.getErrors().toString(), res.hasErrors());
         isBetween(9000, 9500, alt.getDistance());
+
+        assertEquals("[0, 1]", alt.getPointsOrder().toString());
     }
 
     @Test
@@ -102,7 +104,7 @@ public class GraphHopperWebIT {
 
         req.getHints().put(GraphHopperWeb.TIMEOUT, 1);
         try {
-            res = gh.route(req);
+            gh.route(req);
             fail();
         } catch (RuntimeException e) {
             assertEquals(SocketTimeoutException.class, e.getCause().getClass());
@@ -138,7 +140,7 @@ public class GraphHopperWebIT {
                 RoundaboutInstruction ri = (RoundaboutInstruction) i;
                 assertEquals("turn_angle was incorrect:" + ri.getTurnAngle(), -1.5, ri.getTurnAngle(), 0.1);
                 // This route contains only one roundabout and no (via) point in a roundabout
-                assertEquals("exited was incorrect:" + ri.isExited(), ri.isExited(), true);
+                assertTrue("exited was incorrect:" + ri.isExited(), ri.isExited());
             }
         }
         assertTrue("no roundabout in route?", counter > 0);
@@ -165,7 +167,7 @@ public class GraphHopperWebIT {
                 addPoint(new GHPoint(39.909736, -91.054687));
 
         GHResponse res = gh.route(req);
-        assertTrue("no erros found?", res.hasErrors());
+        assertTrue("no errors found?", res.hasErrors());
         assertTrue(res.getErrors().get(0) instanceof PointNotFoundException);
     }
 
@@ -176,7 +178,7 @@ public class GraphHopperWebIT {
                 addPoint(new GHPoint(39.909736, -91.054687));
 
         GHResponse res = gh.route(req);
-        assertTrue("no erros found?", res.hasErrors());
+        assertTrue("no errors found?", res.hasErrors());
         assertTrue(res.getErrors().get(0) instanceof PointOutOfBoundsException);
     }
 
@@ -243,6 +245,21 @@ public class GraphHopperWebIT {
     }
 
     @Test
+    public void testOptimize() {
+        // https://graphhopper.com/maps/?point=49.664184%2C11.345444&point=49.661072%2C11.384068&point=49.670628%2C11.352997&point=49.667128%2C11.404753
+        GHRequest req = new GHRequest().
+                addPoint(new GHPoint(49.664184, 11.345444)).
+                addPoint(new GHPoint(49.661072, 11.384068)).
+                addPoint(new GHPoint(49.670628, 11.352997)).
+                addPoint(new GHPoint(49.667128, 11.404753));
+        GHResponse res = gh.setOptimize("true").route(req);
+        assertFalse("errors:" + res.getErrors().toString(), res.hasErrors());
+        PathWrapper alt = res.getBest();
+        isBetween(850, 1050, alt.getRouteWeight());
+        assertEquals("[0, 2, 1, 3]", alt.getPointsOrder().toString());
+    }
+
+    @Test
     public void testMatrix() {
         GHMRequest req = AbstractGHMatrixWebTester.createRequest();
         MatrixResponse res = ghMatrix.route(req);
@@ -250,7 +267,7 @@ public class GraphHopperWebIT {
         // no distances available
         try {
             assertEquals(0, res.getDistance(1, 2), 1);
-            assertTrue(false);
+            fail("there should be an exception when trying to get distances");
         } catch (Exception ex) {
         }
 

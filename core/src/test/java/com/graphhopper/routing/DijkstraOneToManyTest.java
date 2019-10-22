@@ -21,6 +21,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.TraversalMode;
 import com.graphhopper.routing.weighting.FastestWeighting;
+import com.graphhopper.storage.CHProfile;
 import com.graphhopper.storage.Graph;
 import com.graphhopper.storage.GraphBuilder;
 import com.graphhopper.storage.GraphHopperStorage;
@@ -55,9 +56,8 @@ public class DijkstraOneToManyTest extends AbstractRoutingAlgorithmTester {
         return Arrays.asList(new Object[][]{
                 {
                         TraversalMode.NODE_BASED
-                }, //            TODO { TraversalMode.EDGE_BASED_1DIR },
-                //            TODO { TraversalMode.EDGE_BASED_2DIR },
-                //            TODO { TraversalMode.EDGE_BASED_2DIR_UTURN }
+                },
+                //            TODO { TraversalMode.EDGE_BASED },
         });
     }
 
@@ -173,7 +173,7 @@ public class DijkstraOneToManyTest extends AbstractRoutingAlgorithmTester {
 
     @Test
     public void testDifferentEdgeFilter() {
-        GraphHopperStorage g = new GraphBuilder(encodingManager).setCHGraph(new FastestWeighting(carEncoder)).create();
+        GraphHopperStorage g = new GraphBuilder(encodingManager).setCHProfiles(CHProfile.nodeBased(new FastestWeighting(carEncoder))).create();
         g.edge(4, 3, 10, true);
         g.edge(3, 6, 10, true);
 

@@ -45,31 +45,22 @@ public class GHMatrixSyncRequester extends GHMatrixAbstractRequester {
 
     @Override
     public MatrixResponse route(GHMRequest ghRequest) {
-        StringBuilder pointHintsStr = new StringBuilder();
-
         String pointsStr;
+        String pointHintsStr;
+        String curbSidesStr;
         if (ghRequest.identicalLists) {
-            pointsStr = createPointQuery(ghRequest.getFromPoints(), "point");
-
-            for (String hint : ghRequest.getFromPointHints()) {
-                if (pointHintsStr.length() > 0)
-                    pointHintsStr.append("&");
-                pointHintsStr.append("point_hint=").append(encode(hint));
-            }
+            pointsStr = createPointQuery("point", ghRequest.getFromPoints());
+            pointHintsStr = createUrlString("point_hint", ghRequest.getFromPointHints());
+            curbSidesStr = createUrlString("curbside", ghRequest.getFromCurbSides());
         } else {
-            pointsStr = createPointQuery(ghRequest.getFromPoints(), "from_point");
-            pointsStr += "&" + createPointQuery(ghRequest.getToPoints(), "to_point");
+            pointsStr = createPointQuery("from_point", ghRequest.getFromPoints());
+            pointsStr += "&" + createPointQuery("to_point", ghRequest.getToPoints());
 
-            for (String hint : ghRequest.getFromPointHints()) {
-                if (pointHintsStr.length() > 0)
-                    pointHintsStr.append("&");
-                pointHintsStr.append("from_point_hint=").append(encode(hint));
-            }
-            for (String hint : ghRequest.getToPointHints()) {
-                if (pointHintsStr.length() > 0)
-                    pointHintsStr.append("&");
-                pointHintsStr.append("to_point_hint=").append(encode(hint));
-            }
+            pointHintsStr = createUrlString("from_point_hint", ghRequest.getFromPointHints());
+            pointHintsStr += "&" + createUrlString("to_point_hint", ghRequest.getToPointHints());
+
+            curbSidesStr = createUrlString("from_curbside", ghRequest.getFromCurbSides());
+            curbSidesStr += "&" + createUrlString("to_curbside", ghRequest.getToCurbSides());
         }
 
         String outArrayStr = "";
@@ -87,7 +78,11 @@ public class GHMatrixSyncRequester extends GHMatrixAbstractRequester {
         }
 
         String url = buildURL("", ghRequest);
-        url += "&" + pointsStr + "&" + pointHintsStr + "&" + outArrayStr + "&vehicle=" + ghRequest.getVehicle();
+        url += "&" + pointsStr + "&" + pointHintsStr + "&" + curbSidesStr + "&" + outArrayStr;
+        if (!Helper.isEmpty(ghRequest.getVehicle())) {
+            url += "&vehicle=" + ghRequest.getVehicle();
+        }
+        url += "&fail_fast=" + ghRequest.getFailFast();
 
         boolean withTimes = outArraysList.contains("times");
         boolean withDistances = outArraysList.contains("distances");
@@ -106,7 +101,7 @@ public class GHMatrixSyncRequester extends GHMatrixAbstractRequester {
             }
 
             if (!matrixResponse.hasErrors())
-                fillResponseFromJson(matrixResponse, getResponseJson);
+                fillResponseFromJson(matrixResponse, getResponseJson, ghRequest.getFailFast());
 
         } catch (IOException ex) {
             throw new RuntimeException(ex);
@@ -115,7 +110,17 @@ public class GHMatrixSyncRequester extends GHMatrixAbstractRequester {
         return matrixResponse;
     }
 
-    private String createPointQuery(List<GHPoint> list, String pointName) {
+    private String createUrlString(String paramName, List<String> params) {
+        StringBuilder result = new StringBuilder();
+        for (String param : params) {
+            if (result.length() > 0)
+                result.append("&");
+            result.append(paramName).append('=').append(encode(param));
+        }
+        return result.toString();
+    }
+
+    private String createPointQuery(String pointName, List<GHPoint> list) {
         StringBuilder pointsStr = new StringBuilder();
         for (GHPoint p : list) {
             if (pointsStr.length() > 0)

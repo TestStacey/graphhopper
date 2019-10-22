@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.graphhopper.routing.util.EncodingManager.getKey;
 import static com.graphhopper.util.GHUtility.count;
 import static org.junit.Assert.*;
 
@@ -118,7 +119,7 @@ public abstract class AbstractGraphStorageTester {
     public void testSetTooBigDistance_435() {
         graph = createGHStorage();
 
-        double maxDist = EdgeAccess.MAX_DIST;
+        double maxDist = BaseGraph.MAX_DIST;
         EdgeIteratorState edge1 = graph.edge(0, 1, maxDist, true);
         assertEquals(maxDist, edge1.getDistance(), 1);
 
@@ -985,7 +986,7 @@ public abstract class AbstractGraphStorageTester {
             }
         });
         list.add(new TmpCarFlagEncoder(29, 0.001, 0));
-        EncodingManager manager = EncodingManager.create(list, 8);
+        EncodingManager manager = EncodingManager.create(list);
         graph = new GraphHopperStorage(dir, manager, false, new GraphExtension.NoOpExtension()).create(defaultSize);
 
         EdgeIteratorState edge = graph.edge(0, 1);
@@ -998,10 +999,10 @@ public abstract class AbstractGraphStorageTester {
 
         graph = new GraphHopperStorage(dir, manager, false, new GraphExtension.NoOpExtension()).create(defaultSize);
 
-        DecimalEncodedValue avSpeed0Enc = manager.getDecimalEncodedValue("car0.average_speed");
-        BooleanEncodedValue access0Enc = manager.getBooleanEncodedValue("car0.access");
-        DecimalEncodedValue avSpeed1Enc = manager.getDecimalEncodedValue("car.average_speed");
-        BooleanEncodedValue access1Enc = manager.getBooleanEncodedValue("car.access");
+        DecimalEncodedValue avSpeed0Enc = manager.getDecimalEncodedValue(getKey("car0", "average_speed"));
+        BooleanEncodedValue access0Enc = manager.getBooleanEncodedValue(getKey("car0", "access"));
+        DecimalEncodedValue avSpeed1Enc = manager.getDecimalEncodedValue(getKey("car", "average_speed"));
+        BooleanEncodedValue access1Enc = manager.getBooleanEncodedValue(getKey("car", "access"));
 
         edge = graph.edge(0, 1);
         GHUtility.setProperties(edge, list.get(0), 99.123, true, true);
@@ -1028,13 +1029,13 @@ public abstract class AbstractGraphStorageTester {
             }
         });
         list.add(new TmpCarFlagEncoder(29, 0.001, 0));
-        list.add(new TmpCarFlagEncoder(30, 0.001, 0){
+        list.add(new TmpCarFlagEncoder(30, 0.001, 0) {
             @Override
             public String toString() {
                 return "car2";
             }
         });
-        manager = EncodingManager.create(list, 20);
+        manager = EncodingManager.create(list);
         graph = new GraphHopperStorage(new RAMDirectory(), manager, false, new GraphExtension.NoOpExtension()).create(defaultSize);
         edgeIter = graph.edge(0, 1).set(access0Enc, true).setReverse(access0Enc, false);
         assertTrue(edgeIter.get(access0Enc));

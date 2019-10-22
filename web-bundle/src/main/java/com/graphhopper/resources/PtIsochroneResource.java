@@ -18,10 +18,11 @@
 
 package com.graphhopper.resources;
 
+import com.graphhopper.http.WebHelper;
 import com.graphhopper.isochrone.algorithm.ContourBuilder;
 import com.graphhopper.json.geo.JsonFeature;
 import com.graphhopper.reader.gtfs.*;
-import com.graphhopper.routing.QueryGraph;
+import com.graphhopper.routing.querygraph.QueryGraph;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.EncodingManager;
@@ -30,7 +31,6 @@ import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.NodeAccess;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.storage.index.QueryResult;
-import com.graphhopper.util.Parameters;
 import com.graphhopper.util.shapes.BBox;
 import com.graphhopper.util.shapes.GHPoint;
 import org.locationtech.jts.geom.*;
@@ -70,6 +70,7 @@ public class PtIsochroneResource {
         public static class Info {
             public List<String> copyrights = new ArrayList<>();
         }
+
         public List<JsonFeature> polygons = new ArrayList<>();
         public Info info = new Info();
     }
@@ -80,30 +81,29 @@ public class PtIsochroneResource {
             @QueryParam("point") GHPoint source,
             @QueryParam("time_limit") @DefaultValue("600") long seconds,
             @QueryParam("reverse_flow") @DefaultValue("false") boolean reverseFlow,
-            @QueryParam(Parameters.PT.EARLIEST_DEPARTURE_TIME) String departureTimeString,
-            @QueryParam(Parameters.PT.BLOCKED_ROUTE_TYPES) @DefaultValue("0") int blockedRouteTypes,
+            @QueryParam("pt.earliest_departure_time") String departureTimeString,
+            @QueryParam("pt.blocked_route_types") @DefaultValue("0") int blockedRouteTypes,
             @QueryParam("result") @DefaultValue("multipolygon") String format) {
         Instant initialTime;
         try {
             initialTime = Instant.parse(departureTimeString);
         } catch (Exception e) {
-            throw new IllegalArgumentException(String.format(Locale.ROOT, "Illegal value for required parameter %s: [%s]", Parameters.PT.EARLIEST_DEPARTURE_TIME, departureTimeString));
+            throw new IllegalArgumentException(String.format(Locale.ROOT, "Illegal value for required parameter %s: [%s]", "pt.earliest_departure_time", departureTimeString));
         }
 
         double targetZ = initialTime.toEpochMilli() + seconds * 1000;
 
         GeometryFactory geometryFactory = new GeometryFactory();
-        QueryGraph queryGraph = new QueryGraph(graphHopperStorage);
         final EdgeFilter filter = DefaultEdgeFilter.allEdges(graphHopperStorage.getEncodingManager().getEncoder("foot").getAccessEnc());
         QueryResult queryResult = locationIndex.findClosest(source.lat, source.lon, filter);
-        queryGraph.lookup(Collections.singletonList(queryResult));
+        QueryGraph queryGraph = QueryGraph.lookup(graphHopperStorage, Collections.singletonList(queryResult));
         if (!queryResult.isValid()) {
             throw new IllegalArgumentException("Cannot find point: " + source);
         }
 
-        PtFlagEncoder ptFlagEncoder = (PtFlagEncoder) encodingManager.getEncoder("pt");
-        GraphExplorer graphExplorer = new GraphExplorer(queryGraph, new FastestWeighting(encodingManager.getEncoder("foot")), ptFlagEncoder, gtfsStorage, RealtimeFeed.empty(gtfsStorage), reverseFlow, false, 5.0);
-        MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, ptFlagEncoder, reverseFlow, Double.MAX_VALUE, false, false, false, 1000000, Collections.emptyList());
+        PtEncodedValues ptEncodedValues = PtEncodedValues.fromEncodingManager(encodingManager);
+        GraphExplorer graphExplorer = new GraphExplorer(queryGraph, new FastestWeighting(encodingManager.getEncoder("foot")), ptEncodedValues, gtfsStorage, RealtimeFeed.empty(gtfsStorage), reverseFlow, false, 5.0);
+        MultiCriteriaLabelSetting router = new MultiCriteriaLabelSetting(graphExplorer, ptEncodedValues, reverseFlow, Double.MAX_VALUE, false, false, false, 1000000, Collections.emptyList());
 
         Map<Coordinate, Double> z1 = new HashMap<>();
         NodeAccess nodeAccess = queryGraph.getNodeAccess();
@@ -185,8 +185,7 @@ public class PtIsochroneResource {
                 properties.put("z", targetZ);
                 feature.setProperties(properties);
                 response.polygons.add(feature);
-                response.info.copyrights.add("GraphHopper");
-                response.info.copyrights.add("OpenStreetMap contributors");
+                response.info.copyrights.addAll(WebHelper.COPYRIGHTS);
                 return response;
             } else {
                 return wrap(isoline);
@@ -204,8 +203,7 @@ public class PtIsochroneResource {
 
         Response response = new Response();
         response.polygons.add(feature);
-        response.info.copyrights.add("GraphHopper");
-        response.info.copyrights.add("OpenStreetMap contributors");
+        response.info.copyrights.addAll(WebHelper.COPYRIGHTS);
         return response;
     }
 

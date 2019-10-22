@@ -17,10 +17,11 @@
  */
 package com.graphhopper.routing.util;
 
+import com.graphhopper.reader.OSMTurnRelation;
 import com.graphhopper.reader.ReaderRelation;
 import com.graphhopper.reader.ReaderWay;
 import com.graphhopper.routing.profiles.EncodedValue;
-import com.graphhopper.routing.profiles.FactorizedDecimalEncodedValue;
+import com.graphhopper.routing.profiles.UnsignedDecimalEncodedValue;
 import com.graphhopper.storage.IntsRef;
 import com.graphhopper.util.Helper;
 import com.graphhopper.util.PMap;
@@ -161,7 +162,7 @@ public class CarFlagEncoder extends AbstractFlagEncoder {
     public void createEncodedValues(List<EncodedValue> registerNewEncodedValue, String prefix, int index) {
         // first two bits are reserved for route handling in superclass
         super.createEncodedValues(registerNewEncodedValue, prefix, index);
-        registerNewEncodedValue.add(speedEncoder = new FactorizedDecimalEncodedValue(prefix + "average_speed", speedBits, speedFactor, speedTwoDirections));
+        registerNewEncodedValue.add(speedEncoder = new UnsignedDecimalEncodedValue(EncodingManager.getKey(prefix, "average_speed"), speedBits, speedFactor, speedTwoDirections));
     }
 
     protected double getSpeed(ReaderWay way) {
@@ -184,6 +185,11 @@ public class CarFlagEncoder extends AbstractFlagEncoder {
         }
 
         return speed;
+    }
+
+    @Override
+    public boolean acceptsTurnRelation(OSMTurnRelation relation) {
+        return relation.isVehicleTypeConcernedByTurnRestriction(restrictions);
     }
 
     @Override
@@ -251,7 +257,8 @@ public class CarFlagEncoder extends AbstractFlagEncoder {
             speed = applyBadSurfaceSpeed(way, speed);
 
             setSpeed(false, edgeFlags, speed);
-            setSpeed(true, edgeFlags, speed);
+            if (speedTwoDirections)
+                setSpeed(true, edgeFlags, speed);
 
             boolean isRoundabout = roundaboutEnc.getBool(false, edgeFlags);
             if (isOneway(way) || isRoundabout) {
@@ -269,14 +276,16 @@ public class CarFlagEncoder extends AbstractFlagEncoder {
             accessEnc.setBool(false, edgeFlags, true);
             accessEnc.setBool(true, edgeFlags, true);
             setSpeed(false, edgeFlags, ferrySpeed);
-            setSpeed(true, edgeFlags, ferrySpeed);
+            if (speedTwoDirections)
+                setSpeed(true, edgeFlags, ferrySpeed);
         }
 
         for (String restriction : restrictions) {
             if (way.hasTag(restriction, "destination")) {
                 // This is problematic as Speed != Time
                 setSpeed(false, edgeFlags, destinationSpeed);
-                setSpeed(true, edgeFlags, destinationSpeed);
+                if (speedTwoDirections)
+                    setSpeed(true, edgeFlags, destinationSpeed);
             }
         }
         return edgeFlags;
@@ -306,35 +315,6 @@ public class CarFlagEncoder extends AbstractFlagEncoder {
                 || way.hasTag("vehicle:forward")
                 || way.hasTag("motor_vehicle:backward")
                 || way.hasTag("motor_vehicle:forward");
-    }
-
-    public String getWayInfo(ReaderWay way) {
-        String str = "";
-        String highwayValue = way.getTag("highway");
-        // for now only motorway links
-        if ("motorway_link".equals(highwayValue)) {
-            String destination = way.getTag("destination");
-            if (!Helper.isEmpty(destination)) {
-                int counter = 0;
-                for (String d : destination.split(";")) {
-                    if (d.trim().isEmpty())
-                        continue;
-
-                    if (counter > 0)
-                        str += ", ";
-
-                    str += d.trim();
-                    counter++;
-                }
-            }
-        }
-        if (str.isEmpty())
-            return str;
-        // I18N
-        if (str.contains(","))
-            return "destinations: " + str;
-        else
-            return "destination: " + str;
     }
 
     /**

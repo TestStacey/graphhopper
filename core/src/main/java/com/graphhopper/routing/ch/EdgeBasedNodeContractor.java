@@ -24,15 +24,12 @@ import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.weighting.TurnWeighting;
 import com.graphhopper.storage.CHGraph;
-import com.graphhopper.storage.GraphHopperStorage;
-import com.graphhopper.storage.IntsRef;
 import com.graphhopper.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
 
 import static com.graphhopper.routing.ch.CHParameters.*;
@@ -239,7 +236,7 @@ class EdgeBasedNodeContractor extends AbstractNodeContractor {
     /**
      * A given potential loop shortcut is only necessary if there is at least one pair of original in- & out-edges for
      * which taking the loop is cheaper than doing the direct turn. However this is almost always the case, because
-     * doing a u-turn at any of the incoming edges is forbidden, i.e. he costs of the direct turn will be infinite.
+     * doing a u-turn at any of the incoming edges is forbidden, i.e. the costs of the direct turn will be infinite.
      */
     private boolean loopShortcutNecessary(int node, int firstOrigEdge, int lastOrigEdge, double loopWeight) {
         EdgeIterator inIter = loopAvoidanceInEdgeExplorer.setBaseNode(node);
@@ -299,10 +296,8 @@ class EdgeBasedNodeContractor extends AbstractNodeContractor {
         int origFirst = edgeFrom.getParent().incEdge;
         LOGGER.trace("Adding shortcut from {} to {}, weight: {}, firstOrigEdge: {}, lastOrigEdge: {}",
                 from, adjNode, edgeTo.weight, edgeFrom.getParent().incEdge, edgeTo.incEdge);
-        // todo: so far we are not using the distance in edge based CH
-        double distance = 0.0;
         int accessFlags = PrepareEncoder.getScFwdDir();
-        int shortcutId = prepareGraph.shortcutEdgeBased(from, adjNode, accessFlags, edgeTo.weight, distance, edgeFrom.edge, edgeTo.edge, origFirst, edgeTo.incEdge);
+        int shortcutId = prepareGraph.shortcutEdgeBased(from, adjNode, accessFlags, edgeTo.weight, edgeFrom.edge, edgeTo.edge, origFirst, edgeTo.incEdge);
         final int origEdgeCount = getOrigEdgeCount(edgeFrom.edge) + getOrigEdgeCount(edgeTo.edge);
         setOrigEdgeCount(shortcutId, origEdgeCount);
         addedShortcutsCount++;
@@ -319,9 +314,6 @@ class EdgeBasedNodeContractor extends AbstractNodeContractor {
     }
 
     private double getTurnCost(int inEdge, int node, int outEdge) {
-        if (illegalUTurn(outEdge, inEdge)) {
-            return Double.POSITIVE_INFINITY;
-        }
         return turnWeighting.calcTurnWeight(inEdge, node, outEdge);
     }
 
@@ -330,10 +322,6 @@ class EdgeBasedNodeContractor extends AbstractNodeContractor {
         numPrevEdges = 0;
         numOrigEdges = 0;
         numPrevOrigEdges = 0;
-    }
-
-    private boolean illegalUTurn(int inEdge, int outEdge) {
-        return outEdge == inEdge;
     }
 
     private Stats stats() {
@@ -434,6 +422,9 @@ class EdgeBasedNodeContractor extends AbstractNodeContractor {
     }
 
     private class AggressiveStrategy implements SearchStrategy {
+        private IntSet sourceNodes = new IntHashSet(10);
+        private IntSet toNodes = new IntHashSet(10);
+
         @Override
         public String getStatisticsString() {
             return witnessPathSearcher.getStatisticsString();
@@ -452,8 +443,7 @@ class EdgeBasedNodeContractor extends AbstractNodeContractor {
             Set<AddedShortcut> addedShortcuts = new HashSet<>();
 
             // first we need to identify the possible source nodes from which we can reach the center node
-            // todo: optimize collection size
-            IntSet sourceNodes = new IntHashSet(100);
+            sourceNodes.clear();
             EdgeIterator incomingEdges = inEdgeExplorer.setBaseNode(node);
             while (incomingEdges.next()) {
                 int sourceNode = incomingEdges.getAdjNode();
@@ -473,8 +463,7 @@ class EdgeBasedNodeContractor extends AbstractNodeContractor {
                     }
 
                     // now we need to identify all target nodes that can be reached from the center node
-                    // todo: optimize collection size
-                    IntSet toNodes = new IntHashSet(100);
+                    toNodes.clear();
                     EdgeIterator outgoingEdges = outEdgeExplorer.setBaseNode(node);
                     while (outgoingEdges.next()) {
                         int targetNode = outgoingEdges.getAdjNode();
@@ -497,12 +486,13 @@ class EdgeBasedNodeContractor extends AbstractNodeContractor {
                                 continue;
                             }
                             CHEntry root = entry.getParent();
-                            while (root.parent.edge != EdgeIterator.NO_EDGE) {
+                            while (EdgeIterator.Edge.isValid(root.parent.edge)) {
                                 root = root.getParent();
                             }
-                            // todo: removing this 'optimization' improves contraction time significantly, but introduces 
-                            // more shortcuts (makes slower queries). why is this so ? any 'duplicate' shortcuts should be detected at time of
-                            // insertion !??
+                            // removing this 'optimization' improves contraction time, but introduces more
+                            // shortcuts (makes slower queries). note that 'duplicate' shortcuts get detected at time
+                            // of insertion when running with adding shortcut handler, but not when we are only counting.
+                            // only running this check while counting does not seem to improve contraction time a lot.
                             AddedShortcut addedShortcut = new AddedShortcut(sourceNode, root.getParent().incEdge, targetNode, entry.incEdge);
                             if (addedShortcuts.contains(addedShortcut)) {
                                 continue;
@@ -546,7 +536,7 @@ class EdgeBasedNodeContractor extends AbstractNodeContractor {
 
         @Override
         public int hashCode() {
-            return Objects.hash(startNode, startEdge, endNode, targetEdge);
+            return 31 * startNode + endNode;
         }
     }
 

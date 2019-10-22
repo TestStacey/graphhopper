@@ -17,10 +17,7 @@
  */
 package com.graphhopper.routing.util;
 
-import com.graphhopper.reader.ConditionalTagInspector;
-import com.graphhopper.reader.ReaderNode;
-import com.graphhopper.reader.ReaderRelation;
-import com.graphhopper.reader.ReaderWay;
+import com.graphhopper.reader.*;
 import com.graphhopper.reader.osm.conditional.ConditionalOSMTagInspector;
 import com.graphhopper.reader.osm.conditional.DateRangeParser;
 import com.graphhopper.routing.profiles.*;
@@ -64,7 +61,7 @@ public abstract class AbstractFlagEncoder implements FlagEncoder {
     protected BooleanEncodedValue roundaboutEnc;
     protected DecimalEncodedValue speedEncoder;
     protected PMap properties;
-    // This value determines the maximal possible speed of any road regardless the maxspeed value
+    // This value determines the maximal possible speed of any road regardless of the maxspeed value
     // lower values allow more compact representation of the routing graph
     protected int maxPossibleSpeed;
     /* Edge Flag Encoder fields */
@@ -167,8 +164,8 @@ public abstract class AbstractFlagEncoder implements FlagEncoder {
      */
     public void createEncodedValues(List<EncodedValue> registerNewEncodedValue, String prefix, int index) {
         // define the first 2 speedBits in flags for routing
-        registerNewEncodedValue.add(accessEnc = new SimpleBooleanEncodedValue(prefix + "access", true));
-        roundaboutEnc = getBooleanEncodedValue(EncodingManager.ROUNDABOUT);
+        registerNewEncodedValue.add(accessEnc = new SimpleBooleanEncodedValue(EncodingManager.getKey(prefix, "access"), true));
+        roundaboutEnc = getBooleanEncodedValue(Roundabout.KEY);
         encoderBit = 1L << index;
     }
 
@@ -180,6 +177,8 @@ public abstract class AbstractFlagEncoder implements FlagEncoder {
     public int defineRelationBits(int index, int shift) {
         return shift;
     }
+
+    public boolean acceptsTurnRelation(OSMTurnRelation relation) { return true; }
 
     /**
      * Analyze the properties of a relation and create the routing flags for the second read step.
@@ -253,7 +252,7 @@ public abstract class AbstractFlagEncoder implements FlagEncoder {
     protected void flagsDefault(IntsRef edgeFlags, boolean forward, boolean backward) {
         if (forward)
             speedEncoder.setDecimal(false, edgeFlags, speedDefault);
-        if (backward)
+        if (backward && speedEncoder.isStoreTwoDirections())
             speedEncoder.setDecimal(true, edgeFlags, speedDefault);
         accessEnc.setBool(false, edgeFlags, forward);
         accessEnc.setBool(true, edgeFlags, backward);
@@ -308,7 +307,7 @@ public abstract class AbstractFlagEncoder implements FlagEncoder {
 
         // on some German autobahns and a very few other places
         if ("none".equals(str))
-            return 140;
+            return MaxSpeed.UNLIMITED_SIGN_SPEED;
 
         if (str.endsWith(":rural") || str.endsWith(":trunk"))
             return 80;
@@ -622,7 +621,7 @@ public abstract class AbstractFlagEncoder implements FlagEncoder {
     }
 
     @Override
-    public boolean hasEncoder(String key) {
-        return encodedValueLookup.hasEncoder(key);
+    public boolean hasEncodedValue(String key) {
+        return encodedValueLookup.hasEncodedValue(key);
     }
 }

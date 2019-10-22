@@ -19,6 +19,7 @@ package com.graphhopper.util;
 
 import com.graphhopper.coll.GHIntLongHashMap;
 import com.graphhopper.routing.profiles.BooleanEncodedValue;
+import com.graphhopper.routing.util.AllEdgesIterator;
 import com.graphhopper.routing.util.CarFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
@@ -67,6 +68,19 @@ public class GHUtilityTest {
         return g;
     }
 
+    double getLengthOfAllEdges(Graph graph) {
+        double distance = 0;
+        DistanceCalc calc = new DistanceCalc2D();
+        AllEdgesIterator iter = graph.getAllEdges();
+        while (iter.next()) {
+            // This is meant to verify that all of the same edges (including tower nodes)
+            // are included in the copied graph. Can not use iter.getDistance() since it
+            // does not verify new geometry. See #1732
+            distance += iter.fetchWayGeometry(3).calcDistance(calc);
+        }
+        return distance;
+    }
+
     @Test
     public void testSort() {
         Graph g = initUnsorted(createGraph());
@@ -80,6 +94,7 @@ public class GHUtilityTest {
         assertEquals(3.0, na.getLatitude(4), 1e-4); // 3
         assertEquals(5.0, na.getLatitude(5), 1e-4); // 7
         assertEquals(4.2, na.getLatitude(6), 1e-4); // 5
+        assertEquals(getLengthOfAllEdges(g), getLengthOfAllEdges(newG), 1e-4);
     }
 
     @Test
@@ -111,7 +126,7 @@ public class GHUtilityTest {
         Graph g = initUnsorted(createGraph());
         g.edge(0, 0, 11, true);
 
-        CHGraph lg = new GraphBuilder(encodingManager).chGraphCreate(new FastestWeighting(carEncoder));
+        CHGraph lg = new GraphBuilder(encodingManager).chGraphCreate(CHProfile.nodeBased(new FastestWeighting(carEncoder)));
         GHUtility.copyTo(g, lg);
 
         assertEquals(g.getAllEdges().length(), lg.getEdges());
@@ -123,8 +138,8 @@ public class GHUtilityTest {
         EdgeIteratorState edgeState = g.edge(6, 5, 11, true);
         edgeState.setWayGeometry(Helper.createPointList(12, 10, -1, 3));
 
-        GraphHopperStorage newStore = new GraphBuilder(encodingManager).setCHGraph(new FastestWeighting(carEncoder)).create();
-        CHGraph lg = newStore.getGraph(CHGraph.class);
+        GraphHopperStorage newStore = new GraphBuilder(encodingManager).setCHProfiles(CHProfile.nodeBased(new FastestWeighting(carEncoder))).create();
+        CHGraph lg = newStore.getCHGraph();
         GHUtility.copyTo(g, lg);
         newStore.freeze();
 
@@ -199,9 +214,9 @@ public class GHUtilityTest {
 //        TIntLongHashMap map2 = new TIntLongHashMap(100, 0.7f, -1, -1);
 //        assertFalse(map2.containsKey(0));
 //        assertFalse(map2.containsValue(0));
-//        map2.put(0, 3);
-//        map2.put(1, 0);
-//        map2.put(2, 1);
+//        map2.add(0, 3);
+//        map2.add(1, 0);
+//        map2.add(2, 1);
 //        assertTrue(map2.containsKey(0));
 //        assertTrue(map2.containsValue(0));
 //        assertEquals(3, map2.get(0));

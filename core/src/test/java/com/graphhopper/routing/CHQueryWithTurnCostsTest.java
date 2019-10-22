@@ -28,11 +28,7 @@ import com.graphhopper.routing.util.MotorcycleFlagEncoder;
 import com.graphhopper.routing.weighting.ShortestWeighting;
 import com.graphhopper.routing.weighting.TurnWeighting;
 import com.graphhopper.routing.weighting.Weighting;
-import com.graphhopper.storage.CHGraph;
-import com.graphhopper.storage.GraphBuilder;
-import com.graphhopper.storage.GraphHopperStorage;
-import com.graphhopper.storage.TurnCostExtension;
-import com.graphhopper.util.CHEdgeIteratorState;
+import com.graphhopper.storage.*;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.GHUtility;
 import org.junit.Test;
@@ -43,6 +39,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import static com.graphhopper.routing.weighting.TurnWeighting.INFINITE_U_TURN_COSTS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -57,9 +54,9 @@ public class CHQueryWithTurnCostsTest {
     private final FlagEncoder encoder = new MotorcycleFlagEncoder(5, 5, maxCost);
     private final EncodingManager encodingManager = EncodingManager.create(encoder);
     private final Weighting weighting = new ShortestWeighting(encoder);
-    private final GraphHopperStorage graph = new GraphBuilder(encodingManager).setCHGraph(weighting).setEdgeBasedCH(true).create();
+    private final GraphHopperStorage graph = new GraphBuilder(encodingManager).setCHProfiles(CHProfile.edgeBased(weighting, INFINITE_U_TURN_COSTS)).create();
     private final TurnCostExtension turnCostExtension = (TurnCostExtension) graph.getExtension();
-    private final CHGraph chGraph = graph.getGraph(CHGraph.class);
+    private final CHGraph chGraph = graph.getCHGraph();
     private String algoString;
 
     @Parameterized.Parameters(name = "{0}")
@@ -713,7 +710,6 @@ public class CHQueryWithTurnCostsTest {
 
     private AbstractBidirectionEdgeCHNoSOD createAlgo() {
         TurnWeighting chTurnWeighting = new TurnWeighting(new PreparationWeighting(weighting), turnCostExtension);
-        chTurnWeighting.setDefaultUTurnCost(0);
         AbstractBidirectionEdgeCHNoSOD algo = "astar".equals(algoString) ?
                 new AStarBidirectionEdgeCHNoSOD(chGraph, chTurnWeighting) :
                 new DijkstraBidirectionEdgeCHNoSOD(chGraph, chTurnWeighting);
@@ -722,10 +718,7 @@ public class CHQueryWithTurnCostsTest {
     }
 
     private void addShortcut(int from, int to, int firstOrigEdge, int lastOrigEdge, int skipped1, int skipped2, double weight) {
-        CHEdgeIteratorState shortcut = chGraph.shortcut(from, to);
-        // we need to set flags first because they overwrite weight etc
-        shortcut.setFlagsAndWeight(PrepareEncoder.getScFwdDir(), weight);
-        shortcut.setFirstAndLastOrigEdges(firstOrigEdge, lastOrigEdge).setSkippedEdges(skipped1, skipped2);
+        chGraph.shortcutEdgeBased(from, to, PrepareEncoder.getScFwdDir(), weight, skipped1, skipped2, firstOrigEdge, lastOrigEdge);
     }
 
     private void setLevelEqualToNodeIdForAllNodes() {
