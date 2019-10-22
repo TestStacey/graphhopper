@@ -17,9 +17,9 @@
  */
 package com.graphhopper.routing;
 
+import com.graphhopper.routing.profiles.BooleanEncodedValue;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.routing.util.EdgeFilter;
-import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.util.TraversalMode;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.Graph;
@@ -36,7 +36,7 @@ import java.util.List;
 public abstract class AbstractRoutingAlgorithm implements RoutingAlgorithm {
     protected final Graph graph;
     protected final Weighting weighting;
-    protected final FlagEncoder flagEncoder;
+    protected final BooleanEncodedValue accessEnc;
     protected final TraversalMode traversalMode;
     protected NodeAccess nodeAccess;
     protected EdgeExplorer inEdgeExplorer;
@@ -52,12 +52,12 @@ public abstract class AbstractRoutingAlgorithm implements RoutingAlgorithm {
      */
     public AbstractRoutingAlgorithm(Graph graph, Weighting weighting, TraversalMode traversalMode) {
         this.weighting = weighting;
-        this.flagEncoder = weighting.getFlagEncoder();
+        this.accessEnc = weighting.getFlagEncoder().getAccessEnc();
         this.traversalMode = traversalMode;
         this.graph = graph;
         this.nodeAccess = graph.getNodeAccess();
-        outEdgeExplorer = graph.createEdgeExplorer(DefaultEdgeFilter.outEdges(flagEncoder.getAccessEnc()));
-        inEdgeExplorer = graph.createEdgeExplorer(DefaultEdgeFilter.inEdges(flagEncoder.getAccessEnc()));
+        outEdgeExplorer = graph.createEdgeExplorer(DefaultEdgeFilter.outEdges(accessEnc));
+        inEdgeExplorer = graph.createEdgeExplorer(DefaultEdgeFilter.inEdges(accessEnc));
     }
 
     @Override

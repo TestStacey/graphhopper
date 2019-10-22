@@ -18,15 +18,18 @@
 
 package com.graphhopper.routing.ch;
 
+import com.graphhopper.routing.profiles.BooleanEncodedValue;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
-import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.weighting.Weighting;
-import com.graphhopper.storage.*;
+import com.graphhopper.storage.CHGraph;
+import com.graphhopper.storage.DAType;
+import com.graphhopper.storage.DataAccess;
+import com.graphhopper.storage.GHDirectory;
 import com.graphhopper.util.CHEdgeExplorer;
 
 abstract class AbstractNodeContractor implements NodeContractor {
     final CHGraph prepareGraph;
-    final FlagEncoder encoder;
+    final BooleanEncodedValue accessEnc;
     CHEdgeExplorer inEdgeExplorer;
     CHEdgeExplorer outEdgeExplorer;
     private final DataAccess originalEdges;
@@ -35,15 +38,15 @@ abstract class AbstractNodeContractor implements NodeContractor {
 
     public AbstractNodeContractor(CHGraph prepareGraph, Weighting weighting) {
         this.prepareGraph = prepareGraph;
-        this.encoder = weighting.getFlagEncoder();
+        this.accessEnc = weighting.getFlagEncoder().getAccessEnc();
         originalEdges = new GHDirectory("", DAType.RAM_INT).find("");
         originalEdges.create(1000);
     }
 
     @Override
     public void initFromGraph() {
-        inEdgeExplorer = prepareGraph.createEdgeExplorer(DefaultEdgeFilter.inEdges(encoder.getAccessEnc()));
-        outEdgeExplorer = prepareGraph.createEdgeExplorer(DefaultEdgeFilter.outEdges(encoder.getAccessEnc()));
+        inEdgeExplorer = prepareGraph.createEdgeExplorer(DefaultEdgeFilter.inEdges(accessEnc));
+        outEdgeExplorer = prepareGraph.createEdgeExplorer(DefaultEdgeFilter.outEdges(accessEnc));
         maxLevel = prepareGraph.getNodes();
         maxEdgesCount = prepareGraph.getOriginalEdges();
     }

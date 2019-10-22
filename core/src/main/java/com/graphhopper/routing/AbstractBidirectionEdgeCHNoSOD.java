@@ -49,8 +49,8 @@ public abstract class AbstractBidirectionEdgeCHNoSOD extends AbstractBidirAlgo {
         // we need extra edge explorers, because they get called inside a loop that already iterates over edges
         // important: we have to use different filter ids for the edge explorers here than we use for the edge
         // explorers in the superclass, otherwise this will not work with QueryGraph's edge explorer cache, see #1623.
-        innerInExplorer = baseGraph.createEdgeExplorer(DefaultEdgeFilter.inEdges(flagEncoder.getAccessEnc()).setFilterId(1));
-        innerOutExplorer = baseGraph.createEdgeExplorer(DefaultEdgeFilter.outEdges(flagEncoder.getAccessEnc()).setFilterId(1));
+        innerInExplorer = baseGraph.createEdgeExplorer(DefaultEdgeFilter.inEdges(accessEnc).setFilterId(1));
+        innerOutExplorer = baseGraph.createEdgeExplorer(DefaultEdgeFilter.outEdges(accessEnc).setFilterId(1));
     }
 
     @Override

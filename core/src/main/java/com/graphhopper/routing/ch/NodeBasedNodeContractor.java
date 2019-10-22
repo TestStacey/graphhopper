@@ -20,7 +20,9 @@ package com.graphhopper.routing.ch;
 import com.graphhopper.routing.DijkstraOneToMany;
 import com.graphhopper.routing.util.*;
 import com.graphhopper.routing.weighting.Weighting;
-import com.graphhopper.storage.*;
+import com.graphhopper.storage.CHGraph;
+import com.graphhopper.storage.Graph;
+import com.graphhopper.storage.NodeAccess;
 import com.graphhopper.util.*;
 
 import java.util.Collection;
@@ -63,7 +65,7 @@ class NodeBasedNodeContractor extends AbstractNodeContractor {
     public void initFromGraph() {
         super.initFromGraph();
         ignoreNodeFilter = new IgnoreNodeFilter(prepareGraph, maxLevel);
-        final EdgeFilter allFilter = DefaultEdgeFilter.allEdges(encoder.getAccessEnc());
+        final EdgeFilter allFilter = DefaultEdgeFilter.allEdges(accessEnc);
         final EdgeFilter remainingNodesFilter = new LevelEdgeFilter(prepareGraph) {
             @Override
             public final boolean accept(EdgeIteratorState edgeState) {
