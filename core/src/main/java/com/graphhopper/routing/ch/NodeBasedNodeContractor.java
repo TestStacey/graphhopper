@@ -50,7 +50,7 @@ class NodeBasedNodeContractor extends AbstractNodeContractor {
     private double meanDegree;
 
     NodeBasedNodeContractor(CHGraph prepareGraph, Weighting weighting, PMap pMap) {
-        super(prepareGraph, weighting);
+        super(prepareGraph, weighting.getFlagEncoder());
         this.prepareWeighting = new PreparationWeighting(weighting);
         extractParams(pMap);
     }

@@ -116,6 +116,9 @@ public class PrepareContractionHierarchies extends AbstractAlgoPreparation imple
         if (!prepareGraph.isReadyForContraction()) {
             throw new IllegalStateException("Given CHGraph has not been frozen yet");
         }
+        if (prepareGraph.getEdges() > prepareGraph.getBaseGraph().getEdges()) {
+            throw new IllegalStateException("Given CHGraph has been contracted already");
+        }
         allSW.start();
         initFromGraph();
         runGraphContraction();
@@ -512,6 +515,7 @@ public class PrepareContractionHierarchies extends AbstractAlgoPreparation imple
         private int nodesContractedPercentage;
         /**
          * Specifies how often a log message should be printed.
+         *
          * @see #periodicUpdatesPercentage
          */
         private int logMessagesPercentage;
