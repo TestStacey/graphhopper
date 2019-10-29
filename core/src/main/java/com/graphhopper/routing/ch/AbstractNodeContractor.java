@@ -20,11 +20,6 @@ package com.graphhopper.routing.ch;
 
 import com.graphhopper.routing.profiles.BooleanEncodedValue;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
-import com.graphhopper.routing.weighting.Weighting;
-import com.graphhopper.storage.CHGraph;
-import com.graphhopper.storage.DAType;
-import com.graphhopper.storage.DataAccess;
-import com.graphhopper.storage.GHDirectory;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.storage.CHGraph;
 import com.graphhopper.storage.DAType;
