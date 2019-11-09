@@ -26,6 +26,7 @@ import com.graphhopper.reader.osm.GraphHopperOSM;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.storage.index.LocationIndex;
+import com.graphhopper.util.DouglasPeucker;
 import com.graphhopper.util.Parameters;
 import com.graphhopper.util.PathMerger;
 import com.graphhopper.util.StopWatch;
@@ -97,8 +98,10 @@ public class ViaRoutingMeasurement {
             System.out.println(
                     "routing: " + nanosToMillis(nanos) + "ms (" + nanosToMillis(nanos / numPoints) + "/point, avg: " + nanosToMillis(routingAverage) + "), " +
                             "simplification: " + nanosToMillis(PathMerger.sw.getNanos()) + "ms (" + nanosToMillis(PathMerger.sw.getNanos() / numPoints) + "/point, avg: " + nanosToMillis(pathSimplificationAverage) + " (" + percentage(pathSimplificationAverage, routingAverage) + "), " +
+                            "removed: " + DouglasPeucker.numRemoved + " / " + response.getBest().getPoints().size() + ", " +
                             "checksum: " + (int) response.getBest().getRouteWeight());
             PathMerger.sw = new StopWatch();
+            DouglasPeucker.numRemoved = 0;
         }
     }
 

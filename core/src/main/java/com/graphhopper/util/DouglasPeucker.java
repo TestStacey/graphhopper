@@ -27,6 +27,7 @@ package com.graphhopper.util;
  * @author Peter Karich
  */
 public class DouglasPeucker {
+    public static int numRemoved = 0;
     private double normedMaxDist;
     private DistanceCalc calc;
     private boolean approx;
@@ -98,6 +99,7 @@ public class DouglasPeucker {
         if (removed > 0 && compress)
             points.compress();
 
+        numRemoved += removed;
         return removed;
     }
 
