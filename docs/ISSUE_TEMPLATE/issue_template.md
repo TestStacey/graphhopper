@@ -1,5 +1,5 @@
 ---
-name: Bug report
+name: Default
 about: Create a report to help us improve
 ---
 
